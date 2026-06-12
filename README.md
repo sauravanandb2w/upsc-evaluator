@@ -20,6 +20,7 @@ Open `index.html` directly in any browser — no build step, no server.
 - Missing points a topper would have covered
 - 3 actionable improvement suggestions
 - A 250-word model answer written by the AI for reference
+- **Copy-to-Abhyas buttons**: one-click clipboard copy of Score / Comments / Strengths / Weaknesses, mapped to the matching fields in [Abhyas](https://github.com/sauravanandb2w/adarsh) (personal practice log)
 - Word counter with limit-aware highlighting
 - Paper-specific evaluation logic (GS-4 ethics ≠ GS-2 polity)
 

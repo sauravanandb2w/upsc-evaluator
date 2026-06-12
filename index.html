@@ -209,6 +209,42 @@
     border: 1px solid #fecaca; font-size: 13px; margin-top: 12px;
   }
 
+  /* COPY BUTTON */
+  .copy-btn {
+    background: rgba(255,255,255,0.15);
+    color: inherit;
+    border: 1px solid rgba(255,255,255,0.25);
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.15s;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+  }
+  .copy-btn:hover { background: rgba(255,255,255,0.28); transform: none; }
+  .copy-btn.copied { background: #059669; color: #fff; border-color: #059669; }
+  .section h3 .copy-btn,
+  .section-row .copy-btn {
+    background: #f3f4f6;
+    color: #1e3a8a;
+    border: 1px solid #d1d5db;
+    margin-left: auto;
+  }
+  .section h3 .copy-btn:hover { background: #e0e7ff; }
+  .section h3 { display: flex; align-items: center; gap: 8px; }
+  .score-block .copy-btn { background: rgba(255,255,255,0.22); color: #fff; }
+  .score-block .copy-btn:hover { background: rgba(255,255,255,0.35); }
+  .score-row { display: flex; align-items: center; gap: 10px; margin-top: 8px; justify-content: center; }
+  .verdict-row { display: flex; align-items: flex-start; gap: 12px; }
+  .verdict-row .copy-btn { flex-shrink: 0; margin-top: 2px; }
+  .abhyas-hint {
+    background: #fffbeb; border: 1px solid #fde68a; color: #92400e;
+    padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-bottom: 16px;
+    display: flex; align-items: center; gap: 8px;
+  }
   .footer { text-align: center; font-size: 12px; color: #9ca3af; margin-top: 24px; }
   .footer a { color: #2563eb; text-decoration: none; }
 
@@ -305,14 +341,24 @@
   </div>
 
   <div id="result" class="card">
+    <div class="abhyas-hint">
+      📋 Tap any <strong>COPY</strong> button → paste into matching field in Abhyas (Score / Comments / Strengths / Weaknesses)
+    </div>
+
     <div class="score-block">
       <div>
         <div class="total-score"><span id="totalScore">0</span><small>/10</small></div>
         <div class="grade" id="grade"></div>
+        <div class="score-row">
+          <button class="copy-btn" type="button" data-copy="score">📋 Copy Score</button>
+        </div>
       </div>
       <div style="flex:1;">
-        <div style="font-size:13px; opacity:0.85; margin-bottom:6px;">EXAMINER'S VERDICT</div>
-        <div id="verdict" style="font-size:15px; line-height:1.5;"></div>
+        <div style="font-size:13px; opacity:0.85; margin-bottom:6px;">EXAMINER'S VERDICT (→ Abhyas Comments)</div>
+        <div class="verdict-row">
+          <div id="verdict" style="font-size:15px; line-height:1.5; flex:1;"></div>
+          <button class="copy-btn" type="button" data-copy="comments">📋 Copy</button>
+        </div>
       </div>
     </div>
 
@@ -324,27 +370,27 @@
     </div>
 
     <div class="section">
-      <h3 class="success">Strengths</h3>
+      <h3 class="success">Strengths <button class="copy-btn" type="button" data-copy="strengths">📋 Copy → Abhyas Strengths</button></h3>
       <ul class="strengths" id="strengths"></ul>
     </div>
 
     <div class="section">
-      <h3 class="danger">Weaknesses (with fixes)</h3>
+      <h3 class="danger">Weaknesses (with fixes) <button class="copy-btn" type="button" data-copy="weaknesses">📋 Copy → Abhyas Weaknesses</button></h3>
       <ul class="weak" id="weaknesses"></ul>
     </div>
 
     <div class="section">
-      <h3 class="warn">Missing Points</h3>
+      <h3 class="warn">Missing Points <button class="copy-btn" type="button" data-copy="missing">📋 Copy</button></h3>
       <ul class="missing" id="missing"></ul>
     </div>
 
     <div class="section">
-      <h3>Improvement Suggestions</h3>
+      <h3>Improvement Suggestions <button class="copy-btn" type="button" data-copy="improvements">📋 Copy</button></h3>
       <ul id="improvements"></ul>
     </div>
 
     <div class="section">
-      <h3>Model Answer (reference)</h3>
+      <h3>Model Answer (reference) <button class="copy-btn" type="button" data-copy="model">📋 Copy</button></h3>
       <div class="model-answer" id="modelAnswer"></div>
     </div>
   </div>
@@ -371,6 +417,7 @@ const uploadInfo = document.getElementById('uploadInfo');
 
 let inputMode = 'text';
 let uploadedImages = [];
+let lastResult = null;
 
 const savedKey = localStorage.getItem('groq_api_key');
 if (savedKey) apiKeyInput.value = savedKey;
@@ -628,6 +675,7 @@ async function callGroq(model, prompt, apiKey, images) {
 }
 
 function render(result) {
+  lastResult = result;
   document.getElementById('totalScore').textContent = result.total_score;
   document.getElementById('grade').textContent = result.grade || '';
   document.getElementById('verdict').textContent = result.verdict || '';
@@ -678,6 +726,79 @@ function render(result) {
 function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
+
+// ============ COPY-FOR-ABHYAS ============
+function buildCopyText(kind) {
+  if (!lastResult) return '';
+  const r = lastResult;
+  const joinList = (arr) => (arr || []).map((s, i) => (i+1) + '. ' + s).join('\n');
+
+  switch (kind) {
+    case 'score':
+      return String(r.total_score ?? '');
+
+    case 'comments': {
+      // verdict + improvement suggestions → into Abhyas "Comments"
+      const parts = [];
+      if (r.verdict) parts.push(r.verdict);
+      if (r.improvement_suggestions && r.improvement_suggestions.length) {
+        parts.push('\nImprovement tips:\n' + joinList(r.improvement_suggestions));
+      }
+      return parts.join('\n');
+    }
+
+    case 'strengths':
+      return joinList(r.strengths);
+
+    case 'weaknesses': {
+      // weaknesses + missing points combined → into Abhyas "Weaknesses / Areas to improve"
+      const parts = [];
+      if (r.weaknesses && r.weaknesses.length) parts.push(joinList(r.weaknesses));
+      if (r.missing_points && r.missing_points.length) {
+        parts.push('\nMissing points a topper would cover:\n' + joinList(r.missing_points));
+      }
+      return parts.join('\n');
+    }
+
+    case 'missing':
+      return joinList(r.missing_points);
+
+    case 'improvements':
+      return joinList(r.improvement_suggestions);
+
+    case 'model':
+      return r.model_answer || '';
+
+    default:
+      return '';
+  }
+}
+
+document.addEventListener('click', async (e) => {
+  const btn = e.target.closest('.copy-btn');
+  if (!btn) return;
+  const text = buildCopyText(btn.dataset.copy);
+  if (!text) { btn.textContent = 'No data'; return; }
+  try {
+    await navigator.clipboard.writeText(text);
+    const orig = btn.textContent;
+    btn.textContent = '✓ Copied!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = orig; btn.classList.remove('copied'); }, 1500);
+  } catch (err) {
+    // fallback for non-https / unsupported
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    const orig = btn.textContent;
+    btn.textContent = '✓ Copied!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = orig; btn.classList.remove('copied'); }, 1500);
+  }
+});
 
 evalBtn.addEventListener('click', async () => {
   errorBox.innerHTML = '';
