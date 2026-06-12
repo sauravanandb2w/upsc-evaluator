@@ -4,6 +4,13 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>UPSC Mains AI Evaluator</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+  if (window.pdfjsLib) {
+    pdfjsLib.GlobalWorkerOptions.workerSrc =
+      "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+  }
+</script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
@@ -53,6 +60,75 @@
   .word-count { font-size: 12px; color: #6b7280; text-align: right; margin-top: 4px; }
   .word-count.over { color: #dc2626; font-weight: 600; }
 
+  .tabs {
+    display: flex; gap: 4px; margin-bottom: 12px;
+    border-bottom: 2px solid #e5e7eb;
+  }
+  .tab {
+    padding: 10px 18px;
+    background: transparent;
+    border: none;
+    color: #6b7280;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    transition: all 0.15s;
+  }
+  .tab:hover { color: #1e3a8a; transform: none; }
+  .tab.active { color: #1e3a8a; border-bottom-color: #1e3a8a; }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  .dropzone {
+    border: 2px dashed #cbd5e1;
+    border-radius: 10px;
+    padding: 30px 20px;
+    text-align: center;
+    background: #fafbfc;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .dropzone:hover, .dropzone.drag {
+    border-color: #2563eb;
+    background: #eff6ff;
+  }
+  .dropzone .drop-icon { font-size: 32px; margin-bottom: 8px; }
+  .dropzone .drop-title { font-size: 15px; font-weight: 600; color: #1e3a8a; margin-bottom: 4px; }
+  .dropzone .drop-hint { font-size: 12px; color: #6b7280; }
+  .file-input-hidden { display: none; }
+
+  .previews {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 10px;
+    margin-top: 14px;
+  }
+  .preview {
+    position: relative;
+    background: #f3f4f6;
+    border-radius: 8px;
+    overflow: hidden;
+    aspect-ratio: 3/4;
+    border: 1px solid #e5e7eb;
+  }
+  .preview img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .preview .pg-label {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    background: rgba(0,0,0,0.6); color: #fff; font-size: 11px;
+    padding: 3px 6px; text-align: center;
+  }
+  .preview .remove {
+    position: absolute; top: 4px; right: 4px;
+    background: rgba(220, 38, 38, 0.9); color: #fff;
+    width: 22px; height: 22px; border-radius: 50%;
+    border: none; cursor: pointer; font-size: 13px;
+    line-height: 1; padding: 0;
+  }
+  .preview .remove:hover { background: rgba(220, 38, 38, 1); transform: none; }
+  .upload-info { font-size: 12px; color: #6b7280; margin-top: 10px; text-align: right; }
+
   button {
     background: #1e3a8a;
     color: #fff;
@@ -66,7 +142,7 @@
   }
   button:hover { background: #1e40af; transform: translateY(-1px); }
   button:disabled { background: #9ca3af; cursor: not-allowed; transform: none; }
-  .btn-row { display: flex; gap: 10px; justify-content: flex-end; }
+  .btn-row { display: flex; gap: 10px; justify-content: flex-end; margin-top: 14px; }
   .btn-secondary { background: #6b7280; }
   .btn-secondary:hover { background: #4b5563; }
 
@@ -79,7 +155,6 @@
   }
   @keyframes spin { to { transform: rotate(360deg); } }
 
-  /* RESULT STYLES */
   #result { display: none; }
   .score-block {
     display: flex; align-items: center; gap: 24px; padding: 20px;
@@ -123,15 +198,11 @@
   ul.weak li { border-left-color: #dc2626; background: #fef2f2; }
   ul.missing li { border-left-color: #d97706; background: #fffbeb; }
 
-  .model-answer {
+  .model-answer, .transcription {
     background: #f0f4ff; border: 1px solid #c7d2fe; border-radius: 8px;
     padding: 14px; font-size: 14px; line-height: 1.7; white-space: pre-wrap;
   }
-
-  .verdict {
-    background: #1f2937; color: #fff; padding: 14px 18px; border-radius: 8px;
-    font-size: 14px; line-height: 1.6; font-style: italic;
-  }
+  .transcription { background: #f9fafb; border-color: #e5e7eb; max-height: 280px; overflow-y: auto; }
 
   .error {
     background: #fef2f2; color: #991b1b; padding: 14px; border-radius: 8px;
@@ -152,10 +223,9 @@
 <div class="container">
   <header>
     <h1>UPSC Mains AI Evaluator</h1>
-    <div class="subtitle">Powered by Llama 4 on Groq · Free to use</div>
+    <div class="subtitle">Powered by Llama 4 on Groq · Free · Type, paste, or upload handwritten answer</div>
   </header>
 
-  <!-- API KEY -->
   <div class="card">
     <label for="apiKey">Groq API Key</label>
     <div class="key-row">
@@ -167,7 +237,6 @@
     </div>
   </div>
 
-  <!-- INPUTS -->
   <div class="card">
     <div class="row-3">
       <div>
@@ -189,11 +258,11 @@
         </select>
       </div>
       <div>
-        <label for="model">Model</label>
+        <label for="model">Model (vision-capable)</label>
         <select id="model">
           <option value="meta-llama/llama-4-scout-17b-16e-instruct" selected>Llama 4 Scout</option>
           <option value="meta-llama/llama-4-maverick-17b-128e-instruct">Llama 4 Maverick</option>
-          <option value="llama-3.3-70b-versatile">Llama 3.3 70B</option>
+          <option value="llama-3.3-70b-versatile">Llama 3.3 70B (text only)</option>
         </select>
       </div>
     </div>
@@ -203,10 +272,27 @@
       <textarea id="question" placeholder="Paste UPSC Mains question here..."></textarea>
     </div>
 
-    <div style="margin-bottom: 14px;">
-      <label for="answer">Your Answer</label>
+    <label>Your Answer</label>
+    <div class="tabs">
+      <button class="tab active" type="button" data-tab="text">Type / Paste Text</button>
+      <button class="tab" type="button" data-tab="upload">Upload Images / PDF</button>
+    </div>
+
+    <div class="tab-panel active" id="panel-text">
       <textarea id="answer" class="answer" placeholder="Type or paste your answer here..."></textarea>
       <div class="word-count" id="wordCount">0 words</div>
+    </div>
+
+    <div class="tab-panel" id="panel-upload">
+      <div class="dropzone" id="dropzone">
+        <div class="drop-icon">📎</div>
+        <div class="drop-title">Click or drop files here</div>
+        <div class="drop-hint">JPG, PNG, WebP, or PDF · multi-page OK · handwritten or typed</div>
+      </div>
+      <input type="file" id="fileInput" class="file-input-hidden"
+             accept="image/jpeg,image/png,image/webp,application/pdf" multiple />
+      <div class="previews" id="previews"></div>
+      <div class="upload-info" id="uploadInfo"></div>
     </div>
 
     <div class="btn-row">
@@ -218,7 +304,6 @@
     <div id="errorBox"></div>
   </div>
 
-  <!-- RESULT -->
   <div id="result" class="card">
     <div class="score-block">
       <div>
@@ -232,6 +317,11 @@
     </div>
 
     <div class="subscores" id="subscores"></div>
+
+    <div class="section" id="transcriptionSection" style="display:none;">
+      <h3>Transcription (from your uploaded answer)</h3>
+      <div class="transcription" id="transcription"></div>
+    </div>
 
     <div class="section">
       <h3 class="success">Strengths</h3>
@@ -254,18 +344,17 @@
     </div>
 
     <div class="section">
-      <h3>Model Answer (250-word reference)</h3>
+      <h3>Model Answer (reference)</h3>
       <div class="model-answer" id="modelAnswer"></div>
     </div>
   </div>
 
   <div class="footer">
-    Single-file local app · Your API key never leaves your browser · Llama 4 via Groq
+    Single-file local app · Your API key never leaves your browser · Llama 4 vision via Groq
   </div>
 </div>
 
 <script>
-// ============ STATE ============
 const apiKeyInput = document.getElementById('apiKey');
 const saveKeyBtn = document.getElementById('saveKey');
 const evalBtn = document.getElementById('evalBtn');
@@ -275,8 +364,14 @@ const errorBox = document.getElementById('errorBox');
 const resultEl = document.getElementById('result');
 const answerEl = document.getElementById('answer');
 const wordCountEl = document.getElementById('wordCount');
+const dropzone = document.getElementById('dropzone');
+const fileInput = document.getElementById('fileInput');
+const previewsEl = document.getElementById('previews');
+const uploadInfo = document.getElementById('uploadInfo');
 
-// Load saved key
+let inputMode = 'text';
+let uploadedImages = [];
+
 const savedKey = localStorage.getItem('groq_api_key');
 if (savedKey) apiKeyInput.value = savedKey;
 
@@ -288,7 +383,17 @@ saveKeyBtn.addEventListener('click', () => {
   setTimeout(() => saveKeyBtn.textContent = 'Save', 1500);
 });
 
-// Word counter
+document.querySelectorAll('.tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    const tab = btn.dataset.tab;
+    document.getElementById('panel-' + tab).classList.add('active');
+    inputMode = tab;
+  });
+});
+
 function updateWordCount() {
   const text = answerEl.value.trim();
   const words = text ? text.split(/\s+/).length : 0;
@@ -302,61 +407,171 @@ document.getElementById('wordLimit').addEventListener('change', updateWordCount)
 clearBtn.addEventListener('click', () => {
   document.getElementById('question').value = '';
   answerEl.value = '';
+  uploadedImages = [];
+  renderPreviews();
   resultEl.style.display = 'none';
   errorBox.innerHTML = '';
   updateWordCount();
 });
 
-// ============ PROMPT BUILDER ============
-function buildPrompt(paper, wordLimit, question, answer) {
+dropzone.addEventListener('click', () => fileInput.click());
+['dragenter','dragover'].forEach(ev => dropzone.addEventListener(ev, e => {
+  e.preventDefault(); e.stopPropagation(); dropzone.classList.add('drag');
+}));
+['dragleave','drop'].forEach(ev => dropzone.addEventListener(ev, e => {
+  e.preventDefault(); e.stopPropagation(); dropzone.classList.remove('drag');
+}));
+dropzone.addEventListener('drop', e => handleFiles(e.dataTransfer.files));
+fileInput.addEventListener('change', e => handleFiles(e.target.files));
+
+async function handleFiles(files) {
+  statusEl.innerHTML = '<span class="spinner"></span>Processing files...';
+  for (const f of files) {
+    try {
+      if (f.type === 'application/pdf') {
+        await processPdf(f);
+      } else if (f.type.startsWith('image/')) {
+        await processImage(f);
+      }
+    } catch (e) {
+      showError('Failed to process ' + f.name + ': ' + e.message);
+    }
+  }
+  statusEl.innerHTML = '';
+  renderPreviews();
+  fileInput.value = '';
+}
+
+async function processImage(file) {
+  const dataUrl = await fileToDataUrl(file);
+  const compressed = await compressImage(dataUrl, 1600, 0.85);
+  uploadedImages.push({
+    id: Date.now() + '-' + Math.random().toString(36).slice(2,7),
+    dataUrl: compressed,
+    label: file.name.slice(0, 18)
+  });
+}
+
+async function processPdf(file) {
+  if (!window.pdfjsLib) throw new Error('pdf.js not loaded');
+  const buf = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const viewport = page.getViewport({ scale: 2 });
+    const canvas = document.createElement('canvas');
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    const ctx = canvas.getContext('2d');
+    await page.render({ canvasContext: ctx, viewport }).promise;
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+    const compressed = await compressImage(dataUrl, 1600, 0.85);
+    uploadedImages.push({
+      id: Date.now() + '-' + i + '-' + Math.random().toString(36).slice(2,5),
+      dataUrl: compressed,
+      label: file.name.slice(0, 12) + ' p' + i
+    });
+  }
+}
+
+function fileToDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(r.result);
+    r.onerror = reject;
+    r.readAsDataURL(file);
+  });
+}
+
+function compressImage(dataUrl, maxDim, quality) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      let { width, height } = img;
+      if (width > maxDim || height > maxDim) {
+        const scale = maxDim / Math.max(width, height);
+        width = Math.round(width * scale);
+        height = Math.round(height * scale);
+      }
+      const c = document.createElement('canvas');
+      c.width = width; c.height = height;
+      const ctx = c.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+      resolve(c.toDataURL('image/jpeg', quality));
+    };
+    img.src = dataUrl;
+  });
+}
+
+function renderPreviews() {
+  previewsEl.innerHTML = uploadedImages.map(img => `
+    <div class="preview" data-id="${img.id}">
+      <img src="${img.dataUrl}" alt="${escapeHtml(img.label)}" />
+      <div class="pg-label">${escapeHtml(img.label)}</div>
+      <button class="remove" type="button" data-remove="${img.id}">×</button>
+    </div>
+  `).join('');
+  const sizeKB = uploadedImages.reduce((s,i) => s + Math.ceil(i.dataUrl.length * 0.75 / 1024), 0);
+  uploadInfo.textContent = uploadedImages.length
+    ? uploadedImages.length + ' image(s) · ~' + sizeKB + ' KB total'
+    : '';
+  previewsEl.querySelectorAll('[data-remove]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      uploadedImages = uploadedImages.filter(x => x.id !== btn.dataset.remove);
+      renderPreviews();
+    });
+  });
+}
+
+function buildPrompt(paper, wordLimit, question, answer, isVision) {
   const paperContext = {
-    'GS-1': 'GS Paper 1 (History, Geography, Society, Art & Culture). Examiner expects factual depth, chronology where relevant, and balanced socio-cultural perspectives.',
-    'GS-2': 'GS Paper 2 (Polity, Governance, Constitution, IR). Examiner expects constitutional articles, landmark judgments, committee reports (ARC, Sarkaria, Punchhi), schemes, and institutional analysis.',
-    'GS-3': 'GS Paper 3 (Economy, Agriculture, S&T, Environment, Security). Examiner expects data, NITI/RBI/Economic Survey references, schemes, recent developments, and policy analysis.',
-    'GS-4': 'GS Paper 4 (Ethics, Integrity, Aptitude). Examiner expects thinkers/quotes, ethical theories applied to context, stakeholder analysis for case studies, and personal value statements.',
-    'Essay': 'Essay paper. Examiner expects philosophical depth, multi-dimensional treatment, smooth narrative flow, anecdotes/quotes, and a powerful conclusion. Structure: hook intro → 4-6 thematic sections → reflective conclusion.'
+    'GS-1': 'GS Paper 1 (History, Geography, Society, Art & Culture).',
+    'GS-2': 'GS Paper 2 (Polity, Governance, Constitution, IR). Examiner expects constitutional articles, judgments, committee reports, schemes.',
+    'GS-3': 'GS Paper 3 (Economy, Agriculture, S&T, Environment, Security). Examiner expects data, NITI/RBI/Economic Survey references, schemes.',
+    'GS-4': 'GS Paper 4 (Ethics, Integrity, Aptitude). Examiner expects thinkers/quotes, ethical theories, stakeholder analysis.',
+    'Essay': 'Essay paper. Examiner expects philosophical depth, multi-dimensional treatment, narrative flow, powerful conclusion.'
   };
+
+  const visionInstr = isVision
+    ? `\nIMPORTANT: The student's answer is provided as IMAGE(S) of their handwritten/printed answer copy (multiple pages possible, in order). First, TRANSCRIBE the full answer verbatim from the images (preserve paragraph structure, headings, bullets). Then evaluate that transcription. Return the transcription in the JSON field "transcription".`
+    : '';
+
+  const answerBlock = isVision
+    ? '(see attached images of the student answer copy)'
+    : `"""\n${answer}\n"""\n(${answer.trim().split(/\s+/).length} words)`;
 
   return `You are a senior UPSC Mains examiner with 15+ years of experience evaluating Civil Services answer copies. You are rigorous, fair, and constructive.
 
 PAPER CONTEXT: ${paperContext[paper]}
+${visionInstr}
 
 EVALUATION TASK:
 Question: ${question}
 Word limit: ${wordLimit} words (acceptable range: ${Math.floor(wordLimit*0.9)}-${Math.ceil(wordLimit*1.1)} words)
-Student answer (${answer.trim().split(/\s+/).length} words):
-"""
-${answer}
-"""
+Student answer: ${answerBlock}
 
-RUBRIC — score each on a scale of 0-10:
-
-1. STRUCTURE — Clear introduction (definition/context, 2-3 lines), well-organized body (sub-headings or logical flow), forward-looking conclusion. Penalize: missing intro/conclusion, wall of text, no flow.
-
-2. DIRECTIVE ADHERENCE — Did the answer DO what the directive demanded? Identify the directive word (examine, critically analyze, discuss, evaluate, comment, elucidate, etc.) and judge whether the answer fulfilled it. "Examine" needs both sides. "Critically analyze" needs judgment. "Discuss" needs breadth. Penalize heavily if the answer just describes when analysis was needed.
-
-3. CONTENT DEPTH & ACCURACY — Factual correctness, conceptual clarity, no vague generalizations. Flag any factual errors explicitly.
-
-4. MULTI-DIMENSIONALITY — For GS papers: political/economic/social/environmental/ethical/international/historical angles where the question warrants. For GS-4: stakeholder perspectives, ethical theories. For Essay: thematic breadth. Mark "single-dimension" answers down.
-
-5. SUBSTANTIATION — Specific examples, current data, committee reports, articles of Constitution, SC judgments, schemes, thinkers (for GS-4/Essay). Generic claims without backing = weak.
-
-6. WORD LIMIT & PRESENTATION — Within ±10% of ${wordLimit}? Penalize significant over/under. Reward use of headings/bullets/diagrams (mentioned in text) where appropriate.
+RUBRIC (score each 0-10):
+1. STRUCTURE — intro (define/context), organized body, forward-looking conclusion.
+2. DIRECTIVE ADHERENCE — did the answer DO what the directive (examine/critically analyze/discuss/evaluate) demanded?
+3. CONTENT DEPTH & ACCURACY — factual correctness, conceptual clarity.
+4. MULTI-DIMENSIONALITY — political/economic/social/environmental/ethical angles.
+5. SUBSTANTIATION — specific examples, data, reports, articles, judgments, schemes, thinkers.
+6. WORD LIMIT & PRESENTATION — within ±10% of ${wordLimit}; headings/bullets/diagrams where appropriate.
 
 SPECIAL RULES:
-- If answer is blank, off-topic, or under 30 words: score 0-2 and explain.
-- If answer is in Hindi/regional: evaluate content but note language.
-- For GS-4 case studies: assess stakeholder identification, ethical dilemma framing, and reasoning quality more than facts.
-- For Essay: structure, narrative flow, and depth matter more than facts.
-- Be SPECIFIC in weaknesses. NOT "add more examples" — instead "you mention cooperative federalism without citing Article 263 or the Inter-State Council."
-- Model answer must be YOUR original ${wordLimit}-word answer, structured as a topper would write it.
+- Blank/off-topic/under-30-words: score 0-2 and explain.
+- GS-4 case studies: weight stakeholder identification, ethical dilemma framing, reasoning.
+- Essay: structure, narrative flow, depth > facts.
+- Be SPECIFIC in weaknesses. Not "add more examples" — instead "you mention cooperative federalism without citing Article 263 or Inter-State Council."
+- Model answer must be YOUR original ${wordLimit}-word answer as a topper would write.
 
-OUTPUT — Return ONLY valid JSON, no markdown, no preamble:
+OUTPUT — ONLY valid JSON:
 
 {
-  "total_score": <number 0-10, can have one decimal>,
-  "grade": "<one of: Outstanding | Very Good | Good | Average | Needs Work | Poor>",
-  "verdict": "<one-paragraph examiner verdict, 2-3 sentences, honest and specific>",
+  ${isVision ? '"transcription": "<verbatim transcription of the handwritten/printed answer from images>",' : ''}
+  "total_score": <0-10, can be decimal>,
+  "grade": "<Outstanding | Very Good | Good | Average | Needs Work | Poor>",
+  "verdict": "<2-3 sentence examiner verdict>",
   "subscores": {
     "structure": <0-10>,
     "directive_adherence": <0-10>,
@@ -365,32 +580,25 @@ OUTPUT — Return ONLY valid JSON, no markdown, no preamble:
     "substantiation": <0-10>,
     "word_limit_presentation": <0-10>
   },
-  "strengths": [
-    "<specific strength 1>",
-    "<specific strength 2>",
-    "<specific strength 3>"
-  ],
-  "weaknesses": [
-    "<weakness 1 with specific fix>",
-    "<weakness 2 with specific fix>",
-    "<weakness 3 with specific fix>"
-  ],
-  "missing_points": [
-    "<key point a topper would have included that this answer missed>",
-    "<another missed point>",
-    "<another missed point>"
-  ],
-  "improvement_suggestions": [
-    "<actionable tip 1>",
-    "<actionable tip 2>",
-    "<actionable tip 3>"
-  ],
-  "model_answer": "<your own ${wordLimit}-word reference answer, well-structured with intro-body-conclusion>"
+  "strengths": ["<s1>", "<s2>", "<s3>"],
+  "weaknesses": ["<w1 with fix>", "<w2 with fix>", "<w3 with fix>"],
+  "missing_points": ["<m1>", "<m2>", "<m3>"],
+  "improvement_suggestions": ["<i1>", "<i2>", "<i3>"],
+  "model_answer": "<your own ${wordLimit}-word reference answer with intro-body-conclusion>"
 }`;
 }
 
-// ============ API CALL ============
-async function callGroq(model, prompt, apiKey) {
+async function callGroq(model, prompt, apiKey, images) {
+  let userContent;
+  if (images && images.length) {
+    userContent = [{ type: 'text', text: prompt }];
+    for (const im of images) {
+      userContent.push({ type: 'image_url', image_url: { url: im.dataUrl } });
+    }
+  } else {
+    userContent = prompt;
+  }
+
   const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -401,7 +609,7 @@ async function callGroq(model, prompt, apiKey) {
       model: model,
       messages: [
         { role: 'system', content: 'You are an expert UPSC Mains examiner. You return only valid JSON.' },
-        { role: 'user', content: prompt }
+        { role: 'user', content: userContent }
       ],
       temperature: 0.3,
       max_tokens: 4096,
@@ -419,13 +627,19 @@ async function callGroq(model, prompt, apiKey) {
   return JSON.parse(content);
 }
 
-// ============ RENDER ============
 function render(result) {
   document.getElementById('totalScore').textContent = result.total_score;
   document.getElementById('grade').textContent = result.grade || '';
   document.getElementById('verdict').textContent = result.verdict || '';
 
-  // Subscores
+  const tSection = document.getElementById('transcriptionSection');
+  if (result.transcription) {
+    document.getElementById('transcription').textContent = result.transcription;
+    tSection.style.display = 'block';
+  } else {
+    tSection.style.display = 'none';
+  }
+
   const subEl = document.getElementById('subscores');
   subEl.innerHTML = '';
   const labels = {
@@ -446,7 +660,6 @@ function render(result) {
       </div>`;
   });
 
-  // Lists
   const fillList = (id, arr) => {
     const el = document.getElementById(id);
     el.innerHTML = (arr || []).map(item => `<li>${escapeHtml(item)}</li>`).join('');
@@ -466,7 +679,6 @@ function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
-// ============ MAIN ============
 evalBtn.addEventListener('click', async () => {
   errorBox.innerHTML = '';
   const apiKey = apiKeyInput.value.trim();
@@ -474,20 +686,25 @@ evalBtn.addEventListener('click', async () => {
   const wordLimit = parseInt(document.getElementById('wordLimit').value);
   const model = document.getElementById('model').value;
   const question = document.getElementById('question').value.trim();
-  const answer = document.getElementById('answer').value.trim();
+  const answer = answerEl.value.trim();
 
   if (!apiKey) return showError('Add your Groq API key first');
   if (!question) return showError('Paste the question');
-  if (!answer) return showError('Write your answer');
-  if (answer.split(/\s+/).length < 20) return showError('Answer too short (min 20 words)');
+
+  const isVision = inputMode === 'upload' && uploadedImages.length > 0;
+  if (!isVision && inputMode === 'upload') return showError('Upload at least one image or PDF');
+  if (!isVision && !answer) return showError('Write your answer or switch to upload tab');
+  if (!isVision && answer.split(/\s+/).length < 20) return showError('Answer too short (min 20 words)');
+  if (isVision && !model.includes('llama-4')) return showError('Vision mode needs Llama 4 Scout or Maverick. Switch model.');
 
   evalBtn.disabled = true;
-  statusEl.innerHTML = '<span class="spinner"></span>Evaluating... (15-30s)';
+  statusEl.innerHTML = '<span class="spinner"></span>' +
+    (isVision ? 'Transcribing + evaluating ' + uploadedImages.length + ' image(s)... (30-90s)' : 'Evaluating... (15-30s)');
   resultEl.style.display = 'none';
 
   try {
-    const prompt = buildPrompt(paper, wordLimit, question, answer);
-    const result = await callGroq(model, prompt, apiKey);
+    const prompt = buildPrompt(paper, wordLimit, question, answer, isVision);
+    const result = await callGroq(model, prompt, apiKey, isVision ? uploadedImages : null);
     render(result);
     statusEl.innerHTML = '';
   } catch (e) {

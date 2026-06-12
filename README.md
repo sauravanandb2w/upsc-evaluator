@@ -10,6 +10,8 @@ Open `index.html` directly in any browser — no build step, no server.
 
 ## Features
 
+- **Three input modes**: type/paste text, upload images (JPG/PNG/WebP) of handwritten copies, or upload a PDF (multi-page auto-converted)
+- Llama 4 vision transcribes the handwritten answer and evaluates it in one pass
 - Score out of 10 with grade (Outstanding → Poor)
 - 6 sub-scores: structure, directive adherence, content depth, multi-dimensionality, substantiation, word limit/presentation
 - Examiner's verdict (2-3 sentence summary)
@@ -51,7 +53,8 @@ All free on Groq's free tier (~14,400 requests/day for smaller models).
 
 ## Roadmap
 
-- [ ] OCR for handwritten answer copies (Gemini Vision)
+- [x] OCR for handwritten answer copies (Llama 4 vision)
+- [x] PDF upload (auto-split into page images)
 - [ ] RAG with topper answer corpus for richer benchmarking
 - [ ] Eval history (Supabase)
 - [ ] Daily question of the day
