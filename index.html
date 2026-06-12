@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>UPSC Mains AI Evaluator</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: linear-gradient(135deg, #f5f7fa 0%, #e8edf3 100%);
+    min-height: 100vh;
+    padding: 24px;
+    color: #1a1a1a;
+  }
+  .container { max-width: 1100px; margin: 0 auto; }
+  header { text-align: center; margin-bottom: 28px; }
+  h1 { font-size: 28px; font-weight: 700; color: #1e3a8a; }
+  .subtitle { color: #555; font-size: 14px; margin-top: 6px; }
+
+  .card {
+    background: #fff;
+    border-radius: 14px;
+    padding: 24px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+    margin-bottom: 18px;
+  }
+
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+  .row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+  label { display: block; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 6px; }
+  input, select, textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: inherit;
+    background: #fafafa;
+    transition: border 0.2s;
+  }
+  input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: #2563eb;
+    background: #fff;
+  }
+  textarea { resize: vertical; min-height: 100px; line-height: 1.5; }
+  textarea.answer { min-height: 220px; }
+
+  .key-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: end; }
+  .key-row .hint { font-size: 11px; color: #6b7280; margin-top: 4px; }
+
+  .word-count { font-size: 12px; color: #6b7280; text-align: right; margin-top: 4px; }
+  .word-count.over { color: #dc2626; font-weight: 600; }
+
+  button {
+    background: #1e3a8a;
+    color: #fff;
+    border: none;
+    padding: 12px 28px;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  button:hover { background: #1e40af; transform: translateY(-1px); }
+  button:disabled { background: #9ca3af; cursor: not-allowed; transform: none; }
+  .btn-row { display: flex; gap: 10px; justify-content: flex-end; }
+  .btn-secondary { background: #6b7280; }
+  .btn-secondary:hover { background: #4b5563; }
+
+  #status { text-align: center; padding: 12px; font-size: 14px; color: #4b5563; }
+  .spinner {
+    display: inline-block; width: 16px; height: 16px;
+    border: 2px solid #d1d5db; border-top-color: #1e3a8a;
+    border-radius: 50%; animation: spin 0.8s linear infinite;
+    vertical-align: middle; margin-right: 8px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* RESULT STYLES */
+  #result { display: none; }
+  .score-block {
+    display: flex; align-items: center; gap: 24px; padding: 20px;
+    background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
+    border-radius: 12px; color: #fff; margin-bottom: 20px;
+  }
+  .total-score {
+    font-size: 56px; font-weight: 700; line-height: 1;
+    min-width: 130px; text-align: center;
+  }
+  .total-score small { font-size: 22px; opacity: 0.8; }
+  .grade { font-size: 18px; font-weight: 600; margin-top: 6px; }
+
+  .subscores { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 20px; }
+  .sub {
+    background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px;
+    padding: 10px 12px;
+  }
+  .sub-label { font-size: 11px; color: #6b7280; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+  .sub-value { font-size: 20px; font-weight: 700; color: #1e3a8a; margin-top: 4px; }
+  .bar { height: 4px; background: #e5e7eb; border-radius: 2px; margin-top: 6px; overflow: hidden; }
+  .bar-fill { height: 100%; background: #2563eb; border-radius: 2px; transition: width 0.6s; }
+
+  .section { margin-bottom: 18px; }
+  .section h3 {
+    font-size: 14px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.5px; margin-bottom: 10px; color: #1e3a8a;
+    border-bottom: 2px solid #e5e7eb; padding-bottom: 6px;
+  }
+  .section h3.danger { color: #dc2626; }
+  .section h3.success { color: #059669; }
+  .section h3.warn { color: #d97706; }
+
+  ul { list-style: none; }
+  ul li {
+    padding: 10px 12px; margin-bottom: 6px;
+    background: #f9fafb; border-left: 3px solid #2563eb;
+    border-radius: 4px; font-size: 14px; line-height: 1.5;
+  }
+  ul.strengths li { border-left-color: #059669; background: #f0fdf4; }
+  ul.weak li { border-left-color: #dc2626; background: #fef2f2; }
+  ul.missing li { border-left-color: #d97706; background: #fffbeb; }
+
+  .model-answer {
+    background: #f0f4ff; border: 1px solid #c7d2fe; border-radius: 8px;
+    padding: 14px; font-size: 14px; line-height: 1.7; white-space: pre-wrap;
+  }
+
+  .verdict {
+    background: #1f2937; color: #fff; padding: 14px 18px; border-radius: 8px;
+    font-size: 14px; line-height: 1.6; font-style: italic;
+  }
+
+  .error {
+    background: #fef2f2; color: #991b1b; padding: 14px; border-radius: 8px;
+    border: 1px solid #fecaca; font-size: 13px; margin-top: 12px;
+  }
+
+  .footer { text-align: center; font-size: 12px; color: #9ca3af; margin-top: 24px; }
+  .footer a { color: #2563eb; text-decoration: none; }
+
+  @media (max-width: 720px) {
+    .row, .row-3 { grid-template-columns: 1fr; }
+    .total-score { font-size: 42px; min-width: 100px; }
+    .score-block { flex-direction: column; text-align: center; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>UPSC Mains AI Evaluator</h1>
+    <div class="subtitle">Powered by Llama 4 on Groq · Free to use</div>
+  </header>
+
+  <!-- API KEY -->
+  <div class="card">
+    <label for="apiKey">Groq API Key</label>
+    <div class="key-row">
+      <input type="password" id="apiKey" placeholder="gsk_..." autocomplete="off" />
+      <button id="saveKey" type="button">Save</button>
+    </div>
+    <div class="hint">
+      Get free key at <a href="https://console.groq.com/keys" target="_blank">console.groq.com/keys</a> (no card needed). Saved in browser only.
+    </div>
+  </div>
+
+  <!-- INPUTS -->
+  <div class="card">
+    <div class="row-3">
+      <div>
+        <label for="paper">Paper</label>
+        <select id="paper">
+          <option value="GS-1">GS-1 (History, Geo, Society)</option>
+          <option value="GS-2" selected>GS-2 (Polity, Governance, IR)</option>
+          <option value="GS-3">GS-3 (Economy, S&T, Env, Security)</option>
+          <option value="GS-4">GS-4 (Ethics)</option>
+          <option value="Essay">Essay</option>
+        </select>
+      </div>
+      <div>
+        <label for="wordLimit">Word Limit</label>
+        <select id="wordLimit">
+          <option value="150">150 words (10 marks)</option>
+          <option value="250" selected>250 words (15 marks)</option>
+          <option value="1000">1000 words (Essay)</option>
+        </select>
+      </div>
+      <div>
+        <label for="model">Model</label>
+        <select id="model">
+          <option value="meta-llama/llama-4-scout-17b-16e-instruct" selected>Llama 4 Scout</option>
+          <option value="meta-llama/llama-4-maverick-17b-128e-instruct">Llama 4 Maverick</option>
+          <option value="llama-3.3-70b-versatile">Llama 3.3 70B</option>
+        </select>
+      </div>
+    </div>
+
+    <div style="margin-bottom: 14px;">
+      <label for="question">Question</label>
+      <textarea id="question" placeholder="Paste UPSC Mains question here..."></textarea>
+    </div>
+
+    <div style="margin-bottom: 14px;">
+      <label for="answer">Your Answer</label>
+      <textarea id="answer" class="answer" placeholder="Type or paste your answer here..."></textarea>
+      <div class="word-count" id="wordCount">0 words</div>
+    </div>
+
+    <div class="btn-row">
+      <button id="clearBtn" type="button" class="btn-secondary">Clear</button>
+      <button id="evalBtn" type="button">Evaluate Answer</button>
+    </div>
+
+    <div id="status"></div>
+    <div id="errorBox"></div>
+  </div>
+
+  <!-- RESULT -->
+  <div id="result" class="card">
+    <div class="score-block">
+      <div>
+        <div class="total-score"><span id="totalScore">0</span><small>/10</small></div>
+        <div class="grade" id="grade"></div>
+      </div>
+      <div style="flex:1;">
+        <div style="font-size:13px; opacity:0.85; margin-bottom:6px;">EXAMINER'S VERDICT</div>
+        <div id="verdict" style="font-size:15px; line-height:1.5;"></div>
+      </div>
+    </div>
+
+    <div class="subscores" id="subscores"></div>
+
+    <div class="section">
+      <h3 class="success">Strengths</h3>
+      <ul class="strengths" id="strengths"></ul>
+    </div>
+
+    <div class="section">
+      <h3 class="danger">Weaknesses (with fixes)</h3>
+      <ul class="weak" id="weaknesses"></ul>
+    </div>
+
+    <div class="section">
+      <h3 class="warn">Missing Points</h3>
+      <ul class="missing" id="missing"></ul>
+    </div>
+
+    <div class="section">
+      <h3>Improvement Suggestions</h3>
+      <ul id="improvements"></ul>
+    </div>
+
+    <div class="section">
+      <h3>Model Answer (250-word reference)</h3>
+      <div class="model-answer" id="modelAnswer"></div>
+    </div>
+  </div>
+
+  <div class="footer">
+    Single-file local app · Your API key never leaves your browser · Llama 4 via Groq
+  </div>
+</div>
+
+<script>
+// ============ STATE ============
+const apiKeyInput = document.getElementById('apiKey');
+const saveKeyBtn = document.getElementById('saveKey');
+const evalBtn = document.getElementById('evalBtn');
+const clearBtn = document.getElementById('clearBtn');
+const statusEl = document.getElementById('status');
+const errorBox = document.getElementById('errorBox');
+const resultEl = document.getElementById('result');
+const answerEl = document.getElementById('answer');
+const wordCountEl = document.getElementById('wordCount');
+
+// Load saved key
+const savedKey = localStorage.getItem('groq_api_key');
+if (savedKey) apiKeyInput.value = savedKey;
+
+saveKeyBtn.addEventListener('click', () => {
+  const k = apiKeyInput.value.trim();
+  if (!k) return alert('Paste your Groq API key first');
+  localStorage.setItem('groq_api_key', k);
+  saveKeyBtn.textContent = 'Saved!';
+  setTimeout(() => saveKeyBtn.textContent = 'Save', 1500);
+});
+
+// Word counter
+function updateWordCount() {
+  const text = answerEl.value.trim();
+  const words = text ? text.split(/\s+/).length : 0;
+  const limit = parseInt(document.getElementById('wordLimit').value);
+  wordCountEl.textContent = words + ' words (limit: ' + limit + ')';
+  wordCountEl.classList.toggle('over', words > limit * 1.15 || (words > 0 && words < limit * 0.7));
+}
+answerEl.addEventListener('input', updateWordCount);
+document.getElementById('wordLimit').addEventListener('change', updateWordCount);
+
+clearBtn.addEventListener('click', () => {
+  document.getElementById('question').value = '';
+  answerEl.value = '';
+  resultEl.style.display = 'none';
+  errorBox.innerHTML = '';
+  updateWordCount();
+});
+
+// ============ PROMPT BUILDER ============
+function buildPrompt(paper, wordLimit, question, answer) {
+  const paperContext = {
+    'GS-1': 'GS Paper 1 (History, Geography, Society, Art & Culture). Examiner expects factual depth, chronology where relevant, and balanced socio-cultural perspectives.',
+    'GS-2': 'GS Paper 2 (Polity, Governance, Constitution, IR). Examiner expects constitutional articles, landmark judgments, committee reports (ARC, Sarkaria, Punchhi), schemes, and institutional analysis.',
+    'GS-3': 'GS Paper 3 (Economy, Agriculture, S&T, Environment, Security). Examiner expects data, NITI/RBI/Economic Survey references, schemes, recent developments, and policy analysis.',
+    'GS-4': 'GS Paper 4 (Ethics, Integrity, Aptitude). Examiner expects thinkers/quotes, ethical theories applied to context, stakeholder analysis for case studies, and personal value statements.',
+    'Essay': 'Essay paper. Examiner expects philosophical depth, multi-dimensional treatment, smooth narrative flow, anecdotes/quotes, and a powerful conclusion. Structure: hook intro → 4-6 thematic sections → reflective conclusion.'
+  };
+
+  return `You are a senior UPSC Mains examiner with 15+ years of experience evaluating Civil Services answer copies. You are rigorous, fair, and constructive.
+
+PAPER CONTEXT: ${paperContext[paper]}
+
+EVALUATION TASK:
+Question: ${question}
+Word limit: ${wordLimit} words (acceptable range: ${Math.floor(wordLimit*0.9)}-${Math.ceil(wordLimit*1.1)} words)
+Student answer (${answer.trim().split(/\s+/).length} words):
+"""
+${answer}
+"""
+
+RUBRIC — score each on a scale of 0-10:
+
+1. STRUCTURE — Clear introduction (definition/context, 2-3 lines), well-organized body (sub-headings or logical flow), forward-looking conclusion. Penalize: missing intro/conclusion, wall of text, no flow.
+
+2. DIRECTIVE ADHERENCE — Did the answer DO what the directive demanded? Identify the directive word (examine, critically analyze, discuss, evaluate, comment, elucidate, etc.) and judge whether the answer fulfilled it. "Examine" needs both sides. "Critically analyze" needs judgment. "Discuss" needs breadth. Penalize heavily if the answer just describes when analysis was needed.
+
+3. CONTENT DEPTH & ACCURACY — Factual correctness, conceptual clarity, no vague generalizations. Flag any factual errors explicitly.
+
+4. MULTI-DIMENSIONALITY — For GS papers: political/economic/social/environmental/ethical/international/historical angles where the question warrants. For GS-4: stakeholder perspectives, ethical theories. For Essay: thematic breadth. Mark "single-dimension" answers down.
+
+5. SUBSTANTIATION — Specific examples, current data, committee reports, articles of Constitution, SC judgments, schemes, thinkers (for GS-4/Essay). Generic claims without backing = weak.
+
+6. WORD LIMIT & PRESENTATION — Within ±10% of ${wordLimit}? Penalize significant over/under. Reward use of headings/bullets/diagrams (mentioned in text) where appropriate.
+
+SPECIAL RULES:
+- If answer is blank, off-topic, or under 30 words: score 0-2 and explain.
+- If answer is in Hindi/regional: evaluate content but note language.
+- For GS-4 case studies: assess stakeholder identification, ethical dilemma framing, and reasoning quality more than facts.
+- For Essay: structure, narrative flow, and depth matter more than facts.
+- Be SPECIFIC in weaknesses. NOT "add more examples" — instead "you mention cooperative federalism without citing Article 263 or the Inter-State Council."
+- Model answer must be YOUR original ${wordLimit}-word answer, structured as a topper would write it.
+
+OUTPUT — Return ONLY valid JSON, no markdown, no preamble:
+
+{
+  "total_score": <number 0-10, can have one decimal>,
+  "grade": "<one of: Outstanding | Very Good | Good | Average | Needs Work | Poor>",
+  "verdict": "<one-paragraph examiner verdict, 2-3 sentences, honest and specific>",
+  "subscores": {
+    "structure": <0-10>,
+    "directive_adherence": <0-10>,
+    "content_depth": <0-10>,
+    "multi_dimensionality": <0-10>,
+    "substantiation": <0-10>,
+    "word_limit_presentation": <0-10>
+  },
+  "strengths": [
+    "<specific strength 1>",
+    "<specific strength 2>",
+    "<specific strength 3>"
+  ],
+  "weaknesses": [
+    "<weakness 1 with specific fix>",
+    "<weakness 2 with specific fix>",
+    "<weakness 3 with specific fix>"
+  ],
+  "missing_points": [
+    "<key point a topper would have included that this answer missed>",
+    "<another missed point>",
+    "<another missed point>"
+  ],
+  "improvement_suggestions": [
+    "<actionable tip 1>",
+    "<actionable tip 2>",
+    "<actionable tip 3>"
+  ],
+  "model_answer": "<your own ${wordLimit}-word reference answer, well-structured with intro-body-conclusion>"
+}`;
+}
+
+// ============ API CALL ============
+async function callGroq(model, prompt, apiKey) {
+  const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': 'Bearer ' + apiKey,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      model: model,
+      messages: [
+        { role: 'system', content: 'You are an expert UPSC Mains examiner. You return only valid JSON.' },
+        { role: 'user', content: prompt }
+      ],
+      temperature: 0.3,
+      max_tokens: 4096,
+      response_format: { type: 'json_object' }
+    })
+  });
+
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error('Groq API error ' + res.status + ': ' + errText);
+  }
+
+  const data = await res.json();
+  const content = data.choices[0].message.content;
+  return JSON.parse(content);
+}
+
+// ============ RENDER ============
+function render(result) {
+  document.getElementById('totalScore').textContent = result.total_score;
+  document.getElementById('grade').textContent = result.grade || '';
+  document.getElementById('verdict').textContent = result.verdict || '';
+
+  // Subscores
+  const subEl = document.getElementById('subscores');
+  subEl.innerHTML = '';
+  const labels = {
+    structure: 'Structure',
+    directive_adherence: 'Directive',
+    content_depth: 'Content',
+    multi_dimensionality: 'Multi-Dim',
+    substantiation: 'Substantiation',
+    word_limit_presentation: 'Word/Format'
+  };
+  Object.entries(result.subscores || {}).forEach(([k, v]) => {
+    const pct = (v / 10) * 100;
+    subEl.innerHTML += `
+      <div class="sub">
+        <div class="sub-label">${labels[k] || k}</div>
+        <div class="sub-value">${v}<small style="font-size:13px; color:#9ca3af;">/10</small></div>
+        <div class="bar"><div class="bar-fill" style="width:${pct}%"></div></div>
+      </div>`;
+  });
+
+  // Lists
+  const fillList = (id, arr) => {
+    const el = document.getElementById(id);
+    el.innerHTML = (arr || []).map(item => `<li>${escapeHtml(item)}</li>`).join('');
+  };
+  fillList('strengths', result.strengths);
+  fillList('weaknesses', result.weaknesses);
+  fillList('missing', result.missing_points);
+  fillList('improvements', result.improvement_suggestions);
+
+  document.getElementById('modelAnswer').textContent = result.model_answer || '';
+
+  resultEl.style.display = 'block';
+  resultEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// ============ MAIN ============
+evalBtn.addEventListener('click', async () => {
+  errorBox.innerHTML = '';
+  const apiKey = apiKeyInput.value.trim();
+  const paper = document.getElementById('paper').value;
+  const wordLimit = parseInt(document.getElementById('wordLimit').value);
+  const model = document.getElementById('model').value;
+  const question = document.getElementById('question').value.trim();
+  const answer = document.getElementById('answer').value.trim();
+
+  if (!apiKey) return showError('Add your Groq API key first');
+  if (!question) return showError('Paste the question');
+  if (!answer) return showError('Write your answer');
+  if (answer.split(/\s+/).length < 20) return showError('Answer too short (min 20 words)');
+
+  evalBtn.disabled = true;
+  statusEl.innerHTML = '<span class="spinner"></span>Evaluating... (15-30s)';
+  resultEl.style.display = 'none';
+
+  try {
+    const prompt = buildPrompt(paper, wordLimit, question, answer);
+    const result = await callGroq(model, prompt, apiKey);
+    render(result);
+    statusEl.innerHTML = '';
+  } catch (e) {
+    showError(e.message);
+    statusEl.innerHTML = '';
+  } finally {
+    evalBtn.disabled = false;
+  }
+});
+
+function showError(msg) {
+  errorBox.innerHTML = '<div class="error"><strong>Error:</strong> ' + escapeHtml(msg) + '</div>';
+}
+
+updateWordCount();
+</script>
+</body>
+</html>
