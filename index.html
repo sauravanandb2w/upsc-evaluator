@@ -4,6 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>UPSC Mains AI Evaluator</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='80' font-size='80'%3E%F0%9F%93%9D%3C/text%3E%3C/svg%3E" />
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script>
   if (window.pdfjsLib) {
@@ -12,481 +13,980 @@
   }
 </script>
 <style>
+  :root {
+    --bg: #f5f7fa;
+    --bg-grad: linear-gradient(135deg, #f5f7fa 0%, #e8edf3 100%);
+    --card: #ffffff;
+    --text: #1a1a1a;
+    --text-muted: #6b7280;
+    --text-soft: #4b5563;
+    --border: #e5e7eb;
+    --border-strong: #d1d5db;
+    --input-bg: #fafafa;
+    --primary: #1e3a8a;
+    --primary-hover: #1e40af;
+    --primary-soft: #eff6ff;
+    --accent: #2563eb;
+    --good: #059669;
+    --good-soft: #f0fdf4;
+    --warn: #d97706;
+    --warn-soft: #fffbeb;
+    --danger: #dc2626;
+    --danger-soft: #fef2f2;
+    --shadow: 0 4px 20px rgba(0,0,0,0.06);
+    --section-bg: #f9fafb;
+  }
+  [data-theme="dark"] {
+    --bg: #0f172a;
+    --bg-grad: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    --card: #1e293b;
+    --text: #f1f5f9;
+    --text-muted: #94a3b8;
+    --text-soft: #cbd5e1;
+    --border: #334155;
+    --border-strong: #475569;
+    --input-bg: #0f172a;
+    --primary: #60a5fa;
+    --primary-hover: #93c5fd;
+    --primary-soft: #1e3a5f;
+    --accent: #3b82f6;
+    --good: #34d399;
+    --good-soft: #064e3b;
+    --warn: #fbbf24;
+    --warn-soft: #451a03;
+    --danger: #f87171;
+    --danger-soft: #450a0a;
+    --shadow: 0 4px 20px rgba(0,0,0,0.3);
+    --section-bg: #0f172a;
+  }
+
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    background: linear-gradient(135deg, #f5f7fa 0%, #e8edf3 100%);
+    background: var(--bg-grad);
     min-height: 100vh;
-    padding: 24px;
-    color: #1a1a1a;
+    padding: 20px;
+    color: var(--text);
+    transition: background 0.3s, color 0.3s;
   }
   .container { max-width: 1100px; margin: 0 auto; }
-  header { text-align: center; margin-bottom: 28px; }
-  h1 { font-size: 28px; font-weight: 700; color: #1e3a8a; }
-  .subtitle { color: #555; font-size: 14px; margin-top: 6px; }
+
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 20px; flex-wrap: wrap; gap: 10px;
+  }
+  h1 { font-size: 24px; font-weight: 700; color: var(--primary); }
+  .subtitle { color: var(--text-muted); font-size: 13px; margin-top: 4px; }
+  .header-right { display: flex; gap: 8px; align-items: center; }
+
+  .theme-toggle {
+    background: var(--card); color: var(--text); border: 1px solid var(--border);
+    padding: 8px 12px; border-radius: 8px; font-size: 13px; cursor: pointer;
+    font-family: inherit; font-weight: 500;
+  }
+  .theme-toggle:hover { background: var(--primary-soft); transform: none; }
+
+  /* NAV */
+  .nav {
+    display: flex; gap: 4px; background: var(--card); border-radius: 12px;
+    padding: 6px; margin-bottom: 18px; overflow-x: auto;
+    box-shadow: var(--shadow);
+  }
+  .nav-btn {
+    background: transparent; color: var(--text-muted); border: none;
+    padding: 8px 14px; border-radius: 8px; font-size: 13px; font-weight: 600;
+    cursor: pointer; white-space: nowrap; font-family: inherit;
+    transition: all 0.15s;
+  }
+  .nav-btn:hover { background: var(--primary-soft); color: var(--primary); transform: none; }
+  .nav-btn.active { background: var(--primary); color: #fff; }
+
+  .view { display: none; }
+  .view.active { display: block; }
 
   .card {
-    background: #fff;
+    background: var(--card);
     border-radius: 14px;
-    padding: 24px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.06);
-    margin-bottom: 18px;
+    padding: 22px;
+    box-shadow: var(--shadow);
+    margin-bottom: 16px;
+    color: var(--text);
   }
 
   .row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
   .row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-bottom: 14px; }
-  label { display: block; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 6px; }
+  label { display: block; font-size: 13px; font-weight: 600; color: var(--text-soft); margin-bottom: 6px; }
   input, select, textarea {
-    width: 100%;
-    padding: 10px 12px;
-    border: 1px solid #d1d5db;
-    border-radius: 8px;
-    font-size: 14px;
-    font-family: inherit;
-    background: #fafafa;
+    width: 100%; padding: 10px 12px;
+    border: 1px solid var(--border-strong); border-radius: 8px;
+    font-size: 14px; font-family: inherit;
+    background: var(--input-bg); color: var(--text);
     transition: border 0.2s;
   }
   input:focus, select:focus, textarea:focus {
-    outline: none;
-    border-color: #2563eb;
-    background: #fff;
+    outline: none; border-color: var(--accent); background: var(--card);
   }
-  textarea { resize: vertical; min-height: 100px; line-height: 1.5; }
-  textarea.answer { min-height: 220px; }
+  textarea { resize: vertical; min-height: 80px; line-height: 1.5; }
+  textarea.answer { min-height: 200px; }
+  textarea.q-input { min-height: 60px; }
 
   .key-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: end; }
-  .key-row .hint { font-size: 11px; color: #6b7280; margin-top: 4px; }
+  .hint { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+  .hint a { color: var(--accent); text-decoration: none; }
 
-  .word-count { font-size: 12px; color: #6b7280; text-align: right; margin-top: 4px; }
-  .word-count.over { color: #dc2626; font-weight: 600; }
+  .word-count { font-size: 12px; color: var(--text-muted); text-align: right; margin-top: 4px; }
+  .word-count.over { color: var(--danger); font-weight: 600; }
 
-  .tabs {
-    display: flex; gap: 4px; margin-bottom: 12px;
-    border-bottom: 2px solid #e5e7eb;
-  }
+  .tabs { display: flex; gap: 4px; margin-bottom: 12px; border-bottom: 2px solid var(--border); }
   .tab {
-    padding: 10px 18px;
-    background: transparent;
-    border: none;
-    color: #6b7280;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    border-bottom: 2px solid transparent;
-    margin-bottom: -2px;
-    transition: all 0.15s;
+    padding: 9px 16px; background: transparent; border: none;
+    color: var(--text-muted); font-size: 13px; font-weight: 600; cursor: pointer;
+    border-bottom: 2px solid transparent; margin-bottom: -2px;
+    font-family: inherit; transition: all 0.15s;
   }
-  .tab:hover { color: #1e3a8a; transform: none; }
-  .tab.active { color: #1e3a8a; border-bottom-color: #1e3a8a; }
+  .tab:hover { color: var(--primary); transform: none; }
+  .tab.active { color: var(--primary); border-bottom-color: var(--primary); }
   .tab-panel { display: none; }
   .tab-panel.active { display: block; }
 
+  /* UPLOAD */
   .dropzone {
-    border: 2px dashed #cbd5e1;
-    border-radius: 10px;
-    padding: 30px 20px;
-    text-align: center;
-    background: #fafbfc;
-    cursor: pointer;
-    transition: all 0.2s;
+    border: 2px dashed var(--border-strong); border-radius: 10px;
+    padding: 28px 20px; text-align: center; background: var(--section-bg);
+    cursor: pointer; transition: all 0.2s;
   }
   .dropzone:hover, .dropzone.drag {
-    border-color: #2563eb;
-    background: #eff6ff;
+    border-color: var(--accent); background: var(--primary-soft);
   }
-  .dropzone .drop-icon { font-size: 32px; margin-bottom: 8px; }
-  .dropzone .drop-title { font-size: 15px; font-weight: 600; color: #1e3a8a; margin-bottom: 4px; }
-  .dropzone .drop-hint { font-size: 12px; color: #6b7280; }
+  .dropzone .drop-icon { font-size: 30px; margin-bottom: 8px; }
+  .dropzone .drop-title { font-size: 14px; font-weight: 600; color: var(--primary); }
+  .dropzone .drop-hint { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
   .file-input-hidden { display: none; }
 
   .previews {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-    gap: 10px;
-    margin-top: 14px;
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 10px; margin-top: 12px;
   }
   .preview {
-    position: relative;
-    background: #f3f4f6;
-    border-radius: 8px;
-    overflow: hidden;
-    aspect-ratio: 3/4;
-    border: 1px solid #e5e7eb;
+    position: relative; background: var(--section-bg); border-radius: 8px;
+    overflow: hidden; aspect-ratio: 3/4; border: 1px solid var(--border);
   }
   .preview img { width: 100%; height: 100%; object-fit: cover; display: block; }
   .preview .pg-label {
     position: absolute; bottom: 0; left: 0; right: 0;
-    background: rgba(0,0,0,0.6); color: #fff; font-size: 11px;
+    background: rgba(0,0,0,0.7); color: #fff; font-size: 11px;
     padding: 3px 6px; text-align: center;
   }
   .preview .remove {
     position: absolute; top: 4px; right: 4px;
     background: rgba(220, 38, 38, 0.9); color: #fff;
     width: 22px; height: 22px; border-radius: 50%;
-    border: none; cursor: pointer; font-size: 13px;
-    line-height: 1; padding: 0;
+    border: none; cursor: pointer; font-size: 13px; line-height: 1; padding: 0;
   }
-  .preview .remove:hover { background: rgba(220, 38, 38, 1); transform: none; }
-  .upload-info { font-size: 12px; color: #6b7280; margin-top: 10px; text-align: right; }
+  .upload-info { font-size: 12px; color: var(--text-muted); margin-top: 8px; text-align: right; }
 
+  /* BUTTONS */
   button {
-    background: #1e3a8a;
-    color: #fff;
-    border: none;
-    padding: 12px 28px;
-    border-radius: 8px;
-    font-size: 15px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
+    background: var(--primary); color: #fff; border: none;
+    padding: 10px 20px; border-radius: 8px;
+    font-size: 14px; font-weight: 600; cursor: pointer;
+    font-family: inherit; transition: all 0.15s;
   }
-  button:hover { background: #1e40af; transform: translateY(-1px); }
-  button:disabled { background: #9ca3af; cursor: not-allowed; transform: none; }
-  .btn-row { display: flex; gap: 10px; justify-content: flex-end; margin-top: 14px; }
-  .btn-secondary { background: #6b7280; }
-  .btn-secondary:hover { background: #4b5563; }
+  button:hover { background: var(--primary-hover); transform: translateY(-1px); }
+  button:disabled { background: var(--text-muted); cursor: not-allowed; transform: none; opacity: 0.7; }
+  .btn-row { display: flex; gap: 10px; justify-content: flex-end; margin-top: 12px; flex-wrap: wrap; }
+  .btn-secondary { background: var(--text-muted); }
+  .btn-secondary:hover { background: var(--text-soft); }
+  .btn-ghost { background: transparent; color: var(--primary); border: 1px solid var(--border); }
+  .btn-ghost:hover { background: var(--primary-soft); color: var(--primary); }
 
-  #status { text-align: center; padding: 12px; font-size: 14px; color: #4b5563; }
+  #status { text-align: center; padding: 10px; font-size: 14px; color: var(--text-soft); }
   .spinner {
     display: inline-block; width: 16px; height: 16px;
-    border: 2px solid #d1d5db; border-top-color: #1e3a8a;
+    border: 2px solid var(--border); border-top-color: var(--primary);
     border-radius: 50%; animation: spin 0.8s linear infinite;
     vertical-align: middle; margin-right: 8px;
   }
   @keyframes spin { to { transform: rotate(360deg); } }
 
-  #result { display: none; }
+  /* SCORE BLOCK */
   .score-block {
-    display: flex; align-items: center; gap: 24px; padding: 20px;
-    background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
-    border-radius: 12px; color: #fff; margin-bottom: 20px;
+    display: flex; align-items: center; gap: 22px; padding: 18px;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+    border-radius: 12px; color: #fff; margin-bottom: 18px; flex-wrap: wrap;
   }
-  .total-score {
-    font-size: 56px; font-weight: 700; line-height: 1;
-    min-width: 130px; text-align: center;
-  }
-  .total-score small { font-size: 22px; opacity: 0.8; }
-  .grade { font-size: 18px; font-weight: 600; margin-top: 6px; }
+  .total-score { font-size: 50px; font-weight: 700; line-height: 1; min-width: 120px; text-align: center; }
+  .total-score small { font-size: 20px; opacity: 0.8; }
+  .grade { font-size: 16px; font-weight: 600; margin-top: 4px; text-align: center; }
 
-  .subscores { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 20px; }
+  .subscores { display: grid; grid-template-columns: repeat(auto-fit, minmax(135px, 1fr)); gap: 10px; margin-bottom: 18px; }
   .sub {
-    background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px;
-    padding: 10px 12px;
+    background: var(--section-bg); border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px 12px;
   }
-  .sub-label { font-size: 11px; color: #6b7280; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
-  .sub-value { font-size: 20px; font-weight: 700; color: #1e3a8a; margin-top: 4px; }
-  .bar { height: 4px; background: #e5e7eb; border-radius: 2px; margin-top: 6px; overflow: hidden; }
-  .bar-fill { height: 100%; background: #2563eb; border-radius: 2px; transition: width 0.6s; }
+  .sub-label { font-size: 10px; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+  .sub-value { font-size: 19px; font-weight: 700; color: var(--primary); margin-top: 4px; }
+  .bar { height: 4px; background: var(--border); border-radius: 2px; margin-top: 6px; overflow: hidden; }
+  .bar-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width 0.6s; }
 
   .section { margin-bottom: 18px; }
   .section h3 {
-    font-size: 14px; font-weight: 700; text-transform: uppercase;
-    letter-spacing: 0.5px; margin-bottom: 10px; color: #1e3a8a;
-    border-bottom: 2px solid #e5e7eb; padding-bottom: 6px;
+    font-size: 13px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.5px; margin-bottom: 10px; color: var(--primary);
+    border-bottom: 2px solid var(--border); padding-bottom: 6px;
+    display: flex; align-items: center; gap: 8px;
   }
-  .section h3.danger { color: #dc2626; }
-  .section h3.success { color: #059669; }
-  .section h3.warn { color: #d97706; }
+  .section h3.danger { color: var(--danger); }
+  .section h3.success { color: var(--good); }
+  .section h3.warn { color: var(--warn); }
 
   ul { list-style: none; }
   ul li {
-    padding: 10px 12px; margin-bottom: 6px;
-    background: #f9fafb; border-left: 3px solid #2563eb;
-    border-radius: 4px; font-size: 14px; line-height: 1.5;
+    padding: 9px 12px; margin-bottom: 6px; background: var(--section-bg);
+    border-left: 3px solid var(--accent); border-radius: 4px;
+    font-size: 14px; line-height: 1.5; color: var(--text);
   }
-  ul.strengths li { border-left-color: #059669; background: #f0fdf4; }
-  ul.weak li { border-left-color: #dc2626; background: #fef2f2; }
-  ul.missing li { border-left-color: #d97706; background: #fffbeb; }
+  ul.strengths li { border-left-color: var(--good); background: var(--good-soft); }
+  ul.weak li { border-left-color: var(--danger); background: var(--danger-soft); }
+  ul.missing li { border-left-color: var(--warn); background: var(--warn-soft); }
 
   .model-answer, .transcription {
-    background: #f0f4ff; border: 1px solid #c7d2fe; border-radius: 8px;
-    padding: 14px; font-size: 14px; line-height: 1.7; white-space: pre-wrap;
+    background: var(--primary-soft); border: 1px solid var(--border);
+    border-radius: 8px; padding: 14px; font-size: 14px; line-height: 1.7;
+    white-space: pre-wrap; color: var(--text);
   }
-  .transcription { background: #f9fafb; border-color: #e5e7eb; max-height: 280px; overflow-y: auto; }
+  .transcription { background: var(--section-bg); max-height: 280px; overflow-y: auto; }
 
   .error {
-    background: #fef2f2; color: #991b1b; padding: 14px; border-radius: 8px;
-    border: 1px solid #fecaca; font-size: 13px; margin-top: 12px;
+    background: var(--danger-soft); color: var(--danger);
+    padding: 12px 14px; border-radius: 8px;
+    border: 1px solid var(--danger); font-size: 13px; margin-top: 10px;
   }
 
-  /* COPY BUTTON */
+  /* COPY BTN */
   .copy-btn {
-    background: rgba(255,255,255,0.15);
-    color: inherit;
+    background: rgba(255,255,255,0.15); color: inherit;
     border: 1px solid rgba(255,255,255,0.25);
-    padding: 4px 10px;
-    border-radius: 6px;
-    font-size: 11px;
-    font-weight: 600;
-    cursor: pointer;
-    font-family: inherit;
-    transition: all 0.15s;
-    letter-spacing: 0.3px;
-    text-transform: uppercase;
-  }
-  .copy-btn:hover { background: rgba(255,255,255,0.28); transform: none; }
-  .copy-btn.copied { background: #059669; color: #fff; border-color: #059669; }
-  .section h3 .copy-btn,
-  .section-row .copy-btn {
-    background: #f3f4f6;
-    color: #1e3a8a;
-    border: 1px solid #d1d5db;
+    padding: 4px 10px; border-radius: 6px;
+    font-size: 11px; font-weight: 600; cursor: pointer;
+    font-family: inherit; transition: all 0.15s;
+    letter-spacing: 0.3px; text-transform: uppercase;
     margin-left: auto;
   }
-  .section h3 .copy-btn:hover { background: #e0e7ff; }
-  .section h3 { display: flex; align-items: center; gap: 8px; }
+  .copy-btn:hover { background: rgba(255,255,255,0.28); transform: none; }
+  .copy-btn.copied { background: var(--good); color: #fff; border-color: var(--good); }
+  .section h3 .copy-btn {
+    background: var(--section-bg); color: var(--primary); border: 1px solid var(--border);
+  }
+  .section h3 .copy-btn:hover { background: var(--primary-soft); }
   .score-block .copy-btn { background: rgba(255,255,255,0.22); color: #fff; }
   .score-block .copy-btn:hover { background: rgba(255,255,255,0.35); }
   .score-row { display: flex; align-items: center; gap: 10px; margin-top: 8px; justify-content: center; }
   .verdict-row { display: flex; align-items: flex-start; gap: 12px; }
-  .verdict-row .copy-btn { flex-shrink: 0; margin-top: 2px; }
+  .verdict-row .copy-btn { flex-shrink: 0; margin-top: 2px; margin-left: 0; }
   .abhyas-hint {
-    background: #fffbeb; border: 1px solid #fde68a; color: #92400e;
-    padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-bottom: 16px;
-    display: flex; align-items: center; gap: 8px;
+    background: var(--warn-soft); border: 1px solid var(--warn); color: var(--warn);
+    padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-bottom: 14px;
   }
-  .footer { text-align: center; font-size: 12px; color: #9ca3af; margin-top: 24px; }
-  .footer a { color: #2563eb; text-decoration: none; }
+
+  /* SELF-SCORE */
+  .selfscore-box {
+    background: var(--primary-soft); border: 1px solid var(--accent);
+    border-radius: 10px; padding: 12px 14px; margin: 12px 0;
+    display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  }
+  .selfscore-box label { margin-bottom: 0; color: var(--text); font-weight: 700; }
+  .selfscore-box input { width: 70px; }
+  .selfscore-result {
+    display: none; padding: 12px 14px; border-radius: 8px;
+    background: var(--section-bg); border: 1px solid var(--border);
+    margin-bottom: 14px; font-size: 14px;
+  }
+
+  /* DIRECTIVE BANNER */
+  .directive-banner {
+    background: linear-gradient(135deg, var(--warn) 0%, #f59e0b 100%);
+    color: #fff; padding: 12px 16px; border-radius: 10px; margin-bottom: 14px;
+    font-size: 14px;
+  }
+  .directive-banner strong { font-size: 16px; }
+
+  /* LINE HIGHLIGHTS */
+  .highlight-wrap {
+    background: var(--section-bg); border: 1px solid var(--border);
+    border-radius: 8px; padding: 14px; font-size: 14px; line-height: 1.8;
+    white-space: pre-wrap;
+  }
+  .hl-good { background: rgba(5, 150, 105, 0.18); padding: 2px 3px; border-radius: 3px; }
+  .hl-weak { background: rgba(220, 38, 38, 0.18); padding: 2px 3px; border-radius: 3px; }
+  .hl-missing { background: rgba(217, 119, 6, 0.18); padding: 2px 3px; border-radius: 3px; }
+  .hl-legend { display: flex; gap: 14px; font-size: 12px; margin-bottom: 8px; flex-wrap: wrap; }
+  .hl-legend span { display: inline-flex; align-items: center; gap: 5px; }
+  .hl-legend .sw { display: inline-block; width: 12px; height: 12px; border-radius: 3px; }
+
+  /* CONSENSUS */
+  .consensus-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 10px; margin-bottom: 18px;
+  }
+  .consensus-card {
+    background: var(--section-bg); border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px 12px;
+  }
+  .consensus-card .cm-name { font-size: 11px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; }
+  .consensus-card .cm-score { font-size: 22px; font-weight: 700; color: var(--primary); margin-top: 3px; }
+  .consensus-card .cm-grade { font-size: 11px; color: var(--text-muted); }
+  .consensus-summary {
+    background: var(--primary-soft); border: 1px solid var(--accent);
+    border-radius: 8px; padding: 10px 14px; font-size: 13px; margin-bottom: 14px;
+  }
+
+  /* HEATMAP */
+  .heatmap {
+    display: grid; grid-template-columns: repeat(26, 1fr); gap: 3px;
+    padding: 8px 0; margin: 8px 0;
+  }
+  .hm-cell {
+    aspect-ratio: 1; border-radius: 2px;
+    background: var(--section-bg); border: 1px solid var(--border);
+    transition: all 0.15s;
+  }
+  .hm-cell[data-count="1"] { background: rgba(37, 99, 235, 0.25); border-color: rgba(37, 99, 235, 0.35); }
+  .hm-cell[data-count="2"] { background: rgba(37, 99, 235, 0.5); border-color: rgba(37, 99, 235, 0.6); }
+  .hm-cell[data-count="3"] { background: rgba(37, 99, 235, 0.75); border-color: rgba(37, 99, 235, 0.85); }
+  .hm-cell[data-count="4"] { background: rgba(37, 99, 235, 1); border-color: rgba(37, 99, 235, 1); }
+  .hm-cell:hover { outline: 2px solid var(--primary); }
+
+  .stat-row {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 10px; margin-bottom: 14px;
+  }
+  .stat {
+    background: var(--section-bg); border: 1px solid var(--border);
+    border-radius: 8px; padding: 12px;
+  }
+  .stat-label { font-size: 11px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+  .stat-value { font-size: 22px; font-weight: 700; color: var(--primary); margin-top: 3px; }
+
+  /* HISTORY LIST */
+  .history-item {
+    background: var(--section-bg); border: 1px solid var(--border);
+    border-radius: 8px; padding: 12px 14px; margin-bottom: 8px;
+    display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center;
+  }
+  .history-item .hi-q { font-size: 13px; line-height: 1.4; color: var(--text); }
+  .history-item .hi-meta { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+  .history-item .hi-score {
+    font-size: 22px; font-weight: 700; color: var(--primary);
+    background: var(--card); padding: 4px 12px; border-radius: 8px;
+    border: 1px solid var(--border);
+  }
+  .history-item .hi-actions { display: flex; gap: 6px; flex-direction: column; }
+  .history-item button { padding: 5px 9px; font-size: 11px; }
+
+  /* PYQ PICKER */
+  .pyq-filters {
+    display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 10px; margin-bottom: 12px;
+  }
+  .pyq-list { max-height: 540px; overflow-y: auto; }
+  .pyq-item {
+    background: var(--section-bg); border: 1px solid var(--border);
+    border-radius: 8px; padding: 12px 14px; margin-bottom: 8px;
+    cursor: pointer; transition: all 0.15s;
+  }
+  .pyq-item:hover { background: var(--primary-soft); border-color: var(--accent); }
+  .pyq-item .pq-meta {
+    font-size: 11px; color: var(--text-muted); margin-bottom: 4px;
+    display: flex; gap: 10px; flex-wrap: wrap;
+  }
+  .pyq-item .pq-text { font-size: 13px; line-height: 1.45; color: var(--text); }
+  .pq-tag {
+    background: var(--card); border: 1px solid var(--border);
+    padding: 2px 7px; border-radius: 99px; font-weight: 600;
+  }
+
+  /* DAILY */
+  .daily-card {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+    color: #fff; padding: 18px; border-radius: 12px; margin-bottom: 16px;
+  }
+  .daily-card .dl-label { font-size: 12px; opacity: 0.85; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+  .daily-card .dl-question { font-size: 16px; line-height: 1.5; margin-top: 8px; }
+  .daily-card .dl-meta { font-size: 11px; opacity: 0.8; margin-top: 8px; }
+  .daily-card .dl-actions { margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap; }
+  .daily-card button { background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); }
+  .daily-card button:hover { background: rgba(255,255,255,0.32); }
+
+  /* TEMPLATE HINT */
+  .template-hint {
+    background: var(--good-soft); border: 1px solid var(--good); color: var(--text);
+    padding: 10px 14px; border-radius: 8px; font-size: 12.5px; margin-top: 6px;
+    line-height: 1.5;
+  }
+  .template-hint strong { color: var(--good); }
+
+  /* MODAL */
+  .modal-bg {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.5); z-index: 100;
+    align-items: center; justify-content: center; padding: 20px;
+  }
+  .modal-bg.show { display: flex; }
+  .modal {
+    background: var(--card); border-radius: 14px; padding: 22px;
+    max-width: 720px; width: 100%; max-height: 88vh; overflow-y: auto;
+    color: var(--text);
+  }
+  .modal-head {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .modal-head h2 { font-size: 18px; color: var(--primary); }
+  .modal-close {
+    background: var(--section-bg); color: var(--text);
+    border: 1px solid var(--border); padding: 5px 11px; font-size: 14px;
+  }
+
+  /* COMPARE */
+  .compare-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 14px;
+  }
+  .compare-cell label { color: var(--primary); }
+  .compare-result {
+    background: var(--section-bg); border: 1px solid var(--border);
+    border-radius: 8px; padding: 14px; margin-top: 12px;
+  }
+  .compare-result .cr-headline {
+    font-size: 18px; font-weight: 700; color: var(--primary); margin-bottom: 8px;
+  }
+  .compare-result .cr-scores {
+    display: flex; align-items: center; gap: 14px; margin-bottom: 12px; font-size: 14px;
+  }
+  .delta { font-weight: 700; padding: 2px 8px; border-radius: 6px; }
+  .delta.up { background: var(--good-soft); color: var(--good); }
+  .delta.down { background: var(--danger-soft); color: var(--danger); }
+  .delta.flat { background: var(--section-bg); color: var(--text-muted); }
+
+  .footer { text-align: center; font-size: 12px; color: var(--text-muted); margin-top: 22px; padding-bottom: 30px; }
+  .footer a { color: var(--accent); text-decoration: none; }
 
   @media (max-width: 720px) {
     .row, .row-3 { grid-template-columns: 1fr; }
-    .total-score { font-size: 42px; min-width: 100px; }
+    .pyq-filters, .compare-grid { grid-template-columns: 1fr 1fr; }
+    .total-score { font-size: 40px; min-width: 100px; }
     .score-block { flex-direction: column; text-align: center; }
+    .heatmap { grid-template-columns: repeat(20, 1fr); }
+    h1 { font-size: 20px; }
   }
 </style>
 </head>
 <body>
 <div class="container">
   <header>
-    <h1>UPSC Mains AI Evaluator</h1>
-    <div class="subtitle">Powered by Llama 4 on Groq · Free · Type, paste, or upload handwritten answer</div>
+    <div>
+      <h1>📝 UPSC Mains AI Evaluator</h1>
+      <div class="subtitle">Llama 4 on Groq · Multi-model · Vision · History · Daily</div>
+    </div>
+    <div class="header-right">
+      <button class="theme-toggle" id="themeToggle" title="Toggle theme">🌙</button>
+    </div>
   </header>
 
-  <div class="card">
-    <label for="apiKey">Groq API Key</label>
-    <div class="key-row">
-      <input type="password" id="apiKey" placeholder="gsk_..." autocomplete="off" />
-      <button id="saveKey" type="button">Save</button>
-    </div>
-    <div class="hint">
-      Get free key at <a href="https://console.groq.com/keys" target="_blank">console.groq.com/keys</a> (no card needed). Saved in browser only.
-    </div>
-  </div>
+  <nav class="nav">
+    <button class="nav-btn active" data-view="evaluate">✍️ Evaluate</button>
+    <button class="nav-btn" data-view="daily">🌅 Daily</button>
+    <button class="nav-btn" data-view="pyq">📚 PYQs</button>
+    <button class="nav-btn" data-view="compare">🔄 Compare</button>
+    <button class="nav-btn" data-view="history">📊 History</button>
+    <button class="nav-btn" data-view="settings">⚙️ Settings</button>
+  </nav>
 
-  <div class="card">
-    <div class="row-3">
-      <div>
-        <label for="paper">Paper</label>
-        <select id="paper">
-          <option value="GS-1">GS-1 (History, Geo, Society)</option>
-          <option value="GS-2" selected>GS-2 (Polity, Governance, IR)</option>
-          <option value="GS-3">GS-3 (Economy, S&T, Env, Security)</option>
-          <option value="GS-4">GS-4 (Ethics)</option>
-          <option value="Essay">Essay</option>
-        </select>
-      </div>
-      <div>
-        <label for="wordLimit">Word Limit</label>
-        <select id="wordLimit">
-          <option value="150">150 words (10 marks)</option>
-          <option value="250" selected>250 words (15 marks)</option>
-          <option value="1000">1000 words (Essay)</option>
-        </select>
-      </div>
-      <div>
-        <label for="model">Model (vision-capable)</label>
-        <select id="model">
-          <option value="meta-llama/llama-4-scout-17b-16e-instruct" selected>Llama 4 Scout</option>
-          <option value="meta-llama/llama-4-maverick-17b-128e-instruct">Llama 4 Maverick</option>
-          <option value="llama-3.3-70b-versatile">Llama 3.3 70B (text only)</option>
-        </select>
-      </div>
-    </div>
+  <!-- ============ EVALUATE VIEW ============ -->
+  <section class="view active" id="view-evaluate">
 
-    <div style="margin-bottom: 14px;">
-      <label for="question">Question</label>
-      <textarea id="question" placeholder="Paste UPSC Mains question here..."></textarea>
-    </div>
-
-    <label>Your Answer</label>
-    <div class="tabs">
-      <button class="tab active" type="button" data-tab="text">Type / Paste Text</button>
-      <button class="tab" type="button" data-tab="upload">Upload Images / PDF</button>
-    </div>
-
-    <div class="tab-panel active" id="panel-text">
-      <textarea id="answer" class="answer" placeholder="Type or paste your answer here..."></textarea>
-      <div class="word-count" id="wordCount">0 words</div>
-    </div>
-
-    <div class="tab-panel" id="panel-upload">
-      <div class="dropzone" id="dropzone">
-        <div class="drop-icon">📎</div>
-        <div class="drop-title">Click or drop files here</div>
-        <div class="drop-hint">JPG, PNG, WebP, or PDF · multi-page OK · handwritten or typed</div>
-      </div>
-      <input type="file" id="fileInput" class="file-input-hidden"
-             accept="image/jpeg,image/png,image/webp,application/pdf" multiple />
-      <div class="previews" id="previews"></div>
-      <div class="upload-info" id="uploadInfo"></div>
-    </div>
-
-    <div class="btn-row">
-      <button id="clearBtn" type="button" class="btn-secondary">Clear</button>
-      <button id="evalBtn" type="button">Evaluate Answer</button>
-    </div>
-
-    <div id="status"></div>
-    <div id="errorBox"></div>
-  </div>
-
-  <div id="result" class="card">
-    <div class="abhyas-hint">
-      📋 Tap any <strong>COPY</strong> button → paste into matching field in Abhyas (Score / Comments / Strengths / Weaknesses)
-    </div>
-
-    <div class="score-block">
-      <div>
-        <div class="total-score"><span id="totalScore">0</span><small>/10</small></div>
-        <div class="grade" id="grade"></div>
-        <div class="score-row">
-          <button class="copy-btn" type="button" data-copy="score">📋 Copy Score</button>
+    <div class="card">
+      <div class="row-3">
+        <div>
+          <label for="paper">Paper</label>
+          <select id="paper">
+            <option value="GS-1">GS-1 (History, Geo, Society)</option>
+            <option value="GS-2" selected>GS-2 (Polity, Governance, IR)</option>
+            <option value="GS-3">GS-3 (Economy, S&T, Env, Security)</option>
+            <option value="GS-4">GS-4 (Ethics)</option>
+            <option value="Essay">Essay</option>
+          </select>
+        </div>
+        <div>
+          <label for="wordLimit">Word Limit</label>
+          <select id="wordLimit">
+            <option value="150">150 words (10 marks)</option>
+            <option value="250" selected>250 words (15 marks)</option>
+            <option value="1000">1000 words (Essay)</option>
+          </select>
+        </div>
+        <div>
+          <label for="model">Model</label>
+          <select id="model">
+            <option value="meta-llama/llama-4-scout-17b-16e-instruct" selected>Llama 4 Scout (vision)</option>
+            <option value="meta-llama/llama-4-maverick-17b-128e-instruct">Llama 4 Maverick (vision)</option>
+            <option value="llama-3.3-70b-versatile">Llama 3.3 70B (text only)</option>
+            <option value="__consensus__">🎯 Multi-Model Consensus (3 models)</option>
+          </select>
         </div>
       </div>
-      <div style="flex:1;">
-        <div style="font-size:13px; opacity:0.85; margin-bottom:6px;">EXAMINER'S VERDICT (→ Abhyas Comments)</div>
-        <div class="verdict-row">
-          <div id="verdict" style="font-size:15px; line-height:1.5; flex:1;"></div>
-          <button class="copy-btn" type="button" data-copy="comments">📋 Copy</button>
+
+      <div style="margin-bottom: 12px;">
+        <label for="question">Question</label>
+        <textarea id="question" class="q-input" placeholder="Paste UPSC Mains question here..."></textarea>
+        <div id="templateHint" class="template-hint" style="display:none;"></div>
+      </div>
+
+      <label>Your Answer</label>
+      <div class="tabs">
+        <button class="tab active" type="button" data-tab="text">Type / Paste Text</button>
+        <button class="tab" type="button" data-tab="upload">Upload Images / PDF</button>
+      </div>
+
+      <div class="tab-panel active" id="panel-text">
+        <textarea id="answer" class="answer" placeholder="Type or paste your answer here..."></textarea>
+        <div class="word-count" id="wordCount">0 words</div>
+      </div>
+
+      <div class="tab-panel" id="panel-upload">
+        <div class="dropzone" id="dropzone">
+          <div class="drop-icon">📎</div>
+          <div class="drop-title">Click or drop files here</div>
+          <div class="drop-hint">JPG, PNG, WebP, or PDF · multi-page OK · handwritten or typed</div>
+        </div>
+        <input type="file" id="fileInput" class="file-input-hidden"
+               accept="image/jpeg,image/png,image/webp,application/pdf" multiple />
+        <div class="previews" id="previews"></div>
+        <div class="upload-info" id="uploadInfo"></div>
+      </div>
+
+      <div class="selfscore-box">
+        <label for="selfScore">🎯 Predict your own score (calibration):</label>
+        <input type="number" id="selfScore" min="0" max="10" step="0.5" placeholder="e.g. 6.5" />
+        <span class="hint" style="margin: 0;">optional — train your inner examiner</span>
+      </div>
+
+      <div class="btn-row">
+        <button id="clearBtn" type="button" class="btn-secondary">Clear</button>
+        <button id="evalBtn" type="button">Evaluate Answer</button>
+      </div>
+
+      <div id="status"></div>
+      <div id="errorBox"></div>
+    </div>
+
+    <div id="result" style="display:none;">
+      <div class="card">
+        <div class="abhyas-hint">
+          📋 Tap any <strong>COPY</strong> button → paste into matching field in Abhyas (Score / Comments / Strengths / Weaknesses)
+        </div>
+
+        <div id="directiveBanner" class="directive-banner" style="display:none;"></div>
+
+        <div id="selfScoreResult" class="selfscore-result"></div>
+
+        <div id="consensusBox" style="display:none;">
+          <div class="section">
+            <h3>🎯 Multi-Model Consensus</h3>
+            <div class="consensus-grid" id="consensusGrid"></div>
+            <div class="consensus-summary" id="consensusSummary"></div>
+          </div>
+        </div>
+
+        <div class="score-block">
+          <div>
+            <div class="total-score"><span id="totalScore">0</span><small>/10</small></div>
+            <div class="grade" id="grade"></div>
+            <div class="score-row">
+              <button class="copy-btn" type="button" data-copy="score">📋 Copy Score</button>
+            </div>
+          </div>
+          <div style="flex:1; min-width: 220px;">
+            <div style="font-size:13px; opacity:0.85; margin-bottom:6px;">EXAMINER'S VERDICT (→ Abhyas Comments)</div>
+            <div class="verdict-row">
+              <div id="verdict" style="font-size:15px; line-height:1.5; flex:1;"></div>
+              <button class="copy-btn" type="button" data-copy="comments">📋 Copy</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="subscores" id="subscores"></div>
+
+        <div class="section" id="transcriptionSection" style="display:none;">
+          <h3>Transcription (from your uploaded answer)</h3>
+          <div class="transcription" id="transcription"></div>
+        </div>
+
+        <div class="section" id="lineHighlightSection" style="display:none;">
+          <h3>📍 Line-by-Line View</h3>
+          <div class="hl-legend">
+            <span><span class="sw" style="background: rgba(5,150,105,0.5);"></span> strong</span>
+            <span><span class="sw" style="background: rgba(220,38,38,0.5);"></span> weak / fix</span>
+            <span><span class="sw" style="background: rgba(217,119,6,0.5);"></span> hover for note</span>
+          </div>
+          <div class="highlight-wrap" id="lineHighlight"></div>
+        </div>
+
+        <div class="section">
+          <h3 class="success">Strengths <button class="copy-btn" type="button" data-copy="strengths">📋 Copy → Abhyas Strengths</button></h3>
+          <ul class="strengths" id="strengths"></ul>
+        </div>
+
+        <div class="section">
+          <h3 class="danger">Weaknesses (with fixes) <button class="copy-btn" type="button" data-copy="weaknesses">📋 Copy → Abhyas Weaknesses</button></h3>
+          <ul class="weak" id="weaknesses"></ul>
+        </div>
+
+        <div class="section">
+          <h3 class="warn">Missing Points <button class="copy-btn" type="button" data-copy="missing">📋 Copy</button></h3>
+          <ul class="missing" id="missing"></ul>
+        </div>
+
+        <div class="section">
+          <h3>Improvement Suggestions <button class="copy-btn" type="button" data-copy="improvements">📋 Copy</button></h3>
+          <ul id="improvements"></ul>
+        </div>
+
+        <div class="section" id="paperFeedbackSection" style="display:none;">
+          <h3>✍️ Paper Aesthetics & Handwriting Notes</h3>
+          <ul id="paperFeedback"></ul>
+        </div>
+
+        <div class="section">
+          <h3>Model Answer (reference) <button class="copy-btn" type="button" data-copy="model">📋 Copy</button></h3>
+          <div class="model-answer" id="modelAnswer"></div>
+        </div>
+
+        <div class="btn-row">
+          <button id="shareBtn" type="button" class="btn-ghost">🔗 Share Eval (URL)</button>
+          <button id="rewriteBtn" type="button">✨ Rewrite My Answer Better</button>
         </div>
       </div>
     </div>
+  </section>
 
-    <div class="subscores" id="subscores"></div>
+  <!-- ============ DAILY VIEW ============ -->
+  <section class="view" id="view-daily">
+    <div class="daily-card" id="dailyCard">
+      <div class="dl-label">🌅 Today's Question</div>
+      <div class="dl-question" id="dailyQuestion">Loading...</div>
+      <div class="dl-meta" id="dailyMeta"></div>
+      <div class="dl-actions">
+        <button id="dailyUseBtn">Use This Question</button>
+        <button id="dailyShuffleBtn">🎲 Shuffle</button>
+      </div>
+    </div>
+    <div class="card">
+      <h3 class="section h3" style="margin-bottom: 10px; color: var(--primary); font-size: 14px; text-transform: uppercase;">🔥 Streak</h3>
+      <div class="stat-row">
+        <div class="stat">
+          <div class="stat-label">Current Streak</div>
+          <div class="stat-value" id="currentStreak">0</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Longest Streak</div>
+          <div class="stat-value" id="longestStreak">0</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Total Evals</div>
+          <div class="stat-value" id="totalEvals">0</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Avg Score</div>
+          <div class="stat-value" id="avgScore">—</div>
+        </div>
+      </div>
+    </div>
+  </section>
 
-    <div class="section" id="transcriptionSection" style="display:none;">
-      <h3>Transcription (from your uploaded answer)</h3>
-      <div class="transcription" id="transcription"></div>
+  <!-- ============ PYQ VIEW ============ -->
+  <section class="view" id="view-pyq">
+    <div class="card">
+      <h3 class="section h3" style="margin-bottom: 12px;">📚 Past Year Questions (from upsc-mains-pyq)</h3>
+      <div class="pyq-filters">
+        <select id="pyqPaper">
+          <option value="all">All Papers</option>
+          <option value="1">GS-1</option>
+          <option value="2">GS-2</option>
+          <option value="3">GS-3</option>
+          <option value="4">GS-4</option>
+        </select>
+        <select id="pyqYear"><option value="all">All Years</option></select>
+        <select id="pyqMarks">
+          <option value="all">All Marks</option>
+          <option value="10">10 marks</option>
+          <option value="15">15 marks</option>
+        </select>
+        <input type="text" id="pyqSearch" placeholder="🔍 Search keyword..." />
+      </div>
+      <div id="pyqStatus" class="hint" style="margin-bottom:8px;">Loading questions...</div>
+      <div class="pyq-list" id="pyqList"></div>
+    </div>
+  </section>
+
+  <!-- ============ COMPARE VIEW ============ -->
+  <section class="view" id="view-compare">
+    <div class="card">
+      <h3 class="section h3" style="margin-bottom: 12px;">🔄 Compare Two Attempts</h3>
+      <div style="margin-bottom: 12px;">
+        <label for="cmpQuestion">Question (same for both)</label>
+        <textarea id="cmpQuestion" class="q-input"></textarea>
+      </div>
+      <div class="compare-grid">
+        <div class="compare-cell">
+          <label>📝 Old Attempt</label>
+          <textarea id="cmpOld" class="answer" placeholder="Paste your earlier attempt..."></textarea>
+        </div>
+        <div class="compare-cell">
+          <label>✨ New Attempt</label>
+          <textarea id="cmpNew" class="answer" placeholder="Paste your improved attempt..."></textarea>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button id="cmpBtn" type="button">Compare Attempts</button>
+      </div>
+      <div id="cmpStatus"></div>
+      <div id="cmpError"></div>
+      <div id="cmpResult" class="compare-result" style="display:none;"></div>
+    </div>
+  </section>
+
+  <!-- ============ HISTORY VIEW ============ -->
+  <section class="view" id="view-history">
+    <div class="card">
+      <h3 class="section h3" style="margin-bottom: 12px;">📅 Activity (last 6 months)</h3>
+      <div class="heatmap" id="heatmap"></div>
+      <div class="hint" id="heatmapHint"></div>
     </div>
 
-    <div class="section">
-      <h3 class="success">Strengths <button class="copy-btn" type="button" data-copy="strengths">📋 Copy → Abhyas Strengths</button></h3>
-      <ul class="strengths" id="strengths"></ul>
+    <div class="card">
+      <h3 class="section h3" style="margin-bottom: 12px;">🩹 Your Recurring Weaknesses</h3>
+      <div id="commonMistakes">No evaluations yet.</div>
     </div>
 
-    <div class="section">
-      <h3 class="danger">Weaknesses (with fixes) <button class="copy-btn" type="button" data-copy="weaknesses">📋 Copy → Abhyas Weaknesses</button></h3>
-      <ul class="weak" id="weaknesses"></ul>
+    <div class="card">
+      <h3 class="section h3" style="margin-bottom: 12px;">📜 All Evaluations</h3>
+      <div id="historyList">No evaluations saved yet.</div>
+      <div class="btn-row" style="margin-top: 10px;">
+        <button id="clearHistoryBtn" class="btn-secondary">Clear All History</button>
+        <button id="exportHistoryBtn" class="btn-ghost">Export as JSON</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ SETTINGS VIEW ============ -->
+  <section class="view" id="view-settings">
+    <div class="card">
+      <label for="apiKey">Groq API Key</label>
+      <div class="key-row">
+        <input type="password" id="apiKey" placeholder="gsk_..." autocomplete="off" />
+        <button id="saveKey" type="button">Save</button>
+      </div>
+      <div class="hint">
+        Free key at <a href="https://console.groq.com/keys" target="_blank">console.groq.com/keys</a> (no card). Saved in browser only.
+      </div>
     </div>
 
-    <div class="section">
-      <h3 class="warn">Missing Points <button class="copy-btn" type="button" data-copy="missing">📋 Copy</button></h3>
-      <ul class="missing" id="missing"></ul>
+    <div class="card">
+      <label>⏰ Evening Reminder (in this tab)</label>
+      <div class="key-row">
+        <input type="time" id="reminderTime" value="20:00" />
+        <button id="setReminder" type="button">Set</button>
+      </div>
+      <div class="hint" id="reminderStatus">Browser notification fires while this tab stays open. Permission required.</div>
     </div>
 
-    <div class="section">
-      <h3>Improvement Suggestions <button class="copy-btn" type="button" data-copy="improvements">📋 Copy</button></h3>
-      <ul id="improvements"></ul>
+    <div class="card">
+      <label>About</label>
+      <p class="hint" style="font-size: 13px; line-height: 1.6;">
+        Single-file local app. All data (API key, history, settings) stored in browser localStorage only.
+        No backend, no analytics. PYQ data fetched from your <a href="https://github.com/sauravanandb2w/upsc-mains-pyq" target="_blank">upsc-mains-pyq</a> repo.
+        Source: <a href="https://github.com/sauravanandb2w/upsc-evaluator" target="_blank">upsc-evaluator</a>.
+      </p>
     </div>
-
-    <div class="section">
-      <h3>Model Answer (reference) <button class="copy-btn" type="button" data-copy="model">📋 Copy</button></h3>
-      <div class="model-answer" id="modelAnswer"></div>
-    </div>
-  </div>
+  </section>
 
   <div class="footer">
-    Single-file local app · Your API key never leaves your browser · Llama 4 vision via Groq
+    📝 UPSC Mains AI Evaluator · Llama 4 via Groq · 100% client-side
+  </div>
+</div>
+
+<!-- REWRITE MODAL -->
+<div class="modal-bg" id="rewriteModal">
+  <div class="modal">
+    <div class="modal-head">
+      <h2>✨ AI-Rewritten Answer</h2>
+      <button class="modal-close" id="closeRewrite">×</button>
+    </div>
+    <div id="rewriteStatus"></div>
+    <div class="hint" style="margin-bottom:10px;">Keeps your voice and examples. Restructures, sharpens directive adherence, adds missing facts. Use as a reference, not a copy.</div>
+    <div class="model-answer" id="rewriteContent"></div>
+    <div class="btn-row">
+      <button class="btn-ghost" id="copyRewrite">📋 Copy</button>
+    </div>
   </div>
 </div>
 
 <script>
-const apiKeyInput = document.getElementById('apiKey');
-const saveKeyBtn = document.getElementById('saveKey');
-const evalBtn = document.getElementById('evalBtn');
-const clearBtn = document.getElementById('clearBtn');
-const statusEl = document.getElementById('status');
-const errorBox = document.getElementById('errorBox');
-const resultEl = document.getElementById('result');
-const answerEl = document.getElementById('answer');
-const wordCountEl = document.getElementById('wordCount');
-const dropzone = document.getElementById('dropzone');
-const fileInput = document.getElementById('fileInput');
-const previewsEl = document.getElementById('previews');
-const uploadInfo = document.getElementById('uploadInfo');
-
+// =================== STATE ===================
 let inputMode = 'text';
 let uploadedImages = [];
 let lastResult = null;
+let lastConsensus = null;
+let pyqData = { 1: null, 2: null, 3: null, 4: null };
+let pyqLoaded = false;
+let currentDaily = null;
+let reminderTimer = null;
 
-const savedKey = localStorage.getItem('groq_api_key');
-if (savedKey) apiKeyInput.value = savedKey;
+const HIST_KEY = 'upsc_eval_history';
+const KEY_KEY = 'groq_api_key';
+const THEME_KEY = 'upsc_theme';
+const REMINDER_KEY = 'upsc_reminder_time';
 
-saveKeyBtn.addEventListener('click', () => {
-  const k = apiKeyInput.value.trim();
-  if (!k) return alert('Paste your Groq API key first');
-  localStorage.setItem('groq_api_key', k);
-  saveKeyBtn.textContent = 'Saved!';
-  setTimeout(() => saveKeyBtn.textContent = 'Save', 1500);
+// =================== DOM REFS ===================
+const $ = (id) => document.getElementById(id);
+
+// =================== THEME ===================
+function applyTheme(t) {
+  document.documentElement.setAttribute('data-theme', t);
+  $('themeToggle').textContent = t === 'dark' ? '☀️' : '🌙';
+}
+function initTheme() {
+  const saved = localStorage.getItem(THEME_KEY) || 'light';
+  applyTheme(saved);
+}
+$('themeToggle').addEventListener('click', () => {
+  const cur = document.documentElement.getAttribute('data-theme') || 'light';
+  const next = cur === 'dark' ? 'light' : 'dark';
+  localStorage.setItem(THEME_KEY, next);
+  applyTheme(next);
 });
 
+// =================== NAV ===================
+document.querySelectorAll('.nav-btn').forEach(btn => {
+  btn.addEventListener('click', () => switchView(btn.dataset.view));
+});
+function switchView(name) {
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.view === name));
+  document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === 'view-' + name));
+  if (name === 'history') renderHistory();
+  if (name === 'daily') renderDaily();
+  if (name === 'pyq' && !pyqLoaded) loadPyqs();
+}
+
+// =================== API KEY ===================
+const savedKey = localStorage.getItem(KEY_KEY);
+if (savedKey) $('apiKey').value = savedKey;
+$('saveKey').addEventListener('click', () => {
+  const k = $('apiKey').value.trim();
+  if (!k) return alert('Paste your Groq API key first');
+  localStorage.setItem(KEY_KEY, k);
+  $('saveKey').textContent = 'Saved!';
+  setTimeout(() => $('saveKey').textContent = 'Save', 1500);
+});
+
+// =================== TAB SWITCHER (text/upload) ===================
 document.querySelectorAll('.tab').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
     document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
     btn.classList.add('active');
     const tab = btn.dataset.tab;
-    document.getElementById('panel-' + tab).classList.add('active');
+    $('panel-' + tab).classList.add('active');
     inputMode = tab;
   });
 });
 
+// =================== WORD COUNT ===================
 function updateWordCount() {
-  const text = answerEl.value.trim();
+  const text = $('answer').value.trim();
   const words = text ? text.split(/\s+/).length : 0;
-  const limit = parseInt(document.getElementById('wordLimit').value);
-  wordCountEl.textContent = words + ' words (limit: ' + limit + ')';
-  wordCountEl.classList.toggle('over', words > limit * 1.15 || (words > 0 && words < limit * 0.7));
+  const limit = parseInt($('wordLimit').value);
+  $('wordCount').textContent = words + ' words (limit: ' + limit + ')';
+  $('wordCount').classList.toggle('over', words > limit * 1.15 || (words > 0 && words < limit * 0.7));
 }
-answerEl.addEventListener('input', updateWordCount);
-document.getElementById('wordLimit').addEventListener('change', updateWordCount);
+$('answer').addEventListener('input', updateWordCount);
+$('wordLimit').addEventListener('change', updateWordCount);
 
-clearBtn.addEventListener('click', () => {
-  document.getElementById('question').value = '';
-  answerEl.value = '';
+// =================== TEMPLATE HINTS ===================
+const DIRECTIVE_TEMPLATES = {
+  'examine': '<strong>Examine</strong> = investigate by looking at evidence. Structure: intro (define) → arg-A with evidence → arg-B with evidence → balanced conclusion.',
+  'critically examine': '<strong>Critically examine</strong> = examine + form a judgment. Add critique of both sides. Take a clear stand at the end.',
+  'analyze': '<strong>Analyze</strong> = break into parts, study relationships. Structure: intro → component 1 → component 2 → linkages → conclusion.',
+  'critically analyze': '<strong>Critically analyze</strong> = analyze + evaluate strengths/weaknesses. Take a position.',
+  'discuss': '<strong>Discuss</strong> = present multiple sides with reasons. Structure: intro → perspective 1 → perspective 2 → perspective 3 → synthesis.',
+  'evaluate': '<strong>Evaluate</strong> = judge value/significance. Structure: intro → positives → negatives → net assessment with stand.',
+  'comment': '<strong>Comment</strong> = give your considered opinion with reasons. Brief intro → your view → reasoning → balanced close.',
+  'elucidate': '<strong>Elucidate</strong> = explain clearly with examples. Structure: define → unpack key idea → examples → significance.',
+  'enumerate': '<strong>Enumerate</strong> = list with brief explanation. Structure: intro → numbered/bulleted points → short close.',
+  'illustrate': '<strong>Illustrate</strong> = make clear via examples. Each point must come with a concrete example.',
+  'substantiate': '<strong>Substantiate</strong> = back the claim with evidence. State claim → evidence 1 → evidence 2 → reaffirm.',
+  'justify': '<strong>Justify</strong> = defend the position with reasons. Position → reason 1 → reason 2 → address counter → reaffirm.',
+  'discuss the role': '<strong>Discuss the role</strong> = describe function + impact + assessment. Define entity → role areas → critique → close.'
+};
+function detectDirective(text) {
+  if (!text) return null;
+  const lower = text.toLowerCase();
+  let best = null;
+  for (const k of Object.keys(DIRECTIVE_TEMPLATES)) {
+    if (lower.includes(k)) {
+      if (!best || k.length > best.length) best = k;
+    }
+  }
+  return best;
+}
+$('question').addEventListener('input', () => {
+  const d = detectDirective($('question').value);
+  const el = $('templateHint');
+  if (d) {
+    el.innerHTML = '💡 ' + DIRECTIVE_TEMPLATES[d];
+    el.style.display = 'block';
+  } else {
+    el.style.display = 'none';
+  }
+});
+
+// =================== CLEAR ===================
+$('clearBtn').addEventListener('click', () => {
+  $('question').value = '';
+  $('answer').value = '';
+  $('selfScore').value = '';
   uploadedImages = [];
   renderPreviews();
-  resultEl.style.display = 'none';
-  errorBox.innerHTML = '';
+  $('result').style.display = 'none';
+  $('errorBox').innerHTML = '';
+  $('templateHint').style.display = 'none';
   updateWordCount();
 });
 
-dropzone.addEventListener('click', () => fileInput.click());
-['dragenter','dragover'].forEach(ev => dropzone.addEventListener(ev, e => {
-  e.preventDefault(); e.stopPropagation(); dropzone.classList.add('drag');
+// =================== FILE UPLOAD ===================
+$('dropzone').addEventListener('click', () => $('fileInput').click());
+['dragenter','dragover'].forEach(ev => $('dropzone').addEventListener(ev, e => {
+  e.preventDefault(); e.stopPropagation(); $('dropzone').classList.add('drag');
 }));
-['dragleave','drop'].forEach(ev => dropzone.addEventListener(ev, e => {
-  e.preventDefault(); e.stopPropagation(); dropzone.classList.remove('drag');
+['dragleave','drop'].forEach(ev => $('dropzone').addEventListener(ev, e => {
+  e.preventDefault(); e.stopPropagation(); $('dropzone').classList.remove('drag');
 }));
-dropzone.addEventListener('drop', e => handleFiles(e.dataTransfer.files));
-fileInput.addEventListener('change', e => handleFiles(e.target.files));
+$('dropzone').addEventListener('drop', e => handleFiles(e.dataTransfer.files));
+$('fileInput').addEventListener('change', e => handleFiles(e.target.files));
 
 async function handleFiles(files) {
-  statusEl.innerHTML = '<span class="spinner"></span>Processing files...';
+  $('status').innerHTML = '<span class="spinner"></span>Processing files...';
   for (const f of files) {
     try {
-      if (f.type === 'application/pdf') {
-        await processPdf(f);
-      } else if (f.type.startsWith('image/')) {
-        await processImage(f);
-      }
+      if (f.type === 'application/pdf') await processPdf(f);
+      else if (f.type.startsWith('image/')) await processImage(f);
     } catch (e) {
       showError('Failed to process ' + f.name + ': ' + e.message);
     }
   }
-  statusEl.innerHTML = '';
+  $('status').innerHTML = '';
   renderPreviews();
-  fileInput.value = '';
+  $('fileInput').value = '';
 }
 
 async function processImage(file) {
@@ -498,7 +998,6 @@ async function processImage(file) {
     label: file.name.slice(0, 18)
   });
 }
-
 async function processPdf(file) {
   if (!window.pdfjsLib) throw new Error('pdf.js not loaded');
   const buf = await file.arrayBuffer();
@@ -520,7 +1019,6 @@ async function processPdf(file) {
     });
   }
 }
-
 function fileToDataUrl(file) {
   return new Promise((resolve, reject) => {
     const r = new FileReader();
@@ -529,7 +1027,6 @@ function fileToDataUrl(file) {
     r.readAsDataURL(file);
   });
 }
-
 function compressImage(dataUrl, maxDim, quality) {
   return new Promise((resolve) => {
     const img = new Image();
@@ -549,9 +1046,8 @@ function compressImage(dataUrl, maxDim, quality) {
     img.src = dataUrl;
   });
 }
-
 function renderPreviews() {
-  previewsEl.innerHTML = uploadedImages.map(img => `
+  $('previews').innerHTML = uploadedImages.map(img => `
     <div class="preview" data-id="${img.id}">
       <img src="${img.dataUrl}" alt="${escapeHtml(img.label)}" />
       <div class="pg-label">${escapeHtml(img.label)}</div>
@@ -559,10 +1055,10 @@ function renderPreviews() {
     </div>
   `).join('');
   const sizeKB = uploadedImages.reduce((s,i) => s + Math.ceil(i.dataUrl.length * 0.75 / 1024), 0);
-  uploadInfo.textContent = uploadedImages.length
+  $('uploadInfo').textContent = uploadedImages.length
     ? uploadedImages.length + ' image(s) · ~' + sizeKB + ' KB total'
     : '';
-  previewsEl.querySelectorAll('[data-remove]').forEach(btn => {
+  $('previews').querySelectorAll('[data-remove]').forEach(btn => {
     btn.addEventListener('click', () => {
       uploadedImages = uploadedImages.filter(x => x.id !== btn.dataset.remove);
       renderPreviews();
@@ -570,55 +1066,62 @@ function renderPreviews() {
   });
 }
 
+// =================== PROMPT BUILDER ===================
 function buildPrompt(paper, wordLimit, question, answer, isVision) {
-  const paperContext = {
+  const paperCtx = {
     'GS-1': 'GS Paper 1 (History, Geography, Society, Art & Culture).',
-    'GS-2': 'GS Paper 2 (Polity, Governance, Constitution, IR). Examiner expects constitutional articles, judgments, committee reports, schemes.',
-    'GS-3': 'GS Paper 3 (Economy, Agriculture, S&T, Environment, Security). Examiner expects data, NITI/RBI/Economic Survey references, schemes.',
-    'GS-4': 'GS Paper 4 (Ethics, Integrity, Aptitude). Examiner expects thinkers/quotes, ethical theories, stakeholder analysis.',
-    'Essay': 'Essay paper. Examiner expects philosophical depth, multi-dimensional treatment, narrative flow, powerful conclusion.'
+    'GS-2': 'GS Paper 2 (Polity, Governance, Constitution, IR). Expects articles, judgments, committee reports, schemes.',
+    'GS-3': 'GS Paper 3 (Economy, Agriculture, S&T, Environment, Security). Expects data, NITI/RBI/Economic Survey, schemes.',
+    'GS-4': 'GS Paper 4 (Ethics, Integrity, Aptitude). Expects thinkers/quotes, ethical theories, stakeholder analysis.',
+    'Essay': 'Essay paper. Expects philosophical depth, multi-dimensional treatment, narrative flow.'
   };
 
   const visionInstr = isVision
-    ? `\nIMPORTANT: The student's answer is provided as IMAGE(S) of their handwritten/printed answer copy (multiple pages possible, in order). First, TRANSCRIBE the full answer verbatim from the images (preserve paragraph structure, headings, bullets). Then evaluate that transcription. Return the transcription in the JSON field "transcription".`
+    ? `\nIMPORTANT: The answer is provided as IMAGE(S) of the answer copy. First, TRANSCRIBE the full answer verbatim from the images. Return it in JSON field "transcription". Then evaluate it. Also assess paper aesthetics (handwriting legibility, use of headings, diagrams, neatness) and return in "paper_feedback" array.`
     : '';
 
   const answerBlock = isVision
     ? '(see attached images of the student answer copy)'
     : `"""\n${answer}\n"""\n(${answer.trim().split(/\s+/).length} words)`;
 
-  return `You are a senior UPSC Mains examiner with 15+ years of experience evaluating Civil Services answer copies. You are rigorous, fair, and constructive.
+  return `You are a senior UPSC Mains examiner with 15+ years of experience. Rigorous, fair, constructive.
 
-PAPER CONTEXT: ${paperContext[paper]}
+PAPER CONTEXT: ${paperCtx[paper]}
 ${visionInstr}
 
 EVALUATION TASK:
 Question: ${question}
-Word limit: ${wordLimit} words (acceptable range: ${Math.floor(wordLimit*0.9)}-${Math.ceil(wordLimit*1.1)} words)
+Word limit: ${wordLimit} (acceptable: ${Math.floor(wordLimit*0.9)}-${Math.ceil(wordLimit*1.1)})
 Student answer: ${answerBlock}
 
-RUBRIC (score each 0-10):
-1. STRUCTURE — intro (define/context), organized body, forward-looking conclusion.
-2. DIRECTIVE ADHERENCE — did the answer DO what the directive (examine/critically analyze/discuss/evaluate) demanded?
+RUBRIC (each 0-10):
+1. STRUCTURE — intro/body/conclusion, organization.
+2. DIRECTIVE ADHERENCE — did the answer DO what the directive (examine/critically analyze/discuss/etc.) demanded? Penalize heavily if it just describes when analysis was needed.
 3. CONTENT DEPTH & ACCURACY — factual correctness, conceptual clarity.
 4. MULTI-DIMENSIONALITY — political/economic/social/environmental/ethical angles.
-5. SUBSTANTIATION — specific examples, data, reports, articles, judgments, schemes, thinkers.
-6. WORD LIMIT & PRESENTATION — within ±10% of ${wordLimit}; headings/bullets/diagrams where appropriate.
+5. SUBSTANTIATION — examples, data, reports, articles, judgments, schemes, thinkers.
+6. WORD LIMIT & PRESENTATION — within ±10%; headings/bullets/diagrams.
 
-SPECIAL RULES:
-- Blank/off-topic/under-30-words: score 0-2 and explain.
-- GS-4 case studies: weight stakeholder identification, ethical dilemma framing, reasoning.
-- Essay: structure, narrative flow, depth > facts.
-- Be SPECIFIC in weaknesses. Not "add more examples" — instead "you mention cooperative federalism without citing Article 263 or Inter-State Council."
-- Model answer must be YOUR original ${wordLimit}-word answer as a topper would write.
+EXTRACT THE DIRECTIVE WORD from the question (examine / critically examine / analyze / discuss / evaluate / comment / elucidate / illustrate / enumerate / substantiate / justify) and return verdict on whether it was honored.
+
+LINE-LEVEL ANALYSIS: Split the student's answer into 5-15 logical chunks (sentences or short groups). For each, label "good" (clear, well-substantiated, on-point), "weak" (vague, factually thin, off-directive), or "neutral". Return in "line_analysis": [{ "text": "<exact chunk>", "rating": "good|weak|neutral", "note": "<one-line reason or fix>" }, ...]. Use the EXACT text from the student's answer/transcription; do not paraphrase.
+
+SPECIAL:
+- Blank/off-topic/<30 words: 0-2 with reason.
+- GS-4 case studies: weight stakeholder + dilemma framing.
+- Essay: structure & flow > facts.
+- SPECIFIC weaknesses with fixes (e.g. "you mention cooperative federalism without Article 263 or Inter-State Council").
+- Model answer = YOUR original ${wordLimit}-word reference, topper-style.
 
 OUTPUT — ONLY valid JSON:
 
 {
-  ${isVision ? '"transcription": "<verbatim transcription of the handwritten/printed answer from images>",' : ''}
-  "total_score": <0-10, can be decimal>,
+  ${isVision ? '"transcription": "<verbatim transcription>",' : ''}
+  "total_score": <0-10, decimal ok>,
   "grade": "<Outstanding | Very Good | Good | Average | Needs Work | Poor>",
-  "verdict": "<2-3 sentence examiner verdict>",
+  "verdict": "<2-3 sentences>",
+  "directive_word": "<the directive word from question>",
+  "directive_assessment": "<one line: did the answer honor it? if not, what was missing>",
   "subscores": {
     "structure": <0-10>,
     "directive_adherence": <0-10>,
@@ -627,118 +1130,274 @@ OUTPUT — ONLY valid JSON:
     "substantiation": <0-10>,
     "word_limit_presentation": <0-10>
   },
-  "strengths": ["<s1>", "<s2>", "<s3>"],
-  "weaknesses": ["<w1 with fix>", "<w2 with fix>", "<w3 with fix>"],
-  "missing_points": ["<m1>", "<m2>", "<m3>"],
-  "improvement_suggestions": ["<i1>", "<i2>", "<i3>"],
-  "model_answer": "<your own ${wordLimit}-word reference answer with intro-body-conclusion>"
+  "strengths": ["s1","s2","s3"],
+  "weaknesses": ["w1 with fix","w2 with fix","w3 with fix"],
+  "missing_points": ["m1","m2","m3"],
+  "improvement_suggestions": ["i1","i2","i3"],
+  "line_analysis": [
+    {"text":"<exact chunk from answer>","rating":"good|weak|neutral","note":"<reason>"}
+  ],
+  ${isVision ? '"paper_feedback": ["handwriting/aesthetics note 1","note 2"],' : ''}
+  "model_answer": "<your ${wordLimit}-word reference with intro-body-conclusion>"
 }`;
 }
 
+// =================== API CALL ===================
 async function callGroq(model, prompt, apiKey, images) {
   let userContent;
   if (images && images.length) {
     userContent = [{ type: 'text', text: prompt }];
-    for (const im of images) {
-      userContent.push({ type: 'image_url', image_url: { url: im.dataUrl } });
-    }
+    for (const im of images) userContent.push({ type: 'image_url', image_url: { url: im.dataUrl } });
   } else {
     userContent = prompt;
   }
-
   const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST',
-    headers: {
-      'Authorization': 'Bearer ' + apiKey,
-      'Content-Type': 'application/json'
-    },
+    headers: { 'Authorization': 'Bearer ' + apiKey, 'Content-Type': 'application/json' },
     body: JSON.stringify({
       model: model,
       messages: [
-        { role: 'system', content: 'You are an expert UPSC Mains examiner. You return only valid JSON.' },
+        { role: 'system', content: 'You are an expert UPSC Mains examiner. Return only valid JSON, no markdown.' },
         { role: 'user', content: userContent }
       ],
       temperature: 0.3,
-      max_tokens: 4096,
+      max_tokens: 4500,
       response_format: { type: 'json_object' }
     })
   });
-
   if (!res.ok) {
     const errText = await res.text();
     throw new Error('Groq API error ' + res.status + ': ' + errText);
   }
-
   const data = await res.json();
-  const content = data.choices[0].message.content;
-  return JSON.parse(content);
+  return JSON.parse(data.choices[0].message.content);
 }
 
-function render(result) {
-  lastResult = result;
-  document.getElementById('totalScore').textContent = result.total_score;
-  document.getElementById('grade').textContent = result.grade || '';
-  document.getElementById('verdict').textContent = result.verdict || '';
+// =================== MULTI-MODEL CONSENSUS ===================
+const CONSENSUS_MODELS = [
+  { id: 'meta-llama/llama-4-scout-17b-16e-instruct', name: 'Llama 4 Scout' },
+  { id: 'meta-llama/llama-4-maverick-17b-128e-instruct', name: 'Llama 4 Maverick' },
+  { id: 'llama-3.3-70b-versatile', name: 'Llama 3.3 70B' }
+];
+async function runConsensus(prompt, apiKey, images) {
+  // images only work on Llama 4
+  const models = images && images.length ? CONSENSUS_MODELS.filter(m => m.id.includes('llama-4')) : CONSENSUS_MODELS;
+  const calls = models.map(m => callGroq(m.id, prompt, apiKey, images).then(r => ({ model: m, result: r })).catch(e => ({ model: m, error: e.message })));
+  const results = await Promise.all(calls);
+  return results;
+}
 
-  const tSection = document.getElementById('transcriptionSection');
-  if (result.transcription) {
-    document.getElementById('transcription').textContent = result.transcription;
-    tSection.style.display = 'block';
-  } else {
-    tSection.style.display = 'none';
+// =================== EVAL FLOW ===================
+$('evalBtn').addEventListener('click', async () => {
+  $('errorBox').innerHTML = '';
+  const apiKey = $('apiKey').value.trim() || localStorage.getItem(KEY_KEY);
+  const paper = $('paper').value;
+  const wordLimit = parseInt($('wordLimit').value);
+  const model = $('model').value;
+  const question = $('question').value.trim();
+  const answer = $('answer').value.trim();
+  const selfScore = $('selfScore').value;
+
+  if (!apiKey) return showError('Add your Groq API key (Settings tab)');
+  if (!question) return showError('Paste the question');
+
+  const isVision = inputMode === 'upload' && uploadedImages.length > 0;
+  if (!isVision && inputMode === 'upload') return showError('Upload at least one image or PDF');
+  if (!isVision && !answer) return showError('Write your answer or switch to upload tab');
+  if (!isVision && answer.split(/\s+/).length < 20) return showError('Answer too short (min 20 words)');
+
+  const isConsensus = model === '__consensus__';
+  if (isVision && !isConsensus && !model.includes('llama-4')) {
+    return showError('Vision needs Llama 4. Switch model or pick Consensus.');
   }
 
-  const subEl = document.getElementById('subscores');
-  subEl.innerHTML = '';
-  const labels = {
-    structure: 'Structure',
-    directive_adherence: 'Directive',
-    content_depth: 'Content',
-    multi_dimensionality: 'Multi-Dim',
-    substantiation: 'Substantiation',
-    word_limit_presentation: 'Word/Format'
-  };
-  Object.entries(result.subscores || {}).forEach(([k, v]) => {
-    const pct = (v / 10) * 100;
-    subEl.innerHTML += `
-      <div class="sub">
-        <div class="sub-label">${labels[k] || k}</div>
-        <div class="sub-value">${v}<small style="font-size:13px; color:#9ca3af;">/10</small></div>
-        <div class="bar"><div class="bar-fill" style="width:${pct}%"></div></div>
-      </div>`;
-  });
+  $('evalBtn').disabled = true;
+  $('result').style.display = 'none';
+  $('status').innerHTML = '<span class="spinner"></span>' + (
+    isConsensus ? 'Running 3 models in parallel... (40-90s)' :
+    isVision ? 'Transcribing + evaluating ' + uploadedImages.length + ' image(s)... (30-90s)' :
+    'Evaluating... (15-30s)'
+  );
 
-  const fillList = (id, arr) => {
-    const el = document.getElementById(id);
-    el.innerHTML = (arr || []).map(item => `<li>${escapeHtml(item)}</li>`).join('');
+  try {
+    const prompt = buildPrompt(paper, wordLimit, question, answer, isVision);
+
+    if (isConsensus) {
+      const results = await runConsensus(prompt, apiKey, isVision ? uploadedImages : null);
+      const ok = results.filter(r => r.result);
+      if (!ok.length) throw new Error(results.map(r => r.error).join(' | '));
+      // pick the median-scored result as the canonical
+      ok.sort((a,b) => (a.result.total_score || 0) - (b.result.total_score || 0));
+      const canonical = ok[Math.floor(ok.length / 2)].result;
+      lastConsensus = results;
+      lastResult = canonical;
+      render(canonical, { selfScore });
+      renderConsensus(results);
+    } else {
+      lastConsensus = null;
+      $('consensusBox').style.display = 'none';
+      const result = await callGroq(model, prompt, apiKey, isVision ? uploadedImages : null);
+      lastResult = result;
+      render(result, { selfScore });
+    }
+
+    // save to history
+    saveToHistory({
+      ts: Date.now(),
+      paper, wordLimit, model: isConsensus ? 'consensus' : model,
+      question, answer: isVision ? '(images)' : answer,
+      score: lastResult.total_score, grade: lastResult.grade,
+      verdict: lastResult.verdict,
+      selfScore: selfScore || null,
+      weaknesses: lastResult.weaknesses || [],
+      missing_points: lastResult.missing_points || []
+    });
+
+    $('status').innerHTML = '';
+  } catch (e) {
+    showError(e.message);
+    $('status').innerHTML = '';
+  } finally {
+    $('evalBtn').disabled = false;
+  }
+});
+
+function showError(msg) {
+  $('errorBox').innerHTML = '<div class="error"><strong>Error:</strong> ' + escapeHtml(msg) + '</div>';
+}
+
+// =================== RENDER ===================
+function render(result, opts) {
+  $('totalScore').textContent = result.total_score;
+  $('grade').textContent = result.grade || '';
+  $('verdict').textContent = result.verdict || '';
+
+  // directive banner
+  if (result.directive_word) {
+    $('directiveBanner').style.display = 'block';
+    $('directiveBanner').innerHTML =
+      '🎯 Directive: <strong>' + escapeHtml(result.directive_word.toUpperCase()) + '</strong> · ' +
+      escapeHtml(result.directive_assessment || '');
+  } else {
+    $('directiveBanner').style.display = 'none';
+  }
+
+  // self-score
+  const selfRes = $('selfScoreResult');
+  if (opts && opts.selfScore && opts.selfScore !== '') {
+    const me = parseFloat(opts.selfScore);
+    const ai = parseFloat(result.total_score);
+    const diff = (ai - me).toFixed(1);
+    let msg = '';
+    if (Math.abs(diff) < 0.5) msg = '✅ Spot on! Your self-assessment matches the AI.';
+    else if (diff > 0) msg = '📈 You under-rated yourself by ' + Math.abs(diff) + '. You\'re harder on yourself than the examiner.';
+    else msg = '📉 You over-rated by ' + Math.abs(diff) + '. The examiner saw gaps you missed — work on calibration.';
+    selfRes.innerHTML = '<strong>You said:</strong> ' + me + '/10 · <strong>AI said:</strong> ' + ai + '/10 · ' + msg;
+    selfRes.style.display = 'block';
+  } else {
+    selfRes.style.display = 'none';
+  }
+
+  // transcription
+  const tSection = $('transcriptionSection');
+  if (result.transcription) {
+    $('transcription').textContent = result.transcription;
+    tSection.style.display = 'block';
+  } else tSection.style.display = 'none';
+
+  // line highlights
+  renderLineHighlights(result);
+
+  // paper feedback
+  if (result.paper_feedback && result.paper_feedback.length) {
+    $('paperFeedbackSection').style.display = 'block';
+    $('paperFeedback').innerHTML = result.paper_feedback.map(t => '<li>' + escapeHtml(t) + '</li>').join('');
+  } else {
+    $('paperFeedbackSection').style.display = 'none';
+  }
+
+  // subscores
+  const labels = {
+    structure: 'Structure', directive_adherence: 'Directive', content_depth: 'Content',
+    multi_dimensionality: 'Multi-Dim', substantiation: 'Substantiation', word_limit_presentation: 'Word/Format'
   };
+  $('subscores').innerHTML = Object.entries(result.subscores || {}).map(([k, v]) => {
+    const pct = (v / 10) * 100;
+    return `<div class="sub">
+      <div class="sub-label">${labels[k] || k}</div>
+      <div class="sub-value">${v}<small style="font-size:13px; color:var(--text-muted);">/10</small></div>
+      <div class="bar"><div class="bar-fill" style="width:${pct}%"></div></div>
+    </div>`;
+  }).join('');
+
+  // lists
+  const fillList = (id, arr) => $(id).innerHTML = (arr || []).map(t => '<li>' + escapeHtml(t) + '</li>').join('');
   fillList('strengths', result.strengths);
   fillList('weaknesses', result.weaknesses);
   fillList('missing', result.missing_points);
   fillList('improvements', result.improvement_suggestions);
 
-  document.getElementById('modelAnswer').textContent = result.model_answer || '';
+  $('modelAnswer').textContent = result.model_answer || '';
+  $('result').style.display = 'block';
+  $('result').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
 
-  resultEl.style.display = 'block';
-  resultEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+function renderLineHighlights(result) {
+  const sec = $('lineHighlightSection');
+  if (!result.line_analysis || !result.line_analysis.length) {
+    sec.style.display = 'none';
+    return;
+  }
+  const html = result.line_analysis.map(la => {
+    const cls = la.rating === 'good' ? 'hl-good' : la.rating === 'weak' ? 'hl-weak' : 'hl-missing';
+    const note = la.note ? ` title="${escapeHtml(la.note)}"` : '';
+    return `<span class="${cls}"${note}>${escapeHtml(la.text)}</span>`;
+  }).join(' ');
+  $('lineHighlight').innerHTML = html;
+  sec.style.display = 'block';
+}
+
+function renderConsensus(results) {
+  const box = $('consensusBox');
+  box.style.display = 'block';
+  $('consensusGrid').innerHTML = results.map(r => {
+    if (r.error) return `<div class="consensus-card">
+      <div class="cm-name">${escapeHtml(r.model.name)}</div>
+      <div class="cm-score" style="color: var(--danger);">err</div>
+      <div class="cm-grade">${escapeHtml(r.error.slice(0,40))}</div>
+    </div>`;
+    return `<div class="consensus-card">
+      <div class="cm-name">${escapeHtml(r.model.name)}</div>
+      <div class="cm-score">${r.result.total_score}<small style="font-size:12px;color:var(--text-muted);">/10</small></div>
+      <div class="cm-grade">${escapeHtml(r.result.grade || '')}</div>
+    </div>`;
+  }).join('');
+
+  const scores = results.filter(r => r.result).map(r => r.result.total_score);
+  if (!scores.length) { $('consensusSummary').textContent = ''; return; }
+  const avg = (scores.reduce((a,b)=>a+b,0) / scores.length).toFixed(1);
+  const spread = (Math.max(...scores) - Math.min(...scores)).toFixed(1);
+  let confidence = 'high';
+  if (spread > 1.5) confidence = 'low';
+  else if (spread > 0.7) confidence = 'medium';
+  $('consensusSummary').innerHTML =
+    '<strong>Average:</strong> ' + avg + '/10 · <strong>Spread:</strong> ' + spread +
+    ' · <strong>Confidence:</strong> ' + confidence +
+    (confidence !== 'high' ? ' — models disagree. answer is borderline; consider human review.' : ' — models agree.');
 }
 
 function escapeHtml(s) {
-  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
-// ============ COPY-FOR-ABHYAS ============
+// =================== COPY-FOR-ABHYAS ===================
 function buildCopyText(kind) {
   if (!lastResult) return '';
   const r = lastResult;
   const joinList = (arr) => (arr || []).map((s, i) => (i+1) + '. ' + s).join('\n');
-
   switch (kind) {
-    case 'score':
-      return String(r.total_score ?? '');
-
+    case 'score': return String(r.total_score ?? '');
     case 'comments': {
-      // verdict + improvement suggestions → into Abhyas "Comments"
       const parts = [];
       if (r.verdict) parts.push(r.verdict);
       if (r.improvement_suggestions && r.improvement_suggestions.length) {
@@ -746,12 +1405,8 @@ function buildCopyText(kind) {
       }
       return parts.join('\n');
     }
-
-    case 'strengths':
-      return joinList(r.strengths);
-
+    case 'strengths': return joinList(r.strengths);
     case 'weaknesses': {
-      // weaknesses + missing points combined → into Abhyas "Weaknesses / Areas to improve"
       const parts = [];
       if (r.weaknesses && r.weaknesses.length) parts.push(joinList(r.weaknesses));
       if (r.missing_points && r.missing_points.length) {
@@ -759,88 +1414,467 @@ function buildCopyText(kind) {
       }
       return parts.join('\n');
     }
-
-    case 'missing':
-      return joinList(r.missing_points);
-
-    case 'improvements':
-      return joinList(r.improvement_suggestions);
-
-    case 'model':
-      return r.model_answer || '';
-
-    default:
-      return '';
+    case 'missing': return joinList(r.missing_points);
+    case 'improvements': return joinList(r.improvement_suggestions);
+    case 'model': return r.model_answer || '';
+    default: return '';
   }
 }
-
 document.addEventListener('click', async (e) => {
   const btn = e.target.closest('.copy-btn');
   if (!btn) return;
-  const text = buildCopyText(btn.dataset.copy);
-  if (!text) { btn.textContent = 'No data'; return; }
+  const text = btn.dataset.copy ? buildCopyText(btn.dataset.copy) : '';
+  await copyToClipboard(text, btn);
+});
+async function copyToClipboard(text, btn) {
+  if (!text) { if (btn) btn.textContent = 'No data'; return; }
   try {
     await navigator.clipboard.writeText(text);
-    const orig = btn.textContent;
-    btn.textContent = '✓ Copied!';
-    btn.classList.add('copied');
-    setTimeout(() => { btn.textContent = orig; btn.classList.remove('copied'); }, 1500);
   } catch (err) {
-    // fallback for non-https / unsupported
     const ta = document.createElement('textarea');
-    ta.value = text;
-    document.body.appendChild(ta);
-    ta.select();
-    document.execCommand('copy');
-    document.body.removeChild(ta);
+    ta.value = text; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+  }
+  if (btn) {
     const orig = btn.textContent;
     btn.textContent = '✓ Copied!';
     btn.classList.add('copied');
     setTimeout(() => { btn.textContent = orig; btn.classList.remove('copied'); }, 1500);
   }
-});
-
-evalBtn.addEventListener('click', async () => {
-  errorBox.innerHTML = '';
-  const apiKey = apiKeyInput.value.trim();
-  const paper = document.getElementById('paper').value;
-  const wordLimit = parseInt(document.getElementById('wordLimit').value);
-  const model = document.getElementById('model').value;
-  const question = document.getElementById('question').value.trim();
-  const answer = answerEl.value.trim();
-
-  if (!apiKey) return showError('Add your Groq API key first');
-  if (!question) return showError('Paste the question');
-
-  const isVision = inputMode === 'upload' && uploadedImages.length > 0;
-  if (!isVision && inputMode === 'upload') return showError('Upload at least one image or PDF');
-  if (!isVision && !answer) return showError('Write your answer or switch to upload tab');
-  if (!isVision && answer.split(/\s+/).length < 20) return showError('Answer too short (min 20 words)');
-  if (isVision && !model.includes('llama-4')) return showError('Vision mode needs Llama 4 Scout or Maverick. Switch model.');
-
-  evalBtn.disabled = true;
-  statusEl.innerHTML = '<span class="spinner"></span>' +
-    (isVision ? 'Transcribing + evaluating ' + uploadedImages.length + ' image(s)... (30-90s)' : 'Evaluating... (15-30s)');
-  resultEl.style.display = 'none';
-
-  try {
-    const prompt = buildPrompt(paper, wordLimit, question, answer, isVision);
-    const result = await callGroq(model, prompt, apiKey, isVision ? uploadedImages : null);
-    render(result);
-    statusEl.innerHTML = '';
-  } catch (e) {
-    showError(e.message);
-    statusEl.innerHTML = '';
-  } finally {
-    evalBtn.disabled = false;
-  }
-});
-
-function showError(msg) {
-  errorBox.innerHTML = '<div class="error"><strong>Error:</strong> ' + escapeHtml(msg) + '</div>';
 }
 
-updateWordCount();
+// =================== HISTORY ===================
+function loadHistory() {
+  try { return JSON.parse(localStorage.getItem(HIST_KEY) || '[]'); } catch { return []; }
+}
+function saveHistory(h) { localStorage.setItem(HIST_KEY, JSON.stringify(h.slice(-500))); }
+function saveToHistory(entry) {
+  const h = loadHistory();
+  h.push(entry);
+  saveHistory(h);
+}
+function renderHistory() {
+  const h = loadHistory();
+  // heatmap (180 days)
+  const days = 182;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const counts = {};
+  h.forEach(e => {
+    const d = new Date(e.ts); d.setHours(0,0,0,0);
+    const k = d.toISOString().slice(0,10);
+    counts[k] = (counts[k] || 0) + 1;
+  });
+  let hmHtml = '';
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(today); d.setDate(today.getDate() - i);
+    const k = d.toISOString().slice(0,10);
+    const c = counts[k] || 0;
+    const lvl = c === 0 ? 0 : c === 1 ? 1 : c === 2 ? 2 : c <= 4 ? 3 : 4;
+    hmHtml += `<div class="hm-cell" data-count="${lvl}" title="${k}: ${c} evals"></div>`;
+  }
+  $('heatmap').innerHTML = hmHtml;
+  $('heatmapHint').textContent = `${h.length} evaluations total · ${Object.keys(counts).length} active days in last ${days}`;
+
+  // history list
+  if (!h.length) {
+    $('historyList').innerHTML = 'No evaluations saved yet.';
+    $('commonMistakes').innerHTML = 'No evaluations yet.';
+    return;
+  }
+  const sorted = [...h].reverse().slice(0, 100);
+  $('historyList').innerHTML = sorted.map((e, idx) => {
+    const date = new Date(e.ts).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+    const realIdx = h.length - 1 - idx;
+    return `<div class="history-item">
+      <div>
+        <div class="hi-q">${escapeHtml((e.question||'').slice(0, 140))}${e.question && e.question.length > 140 ? '...' : ''}</div>
+        <div class="hi-meta">${date} · ${escapeHtml(e.paper)} · ${e.wordLimit}w · ${escapeHtml(e.model)} ${e.selfScore ? '· self: '+e.selfScore : ''}</div>
+      </div>
+      <div class="hi-score" title="${escapeHtml(e.grade||'')}">${e.score ?? '—'}</div>
+    </div>`;
+  }).join('');
+
+  // common mistakes — word freq from weaknesses + missing
+  const stop = new Set(('the a an and or but of to in for with on at by from is are was were be been being it this that these those you your they their our we i me my as into not no can could should would do does did has have had your you the').split(' '));
+  const phrases = {};
+  h.forEach(e => {
+    [...(e.weaknesses||[]), ...(e.missing_points||[])].forEach(t => {
+      const words = String(t).toLowerCase().replace(/[^a-z0-9\s-]/g,' ').split(/\s+/).filter(w => w.length > 4 && !stop.has(w));
+      const seen = new Set();
+      words.forEach(w => {
+        if (seen.has(w)) return; seen.add(w);
+        phrases[w] = (phrases[w] || 0) + 1;
+      });
+    });
+  });
+  const top = Object.entries(phrases).filter(([,c]) => c >= 2).sort((a,b) => b[1] - a[1]).slice(0, 15);
+  if (!top.length) {
+    $('commonMistakes').innerHTML = '<div class="hint">Need more evaluations to detect patterns (min 2 occurrences).</div>';
+  } else {
+    $('commonMistakes').innerHTML = '<div class="hint" style="margin-bottom:8px;">Themes appearing 2+ times in your weaknesses/missing points:</div>' +
+      '<div style="display:flex; gap:6px; flex-wrap:wrap;">' +
+      top.map(([w,c]) =>
+        `<span style="background: var(--danger-soft); color: var(--danger); padding: 4px 10px; border-radius: 99px; font-size: 13px; font-weight: 600;">
+          ${escapeHtml(w)} <small style="opacity:0.7;">×${c}</small></span>`
+      ).join('') + '</div>';
+  }
+
+  // stats (used in daily view too)
+  updateStreakStats(h);
+}
+
+function updateStreakStats(h) {
+  h = h || loadHistory();
+  $('totalEvals').textContent = h.length;
+  if (!h.length) { $('avgScore').textContent = '—'; $('currentStreak').textContent = 0; $('longestStreak').textContent = 0; return; }
+  const scores = h.map(e => parseFloat(e.score) || 0).filter(x => x > 0);
+  const avg = scores.length ? (scores.reduce((a,b)=>a+b,0)/scores.length).toFixed(1) : '—';
+  $('avgScore').textContent = avg;
+
+  const dayKey = (ts) => new Date(ts).toISOString().slice(0,10);
+  const days = new Set(h.map(e => dayKey(e.ts)));
+  const today = new Date(); today.setHours(0,0,0,0);
+
+  let cur = 0;
+  let d = new Date(today);
+  while (days.has(d.toISOString().slice(0,10))) {
+    cur++;
+    d.setDate(d.getDate() - 1);
+  }
+  $('currentStreak').textContent = cur;
+
+  // longest
+  const sortedDays = [...days].sort();
+  let longest = 0, run = 0, prev = null;
+  for (const k of sortedDays) {
+    const cd = new Date(k);
+    if (prev && (cd - prev) === 86400000) run++;
+    else run = 1;
+    if (run > longest) longest = run;
+    prev = cd;
+  }
+  $('longestStreak').textContent = longest;
+}
+
+$('clearHistoryBtn').addEventListener('click', () => {
+  if (confirm('Delete all evaluation history? Cannot be undone.')) {
+    localStorage.removeItem(HIST_KEY);
+    renderHistory();
+  }
+});
+$('exportHistoryBtn').addEventListener('click', () => {
+  const h = loadHistory();
+  const blob = new Blob([JSON.stringify(h, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'upsc-eval-history-' + new Date().toISOString().slice(0,10) + '.json';
+  a.click(); URL.revokeObjectURL(url);
+});
+
+// =================== PYQ FETCH + PICKER ===================
+const PYQ_BASE = 'https://sauravanandb2w.github.io/upsc-mains-pyq/data';
+async function loadPyqs() {
+  $('pyqStatus').textContent = 'Fetching question bank from upsc-mains-pyq...';
+  try {
+    const r = await Promise.all([1,2,3,4].map(p =>
+      fetch(`${PYQ_BASE}/gs-paper-${p}.json`).then(r => r.json()).then(j => { pyqData[p] = j; })
+    ));
+    pyqLoaded = true;
+    // populate year filter
+    const years = new Set();
+    [1,2,3,4].forEach(p => pyqData[p]?.questions?.forEach(q => years.add(q.year)));
+    const yrSorted = [...years].sort((a,b) => b - a);
+    $('pyqYear').innerHTML = '<option value="all">All Years</option>' + yrSorted.map(y => `<option value="${y}">${y}</option>`).join('');
+    $('pyqStatus').textContent = `Loaded ${Object.values(pyqData).reduce((s,d) => s + (d?.questions?.length || 0), 0)} questions.`;
+    renderPyqList();
+  } catch (e) {
+    $('pyqStatus').textContent = 'Failed to load: ' + e.message;
+  }
+}
+['pyqPaper','pyqYear','pyqMarks','pyqSearch'].forEach(id => {
+  $(id).addEventListener(id === 'pyqSearch' ? 'input' : 'change', renderPyqList);
+});
+function renderPyqList() {
+  if (!pyqLoaded) return;
+  const paper = $('pyqPaper').value;
+  const year = $('pyqYear').value;
+  const marks = $('pyqMarks').value;
+  const search = $('pyqSearch').value.toLowerCase().trim();
+
+  let qs = [];
+  const papers = paper === 'all' ? [1,2,3,4] : [parseInt(paper)];
+  papers.forEach(p => {
+    if (pyqData[p]?.questions) {
+      qs.push(...pyqData[p].questions.map(q => ({ ...q, paperNum: p })));
+    }
+  });
+  if (year !== 'all') qs = qs.filter(q => q.year === parseInt(year));
+  if (marks !== 'all') qs = qs.filter(q => q.marks === parseInt(marks));
+  if (search) qs = qs.filter(q => (q.text || '').toLowerCase().includes(search) || (q.theme || '').toLowerCase().includes(search));
+  qs.sort((a,b) => (b.year - a.year) || (a.paperNum - b.paperNum) || (a.number - b.number));
+
+  $('pyqList').innerHTML = qs.slice(0, 200).map(q => `
+    <div class="pyq-item" data-id="${escapeHtml(q.id || '')}" data-paper="GS-${q.paperNum}" data-marks="${q.marks || 10}" data-text="${escapeHtml(q.text)}">
+      <div class="pq-meta">
+        <span class="pq-tag">GS-${q.paperNum}</span>
+        <span class="pq-tag">${q.year}</span>
+        <span class="pq-tag">${q.marks || '?'}M</span>
+        ${q.theme ? '<span class="pq-tag">' + escapeHtml(q.theme) + '</span>' : ''}
+      </div>
+      <div class="pq-text">${escapeHtml(q.text)}</div>
+    </div>
+  `).join('');
+  if (!qs.length) $('pyqList').innerHTML = '<div class="hint">No questions match the filters.</div>';
+}
+$('pyqList').addEventListener('click', (e) => {
+  const item = e.target.closest('.pyq-item');
+  if (!item) return;
+  $('question').value = item.dataset.text;
+  $('paper').value = item.dataset.paper;
+  $('wordLimit').value = parseInt(item.dataset.marks) === 10 ? '150' : '250';
+  $('question').dispatchEvent(new Event('input'));
+  switchView('evaluate');
+});
+
+// =================== DAILY ===================
+async function renderDaily() {
+  updateStreakStats();
+  if (!pyqLoaded) await loadPyqs();
+  if (!currentDaily) pickDaily();
+  if (currentDaily) {
+    $('dailyQuestion').textContent = currentDaily.text;
+    $('dailyMeta').textContent = `GS-${currentDaily.paperNum} · ${currentDaily.year} · ${currentDaily.marks || '?'}M${currentDaily.theme ? ' · ' + currentDaily.theme : ''}`;
+  } else {
+    $('dailyQuestion').textContent = 'Could not load today\'s question.';
+  }
+}
+function pickDaily() {
+  // deterministic by date so it stays consistent through the day
+  const dateKey = new Date().toISOString().slice(0,10);
+  let hash = 0;
+  for (let i = 0; i < dateKey.length; i++) hash = ((hash << 5) - hash) + dateKey.charCodeAt(i);
+  const all = [];
+  [1,2,3,4].forEach(p => pyqData[p]?.questions?.forEach(q => all.push({ ...q, paperNum: p })));
+  if (!all.length) { currentDaily = null; return; }
+  currentDaily = all[Math.abs(hash) % all.length];
+}
+$('dailyShuffleBtn').addEventListener('click', () => {
+  const all = [];
+  [1,2,3,4].forEach(p => pyqData[p]?.questions?.forEach(q => all.push({ ...q, paperNum: p })));
+  if (!all.length) return;
+  currentDaily = all[Math.floor(Math.random() * all.length)];
+  renderDaily();
+});
+$('dailyUseBtn').addEventListener('click', () => {
+  if (!currentDaily) return;
+  $('question').value = currentDaily.text;
+  $('paper').value = 'GS-' + currentDaily.paperNum;
+  $('wordLimit').value = (currentDaily.marks || 10) === 10 ? '150' : '250';
+  $('question').dispatchEvent(new Event('input'));
+  switchView('evaluate');
+});
+
+// =================== COMPARE ===================
+$('cmpBtn').addEventListener('click', async () => {
+  $('cmpError').innerHTML = '';
+  const apiKey = $('apiKey').value.trim() || localStorage.getItem(KEY_KEY);
+  const q = $('cmpQuestion').value.trim();
+  const oldA = $('cmpOld').value.trim();
+  const newA = $('cmpNew').value.trim();
+  if (!apiKey) { $('cmpError').innerHTML = '<div class="error">Add API key in Settings</div>'; return; }
+  if (!q) { $('cmpError').innerHTML = '<div class="error">Paste the question</div>'; return; }
+  if (!oldA || !newA) { $('cmpError').innerHTML = '<div class="error">Both attempts required</div>'; return; }
+
+  $('cmpBtn').disabled = true;
+  $('cmpStatus').innerHTML = '<span class="spinner"></span>Comparing two attempts (30-60s)...';
+  $('cmpResult').style.display = 'none';
+  try {
+    const prompt = `You are a senior UPSC examiner. The student attempted the same question twice. Score each attempt out of 10, identify what improved or regressed, and give 3 concrete next-step suggestions.
+
+Question: ${q}
+
+OLD attempt:
+"""${oldA}"""
+
+NEW attempt:
+"""${newA}"""
+
+Return ONLY JSON:
+{
+  "old_score": <0-10>,
+  "new_score": <0-10>,
+  "delta": <new-old>,
+  "headline": "<2-sentence summary of the change>",
+  "improvements": ["<what got better 1>", "<better 2>", "<better 3>"],
+  "regressions": ["<what got worse 1 (or empty)>","..."],
+  "next_steps": ["<actionable next step 1>","<2>","<3>"]
+}`;
+    const res = await callGroq('llama-3.3-70b-versatile', prompt, apiKey, null);
+    renderCompare(res);
+    $('cmpStatus').innerHTML = '';
+  } catch (e) {
+    $('cmpError').innerHTML = '<div class="error">' + escapeHtml(e.message) + '</div>';
+    $('cmpStatus').innerHTML = '';
+  } finally {
+    $('cmpBtn').disabled = false;
+  }
+});
+function renderCompare(r) {
+  const d = r.delta != null ? r.delta : (r.new_score - r.old_score);
+  const cls = d > 0.3 ? 'up' : d < -0.3 ? 'down' : 'flat';
+  const arrow = d > 0.3 ? '↑' : d < -0.3 ? '↓' : '→';
+  $('cmpResult').innerHTML = `
+    <div class="cr-headline">${escapeHtml(r.headline || '')}</div>
+    <div class="cr-scores">
+      <div><strong>Old:</strong> ${r.old_score}/10</div>
+      <div><strong>New:</strong> ${r.new_score}/10</div>
+      <div class="delta ${cls}">${arrow} ${Math.abs(d).toFixed(1)}</div>
+    </div>
+    <div class="section">
+      <h3 class="success">What got better</h3>
+      <ul class="strengths">${(r.improvements||[]).map(t => '<li>'+escapeHtml(t)+'</li>').join('')}</ul>
+    </div>
+    ${r.regressions && r.regressions.length ? `<div class="section"><h3 class="danger">What got worse</h3><ul class="weak">${r.regressions.map(t => '<li>'+escapeHtml(t)+'</li>').join('')}</ul></div>` : ''}
+    <div class="section">
+      <h3 class="warn">Next steps</h3>
+      <ul class="missing">${(r.next_steps||[]).map(t => '<li>'+escapeHtml(t)+'</li>').join('')}</ul>
+    </div>
+  `;
+  $('cmpResult').style.display = 'block';
+}
+
+// =================== REWRITE MODAL ===================
+$('rewriteBtn').addEventListener('click', async () => {
+  if (!lastResult) return;
+  $('rewriteModal').classList.add('show');
+  $('rewriteStatus').innerHTML = '<span class="spinner"></span>Rewriting your answer with AI...';
+  $('rewriteContent').textContent = '';
+  try {
+    const apiKey = $('apiKey').value.trim() || localStorage.getItem(KEY_KEY);
+    if (!apiKey) throw new Error('Add API key in Settings');
+    const studentAnswer = lastResult.transcription || $('answer').value;
+    const wordLimit = parseInt($('wordLimit').value);
+    const prompt = `You are a UPSC topper helping a peer. Rewrite the student's answer keeping their VOICE and personal examples, but:
+- fix structural issues (intro / body / conclusion)
+- sharpen directive adherence
+- add missing facts/examples/articles the AI flagged
+- stay within ${wordLimit} words (±10%)
+
+Question: ${$('question').value || $('cmpQuestion').value}
+Student's answer:
+"""${studentAnswer}"""
+
+Issues identified:
+- Weaknesses: ${(lastResult.weaknesses||[]).join('; ')}
+- Missing points: ${(lastResult.missing_points||[]).join('; ')}
+- Improvement tips: ${(lastResult.improvement_suggestions||[]).join('; ')}
+
+Return ONLY the rewritten answer text — no preamble, no JSON, no commentary. Plain text. ${wordLimit} words max.`;
+
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + apiKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'llama-3.3-70b-versatile',
+        messages: [
+          { role: 'system', content: 'You rewrite UPSC answers preserving the student\'s voice. Return plain text only.' },
+          { role: 'user', content: prompt }
+        ],
+        temperature: 0.5,
+        max_tokens: 1800
+      })
+    });
+    if (!res.ok) throw new Error('API ' + res.status);
+    const data = await res.json();
+    const text = data.choices[0].message.content.trim();
+    $('rewriteContent').textContent = text;
+    $('rewriteStatus').innerHTML = '';
+  } catch (e) {
+    $('rewriteStatus').innerHTML = '<div class="error">' + escapeHtml(e.message) + '</div>';
+  }
+});
+$('closeRewrite').addEventListener('click', () => $('rewriteModal').classList.remove('show'));
+$('copyRewrite').addEventListener('click', () => copyToClipboard($('rewriteContent').textContent, $('copyRewrite')));
+$('rewriteModal').addEventListener('click', (e) => {
+  if (e.target.id === 'rewriteModal') $('rewriteModal').classList.remove('show');
+});
+
+// =================== SHARE LINK ===================
+$('shareBtn').addEventListener('click', async () => {
+  if (!lastResult) return;
+  try {
+    const payload = {
+      q: $('question').value,
+      a: $('answer').value,
+      r: lastResult,
+      ts: Date.now()
+    };
+    const compressed = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
+    const url = location.href.split('#')[0] + '#r=' + compressed;
+    await copyToClipboard(url, $('shareBtn'));
+  } catch (e) {
+    showError('Could not build share link: ' + e.message);
+  }
+});
+function loadShareFromHash() {
+  if (!location.hash.startsWith('#r=')) return;
+  try {
+    const compressed = location.hash.slice(3);
+    const payload = JSON.parse(decodeURIComponent(escape(atob(compressed))));
+    $('question').value = payload.q || '';
+    $('answer').value = payload.a || '';
+    lastResult = payload.r;
+    render(payload.r, {});
+  } catch (e) {
+    console.warn('Bad share link:', e);
+  }
+}
+
+// =================== REMINDER ===================
+function loadReminder() {
+  const t = localStorage.getItem(REMINDER_KEY);
+  if (t) $('reminderTime').value = t;
+  scheduleReminder();
+}
+$('setReminder').addEventListener('click', async () => {
+  const t = $('reminderTime').value;
+  localStorage.setItem(REMINDER_KEY, t);
+  if ('Notification' in window && Notification.permission === 'default') {
+    await Notification.requestPermission();
+  }
+  scheduleReminder();
+  $('reminderStatus').textContent = 'Reminder set for ' + t + ' (fires while tab is open). Permission: ' + (Notification?.permission || 'n/a');
+});
+function scheduleReminder() {
+  clearTimeout(reminderTimer);
+  const t = localStorage.getItem(REMINDER_KEY);
+  if (!t) return;
+  const [h, m] = t.split(':').map(Number);
+  const now = new Date();
+  const target = new Date(); target.setHours(h, m, 0, 0);
+  if (target <= now) target.setDate(target.getDate() + 1);
+  const ms = target - now;
+  reminderTimer = setTimeout(() => {
+    if ('Notification' in window && Notification.permission === 'granted') {
+      new Notification('UPSC Practice Reminder', {
+        body: 'Time to evaluate today\'s answer 📝',
+        icon: 'data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27%3E%3Ctext y=%2780%27 font-size=%2780%27%3E%F0%9F%93%9D%3C/text%3E%3C/svg%3E'
+      });
+    }
+    scheduleReminder(); // tomorrow
+  }, ms);
+}
+
+// =================== INIT ===================
+function init() {
+  initTheme();
+  updateWordCount();
+  loadShareFromHash();
+  loadReminder();
+  // pre-warm streak stats in daily view
+  if (loadHistory().length) updateStreakStats();
+}
+init();
 </script>
 </body>
 </html>
