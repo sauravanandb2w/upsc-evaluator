@@ -50,7 +50,7 @@ Open `index.html` directly in any browser. Or visit GitHub Pages: `https://saura
 - **📊 Streak + heatmap** — GitHub-style green-square grid of your eval activity. Stats: current streak, longest streak, total evals, avg score.
 - **⏰ Evening reminder** — browser notification at a chosen time (while tab is open).
 - **🌙 Dark mode** — toggle in header. Saved per browser.
-- **📥 Export history** — download full eval history as JSON.
+- **📥 Export / Import history** — download full eval history as JSON; restore on another browser/device by importing the same file. Import merges with existing (de-duplicates by timestamp).
 
 ## Setup
 

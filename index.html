@@ -773,8 +773,11 @@
       <div id="historyList">No evaluations saved yet.</div>
       <div class="btn-row" style="margin-top: 10px;">
         <button id="clearHistoryBtn" class="btn-secondary">Clear All History</button>
+        <button id="importHistoryBtn" class="btn-ghost">Import JSON</button>
         <button id="exportHistoryBtn" class="btn-ghost">Export as JSON</button>
       </div>
+      <input type="file" id="importHistoryInput" class="file-input-hidden" accept="application/json,.json" />
+      <div id="importStatus" class="hint" style="margin-top: 8px;"></div>
     </div>
   </section>
 
@@ -1569,6 +1572,58 @@ $('exportHistoryBtn').addEventListener('click', () => {
   const a = document.createElement('a');
   a.href = url; a.download = 'upsc-eval-history-' + new Date().toISOString().slice(0,10) + '.json';
   a.click(); URL.revokeObjectURL(url);
+});
+
+// =================== IMPORT ===================
+$('importHistoryBtn').addEventListener('click', () => $('importHistoryInput').click());
+
+$('importHistoryInput').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const statusEl = $('importStatus');
+  statusEl.innerHTML = '<span class="spinner"></span>Reading file...';
+  try {
+    const text = await file.text();
+    const parsed = JSON.parse(text);
+    if (!Array.isArray(parsed)) throw new Error('JSON must be an array of evaluation entries');
+
+    // validate + filter
+    const valid = parsed.filter(e => e && typeof e === 'object' && e.ts && (e.score != null || e.grade));
+    const invalid = parsed.length - valid.length;
+    if (!valid.length) throw new Error('No valid entries found (each entry needs ts and score)');
+
+    const existing = loadHistory();
+    const existingTs = new Set(existing.map(x => x.ts));
+    const fresh = valid.filter(x => !existingTs.has(x.ts));
+    const dupes = valid.length - fresh.length;
+
+    if (!fresh.length) {
+      statusEl.innerHTML = `<span style="color: var(--warn);">⚠️ Nothing imported — all ${valid.length} entries already exist (same timestamps).</span>`;
+      $('importHistoryInput').value = '';
+      return;
+    }
+
+    const choice = confirm(
+      `Found ${fresh.length} new entries to import.\n` +
+      `${dupes} duplicate(s) will be skipped.\n` +
+      (invalid ? `${invalid} invalid entry/entries will be skipped.\n` : '') +
+      `\nClick OK to MERGE (add to existing ${existing.length}).\n` +
+      `Click Cancel to abort.`
+    );
+    if (!choice) {
+      statusEl.innerHTML = '<span style="color: var(--text-muted);">Import cancelled.</span>';
+      $('importHistoryInput').value = '';
+      return;
+    }
+
+    const merged = [...existing, ...fresh].sort((a,b) => a.ts - b.ts);
+    saveHistory(merged);
+    statusEl.innerHTML = `<span style="color: var(--good);">✓ Imported ${fresh.length} entries. Total: ${merged.length}.${dupes ? ' Skipped ' + dupes + ' dup(s).' : ''}${invalid ? ' Skipped ' + invalid + ' invalid.' : ''}</span>`;
+    renderHistory();
+  } catch (err) {
+    statusEl.innerHTML = '<span style="color: var(--danger);">✗ Import failed: ' + escapeHtml(err.message) + '</span>';
+  }
+  $('importHistoryInput').value = '';
 });
 
 // =================== PYQ FETCH + PICKER ===================
