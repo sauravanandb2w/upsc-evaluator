@@ -528,8 +528,9 @@
           <label for="model">Model</label>
           <select id="model">
             <option value="meta-llama/llama-4-scout-17b-16e-instruct" selected>Llama 4 Scout (vision)</option>
-            <option value="meta-llama/llama-4-maverick-17b-128e-instruct">Llama 4 Maverick (vision)</option>
-            <option value="llama-3.3-70b-versatile">Llama 3.3 70B (text only)</option>
+            <option value="openai/gpt-oss-120b">GPT-OSS 120B (text)</option>
+            <option value="qwen/qwen3.6-27b">Qwen 3.6 27B (text)</option>
+            <option value="llama-3.3-70b-versatile">Llama 3.3 70B (text, legacy)</option>
             <option value="__consensus__">🎯 Multi-Model Consensus (3 models)</option>
           </select>
         </div>
@@ -599,7 +600,7 @@
 
         <div class="score-block">
           <div>
-            <div class="total-score"><span id="totalScore">0</span><small>/10</small></div>
+            <div class="total-score"><span id="totalScore">0</span><small id="totalScoreMax">/10</small></div>
             <div class="grade" id="grade"></div>
             <div class="score-row">
               <button class="copy-btn" type="button" data-copy="score">📋 Copy Score</button>
@@ -839,6 +840,7 @@
 let inputMode = 'text';
 let uploadedImages = [];
 let lastResult = null;
+let currentMaxMarks = 10;
 let lastConsensus = null;
 let pyqData = { 1: null, 2: null, 3: null, 4: null };
 let pyqLoaded = false;
@@ -904,16 +906,36 @@ document.querySelectorAll('.tab').forEach(btn => {
   });
 });
 
+// =================== MARKS ===================
+function marksFromWordLimit(wordLimit) {
+  const wl = parseInt(wordLimit, 10);
+  if (wl <= 150) return 10;
+  if (wl <= 250) return 15;
+  return 10; // Essay — rubric subscores stay /10; total on /10 scale
+}
+
+function updateMarksUi() {
+  currentMaxMarks = marksFromWordLimit($('wordLimit').value);
+  const maxEl = $('totalScoreMax');
+  if (maxEl) maxEl.textContent = '/' + currentMaxMarks;
+  const self = $('selfScore');
+  if (self) {
+    self.max = currentMaxMarks;
+    self.placeholder = 'e.g. ' + (currentMaxMarks * 0.65).toFixed(1);
+  }
+}
+
 // =================== WORD COUNT ===================
 function updateWordCount() {
   const text = $('answer').value.trim();
   const words = text ? text.split(/\s+/).length : 0;
   const limit = parseInt($('wordLimit').value);
-  $('wordCount').textContent = words + ' words (limit: ' + limit + ')';
+  $('wordCount').textContent = words + ' words (limit: ' + limit + ', ' + marksFromWordLimit(limit) + ' marks)';
   $('wordCount').classList.toggle('over', words > limit * 1.15 || (words > 0 && words < limit * 0.7));
 }
 $('answer').addEventListener('input', updateWordCount);
-$('wordLimit').addEventListener('change', updateWordCount);
+$('wordLimit').addEventListener('change', () => { updateWordCount(); updateMarksUi(); });
+updateMarksUi();
 
 // =================== TEMPLATE HINTS ===================
 const DIRECTIVE_TEMPLATES = {
@@ -1070,7 +1092,7 @@ function renderPreviews() {
 }
 
 // =================== PROMPT BUILDER ===================
-function buildPrompt(paper, wordLimit, question, answer, isVision) {
+function buildPrompt(paper, wordLimit, maxMarks, question, answer, isVision) {
   const paperCtx = {
     'GS-1': 'GS Paper 1 (History, Geography, Society, Art & Culture).',
     'GS-2': 'GS Paper 2 (Polity, Governance, Constitution, IR). Expects articles, judgments, committee reports, schemes.',
@@ -1095,9 +1117,10 @@ ${visionInstr}
 EVALUATION TASK:
 Question: ${question}
 Word limit: ${wordLimit} (acceptable: ${Math.floor(wordLimit*0.9)}-${Math.ceil(wordLimit*1.1)})
+Maximum marks for this question: ${maxMarks} (UPSC ${maxMarks === 15 ? '15-mark' : maxMarks === 10 ? '10-mark' : 'essay'} question)
 Student answer: ${answerBlock}
 
-RUBRIC (each 0-10):
+RUBRIC (each sub-criterion scored 0-10 internally; combine into total out of ${maxMarks}):
 1. STRUCTURE — intro/body/conclusion, organization.
 2. DIRECTIVE ADHERENCE — did the answer DO what the directive (examine/critically analyze/discuss/etc.) demanded? Penalize heavily if it just describes when analysis was needed.
 3. CONTENT DEPTH & ACCURACY — factual correctness, conceptual clarity.
@@ -1120,7 +1143,7 @@ OUTPUT — ONLY valid JSON:
 
 {
   ${isVision ? '"transcription": "<verbatim transcription>",' : ''}
-  "total_score": <0-10, decimal ok>,
+  "total_score": <0-${maxMarks}, decimal ok — this is the final mark out of ${maxMarks}, NOT out of 10>,
   "grade": "<Outstanding | Very Good | Good | Average | Needs Work | Poor>",
   "verdict": "<2-3 sentences>",
   "directive_word": "<the directive word from question>",
@@ -1154,39 +1177,85 @@ async function callGroq(model, prompt, apiKey, images) {
   } else {
     userContent = prompt;
   }
+  const maxTokens = model.includes('gpt-oss') ? 4096 : 4500;
+  const payload = {
+    model: model,
+    messages: [
+      { role: 'system', content: 'You are an expert UPSC Mains examiner. Return only valid JSON, no markdown.' },
+      { role: 'user', content: userContent }
+    ],
+    temperature: 0.3,
+    max_tokens: maxTokens,
+    response_format: { type: 'json_object' }
+  };
   const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST',
-    headers: { 'Authorization': 'Bearer ' + apiKey, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model: model,
-      messages: [
-        { role: 'system', content: 'You are an expert UPSC Mains examiner. Return only valid JSON, no markdown.' },
-        { role: 'user', content: userContent }
-      ],
-      temperature: 0.3,
-      max_tokens: 4500,
-      response_format: { type: 'json_object' }
-    })
+    headers: { Authorization: 'Bearer ' + apiKey, 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
   });
   if (!res.ok) {
     const errText = await res.text();
-    throw new Error('Groq API error ' + res.status + ': ' + errText);
+    let msg = errText;
+    try {
+      const errJson = JSON.parse(errText);
+      msg = errJson?.error?.message || errText;
+    } catch { /* keep raw */ }
+    if (/decommission|deprecated|no longer supported|model.*not found/i.test(msg)) {
+      throw new Error(model + ' is unavailable on Groq (' + msg.slice(0, 120) + '). Pick GPT-OSS 120B or Multi-Model Consensus.');
+    }
+    throw new Error('Groq API error ' + res.status + ': ' + msg.slice(0, 200));
   }
   const data = await res.json();
-  return JSON.parse(data.choices[0].message.content);
+  const raw = data.choices?.[0]?.message?.content;
+  if (!raw) throw new Error('Empty response from ' + model);
+  try {
+    return JSON.parse(raw);
+  } catch {
+    const match = raw.match(/\{[\s\S]*\}/);
+    if (match) return JSON.parse(match[0]);
+    throw new Error('Invalid JSON from ' + model);
+  }
 }
 
 // =================== MULTI-MODEL CONSENSUS ===================
+// Maverick deprecated Mar 2026 → GPT-OSS 120B; Scout vision + 2 strong text models
 const CONSENSUS_MODELS = [
-  { id: 'meta-llama/llama-4-scout-17b-16e-instruct', name: 'Llama 4 Scout' },
-  { id: 'meta-llama/llama-4-maverick-17b-128e-instruct', name: 'Llama 4 Maverick' },
-  { id: 'llama-3.3-70b-versatile', name: 'Llama 3.3 70B' }
+  { id: 'meta-llama/llama-4-scout-17b-16e-instruct', name: 'Llama 4 Scout', vision: true },
+  { id: 'openai/gpt-oss-120b', name: 'GPT-OSS 120B', vision: false },
+  { id: 'qwen/qwen3.6-27b', name: 'Qwen 3.6 27B', vision: false }
 ];
-async function runConsensus(prompt, apiKey, images) {
-  // images only work on Llama 4
-  const models = images && images.length ? CONSENSUS_MODELS.filter(m => m.id.includes('llama-4')) : CONSENSUS_MODELS;
-  const calls = models.map(m => callGroq(m.id, prompt, apiKey, images).then(r => ({ model: m, result: r })).catch(e => ({ model: m, error: e.message })));
-  const results = await Promise.all(calls);
+
+async function runConsensus(prompt, apiKey, images, buildTextPrompt) {
+  const hasImages = images && images.length;
+  if (!hasImages) {
+    const calls = CONSENSUS_MODELS.map(m =>
+      callGroq(m.id, prompt, apiKey, null)
+        .then(r => ({ model: m, result: r }))
+        .catch(e => ({ model: m, error: e.message }))
+    );
+    return Promise.all(calls);
+  }
+
+  const visionModel = CONSENSUS_MODELS.find(m => m.vision);
+  const textModels = CONSENSUS_MODELS.filter(m => !m.vision);
+  const results = [];
+
+  try {
+    const visionResult = await callGroq(visionModel.id, prompt, apiKey, images);
+    results.push({ model: visionModel, result: visionResult });
+    const transcription = visionResult.transcription || '';
+    if (transcription.trim() && buildTextPrompt) {
+      const textPrompt = buildTextPrompt(transcription);
+      const textCalls = textModels.map(m =>
+        callGroq(m.id, textPrompt, apiKey, null)
+          .then(r => ({ model: m, result: r }))
+          .catch(e => ({ model: m, error: e.message }))
+      );
+      results.push(...await Promise.all(textCalls));
+    }
+  } catch (e) {
+    results.push({ model: visionModel, error: e.message });
+  }
   return results;
 }
 
@@ -1196,6 +1265,8 @@ $('evalBtn').addEventListener('click', async () => {
   const apiKey = $('apiKey').value.trim() || localStorage.getItem(KEY_KEY);
   const paper = $('paper').value;
   const wordLimit = parseInt($('wordLimit').value);
+  const maxMarks = marksFromWordLimit(wordLimit);
+  currentMaxMarks = maxMarks;
   const model = $('model').value;
   const question = $('question').value.trim();
   const answer = $('answer').value.trim();
@@ -1219,14 +1290,19 @@ $('evalBtn').addEventListener('click', async () => {
   $('status').innerHTML = '<span class="spinner"></span>' + (
     isConsensus ? 'Running 3 models in parallel... (40-90s)' :
     isVision ? 'Transcribing + evaluating ' + uploadedImages.length + ' image(s)... (30-90s)' :
-    'Evaluating... (15-30s)'
+    'Evaluating (' + maxMarks + ' marks)... (15-30s)'
   );
 
   try {
-    const prompt = buildPrompt(paper, wordLimit, question, answer, isVision);
+    const prompt = buildPrompt(paper, wordLimit, maxMarks, question, answer, isVision);
 
     if (isConsensus) {
-      const results = await runConsensus(prompt, apiKey, isVision ? uploadedImages : null);
+      const results = await runConsensus(
+        prompt,
+        apiKey,
+        isVision ? uploadedImages : null,
+        (transcription) => buildPrompt(paper, wordLimit, maxMarks, question, transcription, false)
+      );
       const ok = results.filter(r => r.result);
       if (!ok.length) throw new Error(results.map(r => r.error).join(' | '));
       // pick the median-scored result as the canonical
@@ -1234,20 +1310,20 @@ $('evalBtn').addEventListener('click', async () => {
       const canonical = ok[Math.floor(ok.length / 2)].result;
       lastConsensus = results;
       lastResult = canonical;
-      render(canonical, { selfScore });
-      renderConsensus(results);
+      render(canonical, { selfScore, maxMarks });
+      renderConsensus(results, maxMarks);
     } else {
       lastConsensus = null;
       $('consensusBox').style.display = 'none';
       const result = await callGroq(model, prompt, apiKey, isVision ? uploadedImages : null);
       lastResult = result;
-      render(result, { selfScore });
+      render(result, { selfScore, maxMarks });
     }
 
     // save to history
     saveToHistory({
       ts: Date.now(),
-      paper, wordLimit, model: isConsensus ? 'consensus' : model,
+      paper, wordLimit, maxMarks, model: isConsensus ? 'consensus' : model,
       question, answer: isVision ? '(images)' : answer,
       score: lastResult.total_score, grade: lastResult.grade,
       verdict: lastResult.verdict,
@@ -1271,6 +1347,9 @@ function showError(msg) {
 
 // =================== RENDER ===================
 function render(result, opts) {
+  const maxMarks = opts?.maxMarks || currentMaxMarks || 10;
+  currentMaxMarks = maxMarks;
+  $('totalScoreMax').textContent = '/' + maxMarks;
   $('totalScore').textContent = result.total_score;
   $('grade').textContent = result.grade || '';
   $('verdict').textContent = result.verdict || '';
@@ -1295,7 +1374,7 @@ function render(result, opts) {
     if (Math.abs(diff) < 0.5) msg = '✅ Spot on! Your self-assessment matches the AI.';
     else if (diff > 0) msg = '📈 You under-rated yourself by ' + Math.abs(diff) + '. You\'re harder on yourself than the examiner.';
     else msg = '📉 You over-rated by ' + Math.abs(diff) + '. The examiner saw gaps you missed — work on calibration.';
-    selfRes.innerHTML = '<strong>You said:</strong> ' + me + '/10 · <strong>AI said:</strong> ' + ai + '/10 · ' + msg;
+    selfRes.innerHTML = '<strong>You said:</strong> ' + me + '/' + maxMarks + ' · <strong>AI said:</strong> ' + ai + '/' + maxMarks + ' · ' + msg;
     selfRes.style.display = 'block';
   } else {
     selfRes.style.display = 'none';
@@ -1360,7 +1439,8 @@ function renderLineHighlights(result) {
   sec.style.display = 'block';
 }
 
-function renderConsensus(results) {
+function renderConsensus(results, maxMarks) {
+  maxMarks = maxMarks || currentMaxMarks || 10;
   const box = $('consensusBox');
   box.style.display = 'block';
   $('consensusGrid').innerHTML = results.map(r => {
@@ -1371,7 +1451,7 @@ function renderConsensus(results) {
     </div>`;
     return `<div class="consensus-card">
       <div class="cm-name">${escapeHtml(r.model.name)}</div>
-      <div class="cm-score">${r.result.total_score}<small style="font-size:12px;color:var(--text-muted);">/10</small></div>
+      <div class="cm-score">${r.result.total_score}<small style="font-size:12px;color:var(--text-muted);">/${maxMarks}</small></div>
       <div class="cm-grade">${escapeHtml(r.result.grade || '')}</div>
     </div>`;
   }).join('');
@@ -1380,11 +1460,12 @@ function renderConsensus(results) {
   if (!scores.length) { $('consensusSummary').textContent = ''; return; }
   const avg = (scores.reduce((a,b)=>a+b,0) / scores.length).toFixed(1);
   const spread = (Math.max(...scores) - Math.min(...scores)).toFixed(1);
+  const spreadNorm = maxMarks > 0 ? (parseFloat(spread) / maxMarks) * 10 : parseFloat(spread);
   let confidence = 'high';
-  if (spread > 1.5) confidence = 'low';
-  else if (spread > 0.7) confidence = 'medium';
+  if (spreadNorm > 1.5) confidence = 'low';
+  else if (spreadNorm > 0.7) confidence = 'medium';
   $('consensusSummary').innerHTML =
-    '<strong>Average:</strong> ' + avg + '/10 · <strong>Spread:</strong> ' + spread +
+    '<strong>Average:</strong> ' + avg + '/' + maxMarks + ' · <strong>Spread:</strong> ' + spread +
     ' · <strong>Confidence:</strong> ' + confidence +
     (confidence !== 'high' ? ' — models disagree. answer is borderline; consider human review.' : ' — models agree.');
 }
@@ -1491,7 +1572,7 @@ function renderHistory() {
     return `<div class="history-item">
       <div>
         <div class="hi-q">${escapeHtml((e.question||'').slice(0, 140))}${e.question && e.question.length > 140 ? '...' : ''}</div>
-        <div class="hi-meta">${date} · ${escapeHtml(e.paper)} · ${e.wordLimit}w · ${escapeHtml(e.model)} ${e.selfScore ? '· self: '+e.selfScore : ''}</div>
+        <div class="hi-meta">${date} · ${escapeHtml(e.paper)} · ${e.maxMarks || marksFromWordLimit(e.wordLimit)}M · ${e.wordLimit}w · ${escapeHtml(e.model)} ${e.selfScore ? '· self: '+e.selfScore : ''}</div>
       </div>
       <div class="hi-score" title="${escapeHtml(e.grade||'')}">${e.score ?? '—'}</div>
     </div>`;
@@ -1686,7 +1767,9 @@ $('pyqList').addEventListener('click', (e) => {
   if (!item) return;
   $('question').value = item.dataset.text;
   $('paper').value = item.dataset.paper;
-  $('wordLimit').value = parseInt(item.dataset.marks) === 10 ? '150' : '250';
+  $('wordLimit').value = parseInt(item.dataset.marks, 10) === 10 ? '150' : '250';
+  updateMarksUi();
+  updateWordCount();
   $('question').dispatchEvent(new Event('input'));
   switchView('evaluate');
 });
@@ -1725,6 +1808,8 @@ $('dailyUseBtn').addEventListener('click', () => {
   $('question').value = currentDaily.text;
   $('paper').value = 'GS-' + currentDaily.paperNum;
   $('wordLimit').value = (currentDaily.marks || 10) === 10 ? '150' : '250';
+  updateMarksUi();
+  updateWordCount();
   $('question').dispatchEvent(new Event('input'));
   switchView('evaluate');
 });
@@ -1744,7 +1829,8 @@ $('cmpBtn').addEventListener('click', async () => {
   $('cmpStatus').innerHTML = '<span class="spinner"></span>Comparing two attempts (30-60s)...';
   $('cmpResult').style.display = 'none';
   try {
-    const prompt = `You are a senior UPSC examiner. The student attempted the same question twice. Score each attempt out of 10, identify what improved or regressed, and give 3 concrete next-step suggestions.
+    const maxMarks = marksFromWordLimit($('wordLimit').value);
+    const prompt = `You are a senior UPSC examiner. The student attempted the same question twice. Score each attempt out of ${maxMarks}, identify what improved or regressed, and give 3 concrete next-step suggestions.
 
 Question: ${q}
 
@@ -1756,16 +1842,16 @@ NEW attempt:
 
 Return ONLY JSON:
 {
-  "old_score": <0-10>,
-  "new_score": <0-10>,
+  "old_score": <0-${maxMarks}>,
+  "new_score": <0-${maxMarks}>,
   "delta": <new-old>,
   "headline": "<2-sentence summary of the change>",
   "improvements": ["<what got better 1>", "<better 2>", "<better 3>"],
   "regressions": ["<what got worse 1 (or empty)>","..."],
   "next_steps": ["<actionable next step 1>","<2>","<3>"]
 }`;
-    const res = await callGroq('llama-3.3-70b-versatile', prompt, apiKey, null);
-    renderCompare(res);
+    const res = await callGroq('openai/gpt-oss-120b', prompt, apiKey, null);
+    renderCompare(res, maxMarks);
     $('cmpStatus').innerHTML = '';
   } catch (e) {
     $('cmpError').innerHTML = '<div class="error">' + escapeHtml(e.message) + '</div>';
@@ -1774,15 +1860,16 @@ Return ONLY JSON:
     $('cmpBtn').disabled = false;
   }
 });
-function renderCompare(r) {
+function renderCompare(r, maxMarks) {
+  maxMarks = maxMarks || 10;
   const d = r.delta != null ? r.delta : (r.new_score - r.old_score);
   const cls = d > 0.3 ? 'up' : d < -0.3 ? 'down' : 'flat';
   const arrow = d > 0.3 ? '↑' : d < -0.3 ? '↓' : '→';
   $('cmpResult').innerHTML = `
     <div class="cr-headline">${escapeHtml(r.headline || '')}</div>
     <div class="cr-scores">
-      <div><strong>Old:</strong> ${r.old_score}/10</div>
-      <div><strong>New:</strong> ${r.new_score}/10</div>
+      <div><strong>Old:</strong> ${r.old_score}/${maxMarks}</div>
+      <div><strong>New:</strong> ${r.new_score}/${maxMarks}</div>
       <div class="delta ${cls}">${arrow} ${Math.abs(d).toFixed(1)}</div>
     </div>
     <div class="section">
@@ -1830,7 +1917,7 @@ Return ONLY the rewritten answer text — no preamble, no JSON, no commentary. P
       method: 'POST',
       headers: { 'Authorization': 'Bearer ' + apiKey, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
+        model: 'openai/gpt-oss-120b',
         messages: [
           { role: 'system', content: 'You rewrite UPSC answers preserving the student\'s voice. Return plain text only.' },
           { role: 'user', content: prompt }

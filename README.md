@@ -16,7 +16,7 @@ Open `index.html` directly in any browser. Or visit GitHub Pages: `https://saura
 - Upload a PDF (multi-page auto-converted to images via pdf.js)
 
 ### Evaluation engine
-- Score /10 + grade (Outstanding → Poor)
+- Score out of **10 or 15 marks** (matches word limit) + grade (Outstanding → Poor)
 - 6 sub-scores: structure, directive adherence, content depth, multi-dimensionality, substantiation, word limit / presentation
 - Examiner's verdict (2-3 sentence honest summary)
 - Specific strengths with reasoning
@@ -28,7 +28,7 @@ Open `index.html` directly in any browser. Or visit GitHub Pages: `https://saura
 
 ### Five views, six killer features
 
-**🎯 Multi-model consensus** — run the same answer through Llama 4 Scout + Maverick + Llama 3.3 70B in parallel. Returns 3 scores + average + confidence band. When models disagree, the answer is borderline — flagged for human review.
+**🎯 Multi-model consensus** — run the same answer through Llama 4 Scout + GPT-OSS 120B + Qwen 3.6 27B in parallel. Returns 3 scores + average + confidence band. When models disagree, the answer is borderline — flagged for human review.
 
 **📍 Line-by-line highlight** — your answer rendered with green / red / yellow backgrounds showing which sentences are strong, weak, or missing context. Hover for the examiner's note.
 
