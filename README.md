@@ -1,6 +1,6 @@
 # UPSC Mains AI Evaluator
 
-Single-file web app that evaluates UPSC Mains answers using Llama 4 (via Groq free API).
+Single-file web app that evaluates UPSC Mains answers using Groq free-tier models (Qwen 3.6 27B, GPT-OSS 120B).
 
 Works for **GS-1, GS-2, GS-3, GS-4 (Ethics), and Essay** papers. 100% client-side, no backend.
 
@@ -28,7 +28,7 @@ Open `index.html` directly in any browser. Or visit GitHub Pages: `https://saura
 
 ### Five views, six killer features
 
-**🎯 Multi-model consensus** — run the same answer through Llama 4 Scout + GPT-OSS 120B + Qwen 3.6 27B in parallel. Returns 3 scores + average + confidence band. When models disagree, the answer is borderline — flagged for human review.
+**🎯 Multi-model consensus** — run the same answer through Qwen 3.6 27B + GPT-OSS 120B + Llama 3.3 70B in parallel. Returns 3 scores + average + confidence band. When models disagree, the answer is borderline — flagged for human review.
 
 **📍 Line-by-line highlight** — your answer rendered with green / red / yellow backgrounds showing which sentences are strong, weak, or missing context. Hover for the examiner's note.
 
@@ -62,9 +62,9 @@ Open `index.html` directly in any browser. Or visit GitHub Pages: `https://saura
 
 ## Models supported
 
-- **Llama 4 Scout** (default) — fast, generous free limits, vision-capable
-- **Llama 4 Maverick** — larger, more thorough, vision-capable
-- **Llama 3.3 70B** — fallback, text only
+- **Qwen 3.6 27B** (default) — vision + text, OCR for handwritten copies
+- **GPT-OSS 120B** — strong text evaluation
+- **Llama 3.3 70B** — text fallback
 - **🎯 Multi-Model Consensus** — all three in parallel, averaged + confidence band
 
 All free on Groq's free tier (~14,400 requests/day for smaller models).
@@ -85,7 +85,7 @@ All free on Groq's free tier (~14,400 requests/day for smaller models).
 
 ## Roadmap
 
-- [x] OCR for handwritten answer copies (Llama 4 vision)
+- [x] OCR for handwritten answer copies (Qwen 3.6 27B vision)
 - [x] PDF upload (auto-split into page images)
 - [x] Multi-model consensus
 - [x] Self-score calibration

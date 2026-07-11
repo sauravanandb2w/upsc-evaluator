@@ -485,7 +485,7 @@
   <header>
     <div>
       <h1>📝 UPSC Mains AI Evaluator</h1>
-      <div class="subtitle">Llama 4 on Groq · Multi-model · Vision · History · Daily</div>
+      <div class="subtitle">Qwen &amp; GPT-OSS on Groq · Multi-model · Vision · History · Daily</div>
     </div>
     <div class="header-right">
       <button class="theme-toggle" id="themeToggle" title="Toggle theme">🌙</button>
@@ -527,9 +527,8 @@
         <div>
           <label for="model">Model</label>
           <select id="model">
-            <option value="meta-llama/llama-4-scout-17b-16e-instruct" selected>Llama 4 Scout (vision)</option>
+            <option value="qwen/qwen3.6-27b" selected>Qwen 3.6 27B (vision + text)</option>
             <option value="openai/gpt-oss-120b">GPT-OSS 120B (text)</option>
-            <option value="qwen/qwen3.6-27b">Qwen 3.6 27B (text)</option>
             <option value="llama-3.3-70b-versatile">Llama 3.3 70B (text, legacy)</option>
             <option value="__consensus__">🎯 Multi-Model Consensus (3 models)</option>
           </select>
@@ -815,7 +814,7 @@
   </section>
 
   <div class="footer">
-    📝 UPSC Mains AI Evaluator · Llama 4 via Groq · 100% client-side
+    📝 UPSC Mains AI Evaluator · Groq free tier · 100% client-side
   </div>
 </div>
 
@@ -1201,7 +1200,7 @@ async function callGroq(model, prompt, apiKey, images) {
       msg = errJson?.error?.message || errText;
     } catch { /* keep raw */ }
     if (/decommission|deprecated|no longer supported|model.*not found/i.test(msg)) {
-      throw new Error(model + ' is unavailable on Groq (' + msg.slice(0, 120) + '). Pick GPT-OSS 120B or Multi-Model Consensus.');
+      throw new Error(model + ' is unavailable on Groq (' + msg.slice(0, 120) + '). Pick Qwen 3.6 27B, GPT-OSS 120B, or Multi-Model Consensus.');
     }
     throw new Error('Groq API error ' + res.status + ': ' + msg.slice(0, 200));
   }
@@ -1218,11 +1217,13 @@ async function callGroq(model, prompt, apiKey, images) {
 }
 
 // =================== MULTI-MODEL CONSENSUS ===================
-// Maverick deprecated Mar 2026 → GPT-OSS 120B; Scout vision + 2 strong text models
+// Scout deprecated Jul 2026 → Qwen 3.6 27B vision; Maverick deprecated Mar 2026 → GPT-OSS 120B
+const VISION_MODEL_ID = 'qwen/qwen3.6-27b';
+const VISION_MODEL_IDS = new Set([VISION_MODEL_ID]);
 const CONSENSUS_MODELS = [
-  { id: 'meta-llama/llama-4-scout-17b-16e-instruct', name: 'Llama 4 Scout', vision: true },
+  { id: VISION_MODEL_ID, name: 'Qwen 3.6 27B', vision: true },
   { id: 'openai/gpt-oss-120b', name: 'GPT-OSS 120B', vision: false },
-  { id: 'qwen/qwen3.6-27b', name: 'Qwen 3.6 27B', vision: false }
+  { id: 'llama-3.3-70b-versatile', name: 'Llama 3.3 70B', vision: false }
 ];
 
 async function runConsensus(prompt, apiKey, images, buildTextPrompt) {
@@ -1281,8 +1282,8 @@ $('evalBtn').addEventListener('click', async () => {
   if (!isVision && answer.split(/\s+/).length < 20) return showError('Answer too short (min 20 words)');
 
   const isConsensus = model === '__consensus__';
-  if (isVision && !isConsensus && !model.includes('llama-4')) {
-    return showError('Vision needs Llama 4. Switch model or pick Consensus.');
+  if (isVision && !isConsensus && !VISION_MODEL_IDS.has(model)) {
+    return showError('Vision needs Qwen 3.6 27B. Switch model or pick Consensus.');
   }
 
   $('evalBtn').disabled = true;
