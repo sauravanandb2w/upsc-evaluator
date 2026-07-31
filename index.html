@@ -958,7 +958,7 @@
         <button id="saveGithubToken" type="button">Save Token</button>
       </div>
       <div class="hint">
-        <a href="https://github.com/settings/tokens/new?scopes=gist" target="_blank">Create a token</a> with <strong>gist</strong> scope. Stored locally only. Backs up your full evaluation history to a private Gist.
+        <a href="https://github.com/settings/tokens/new?scopes=gist,public_repo" target="_blank">Create a token</a> with <strong>gist</strong> + <strong>public_repo</strong> scopes. Stored locally only. Backs up history to Gist + saves uploaded answer images to your upsc-evaluator repo.
       </div>
       <div class="btn-row" style="margin-top:10px; justify-content:flex-start;">
         <button id="backupGistBtn" type="button" class="btn-ghost">☁️ Backup to Gist</button>
@@ -1487,10 +1487,32 @@ $('evalBtn').addEventListener('click', async () => {
     }
 
     // save to history
+    const ts = Date.now();
+    const rawImages = isVision ? uploadedImages.map(img => img.dataUrl) : [];
+
+    // try uploading to GitHub repo; fall back to storing base64 locally
+    let imageUrls = [];
+    let imagesFallback = [];
+    if (isVision && rawImages.length) {
+      const ghToken = localStorage.getItem(GH_TOKEN_KEY);
+      if (ghToken) {
+        $('status').innerHTML = '<span class="spinner"></span>Saving images to GitHub…';
+        const uploaded = await uploadImagesToRepo(rawImages, ts);
+        // for each page: use repo URL if succeeded, else keep base64
+        imageUrls = uploaded.map((url, i) => url || null);
+        imagesFallback = rawImages.map((b64, i) => uploaded[i] ? null : b64);
+      } else {
+        // no token — store base64 in localStorage
+        imagesFallback = rawImages;
+      }
+    }
+
     saveToHistory({
-      ts: Date.now(),
+      ts,
       paper, wordLimit, maxMarks, model: isConsensus ? 'consensus' : model,
       question, answer: isVision ? '(images)' : answer,
+      imageUrls,      // GitHub raw URLs (preferred — no localStorage cost)
+      images: imagesFallback.filter(Boolean), // base64 fallback for pages that failed upload
       score: lastResult.total_score, grade: lastResult.grade,
       verdict: lastResult.verdict,
       selfScore: selfScore || null,
@@ -1749,9 +1771,13 @@ function renderHistory() {
     const subscores = r.subscores || {};
     const isImageAnswer = e.answer === '(images)';
     const answerText = isImageAnswer ? (r.transcription || '') : (e.answer || '');
-    const answerLabel = isImageAnswer
-      ? '📷 TRANSCRIBED TEXT (OCR from your uploaded pages)'
-      : 'YOUR ANSWER';
+    const answerLabel = isImageAnswer ? '📷 OCR TRANSCRIPTION (text read from your pages)' : 'YOUR ANSWER';
+    // merge GitHub URLs + base64 fallbacks into one ordered list
+    const urlList = e.imageUrls || [];
+    const b64List = e.images || (e.thumbnail ? [e.thumbnail] : []);
+    const savedImages = urlList.length
+      ? urlList.map((url, i) => url || b64List[i] || null).filter(Boolean)
+      : b64List;
 
     const subHtml = Object.entries(subscores).map(([k,v]) =>
       `<span class="hi-sub">${escapeHtml(k.replace(/_/g,' '))}: <strong>${v}</strong></span>`).join('');
@@ -1784,10 +1810,21 @@ function renderHistory() {
 
         ${subHtml ? `<div style="margin-bottom:10px;"><div style="font-size:11px;font-weight:700;color:var(--text-muted);margin-bottom:5px;">SUB-SCORES</div><div class="hi-subscores">${subHtml}</div></div>` : ''}
 
-        ${answerText ? `<div style="margin-bottom:10px;">
+        ${isImageAnswer ? `<div style="margin-bottom:10px;">
+          <div style="font-size:11px;font-weight:700;color:var(--text-muted);margin-bottom:6px;">📷 UPLOADED PAGES${savedImages.length ? ' (' + savedImages.length + ')' : ''}</div>
+          ${savedImages.length
+            ? savedImages.map((src, pi) =>
+                `<img src="${src}" alt="page ${pi+1}" style="width:100%;border-radius:6px;border:1px solid var(--border);display:block;margin-bottom:6px;" />`
+              ).join('')
+            : `<div style="font-size:12px;color:var(--text-muted);font-style:italic;margin-bottom:8px;">Images not available — this entry was saved before image storage was added.</div>`
+          }
+          ${answerText ? `<div style="font-size:11px;font-weight:700;color:var(--text-muted);margin:8px 0 5px;">${answerLabel}</div>
+          <div style="background:var(--input-bg);border:1px solid var(--border);border-radius:6px;padding:10px;font-size:12px;line-height:1.6;color:var(--text-soft);max-height:200px;overflow-y:auto;white-space:pre-wrap;">${escapeHtml(answerText)}</div>` : ''}
+        </div>`
+        : answerText ? `<div style="margin-bottom:10px;">
           <div style="font-size:11px;font-weight:700;color:var(--text-muted);margin-bottom:5px;">${answerLabel}</div>
           <div style="background:var(--input-bg);border:1px solid var(--border);border-radius:6px;padding:10px;font-size:12px;line-height:1.6;color:var(--text-soft);max-height:200px;overflow-y:auto;white-space:pre-wrap;">${escapeHtml(answerText)}</div>
-        </div>` : (isImageAnswer ? `<div style="margin-bottom:10px;font-size:12px;color:var(--text-muted);font-style:italic;">📷 Answer was uploaded as images. Transcription not available for this entry.</div>` : '')}
+        </div>` : ''}
 
         <div class="hi-sw">
           ${strengths.length ? `<div class="hi-sw-col">
@@ -2560,6 +2597,42 @@ function saveNote(ts, text) {
   const h = loadHistory();
   const e = h.find(x => x.ts === ts);
   if (e) { e.notes = text; saveHistory(h); }
+}
+
+// =================== GITHUB IMAGE STORAGE ===================
+const REPO_OWNER = 'sauravanandb2w';
+const REPO_NAME  = 'upsc-evaluator';
+
+async function uploadImagesToRepo(images, ts) {
+  const token = localStorage.getItem(GH_TOKEN_KEY);
+  if (!token || !images.length) return [];
+  const urls = [];
+  for (let i = 0; i < images.length; i++) {
+    const dataUrl = images[i];
+    // strip data:image/jpeg;base64, prefix
+    const base64 = dataUrl.replace(/^data:image\/\w+;base64,/, '');
+    const filename = `images/${ts}-p${i + 1}.jpg`;
+    const apiUrl = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${filename}`;
+    try {
+      const res = await fetch(apiUrl, {
+        method: 'PUT',
+        headers: { Authorization: 'token ' + token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: `eval image ${ts} page ${i + 1}`,
+          content: base64,
+          branch: 'main'
+        })
+      });
+      if (res.ok) {
+        urls.push(`https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/main/${filename}`);
+      } else {
+        urls.push(null); // failed — will fall back to base64
+      }
+    } catch {
+      urls.push(null);
+    }
+  }
+  return urls;
 }
 
 // =================== GITHUB GIST BACKUP ===================
