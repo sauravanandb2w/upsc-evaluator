@@ -1013,6 +1013,7 @@ let reminderTimer = null;
 const HIST_KEY = 'upsc_eval_history';
 const KEY_KEY = 'groq_api_key';
 const THEME_KEY = 'upsc_theme';
+const WEAKNESS_EDITS_KEY = 'upsc_weakness_edits'; // { phrase: 'edited label' | null (deleted) }
 const REMINDER_KEY = 'upsc_reminder_time';
 
 // =================== DOM REFS ===================
@@ -1746,7 +1747,11 @@ function renderHistory() {
     const missing = e.missing_points || r.missing_points || [];
     const improvements = r.improvement_suggestions || [];
     const subscores = r.subscores || {};
-    const answerText = e.answer && e.answer !== '(images)' ? e.answer : '';
+    const isImageAnswer = e.answer === '(images)';
+    const answerText = isImageAnswer ? (r.transcription || '') : (e.answer || '');
+    const answerLabel = isImageAnswer
+      ? '📷 TRANSCRIBED TEXT (OCR from your uploaded pages)'
+      : 'YOUR ANSWER';
 
     const subHtml = Object.entries(subscores).map(([k,v]) =>
       `<span class="hi-sub">${escapeHtml(k.replace(/_/g,' '))}: <strong>${v}</strong></span>`).join('');
@@ -1780,9 +1785,9 @@ function renderHistory() {
         ${subHtml ? `<div style="margin-bottom:10px;"><div style="font-size:11px;font-weight:700;color:var(--text-muted);margin-bottom:5px;">SUB-SCORES</div><div class="hi-subscores">${subHtml}</div></div>` : ''}
 
         ${answerText ? `<div style="margin-bottom:10px;">
-          <div style="font-size:11px;font-weight:700;color:var(--text-muted);margin-bottom:5px;">YOUR ANSWER</div>
-          <div style="background:var(--input-bg);border:1px solid var(--border);border-radius:6px;padding:10px;font-size:12px;line-height:1.6;color:var(--text-soft);max-height:180px;overflow-y:auto;white-space:pre-wrap;">${escapeHtml(answerText)}</div>
-        </div>` : ''}
+          <div style="font-size:11px;font-weight:700;color:var(--text-muted);margin-bottom:5px;">${answerLabel}</div>
+          <div style="background:var(--input-bg);border:1px solid var(--border);border-radius:6px;padding:10px;font-size:12px;line-height:1.6;color:var(--text-soft);max-height:200px;overflow-y:auto;white-space:pre-wrap;">${escapeHtml(answerText)}</div>
+        </div>` : (isImageAnswer ? `<div style="margin-bottom:10px;font-size:12px;color:var(--text-muted);font-style:italic;">📷 Answer was uploaded as images. Transcription not available for this entry.</div>` : '')}
 
         <div class="hi-sw">
           ${strengths.length ? `<div class="hi-sw-col">
@@ -1880,18 +1885,71 @@ function renderHistory() {
     wds.forEach(w => usedWords.add(w));
   }
 
-  if (!top.length) {
+  // apply user edits/deletes
+  const edits = JSON.parse(localStorage.getItem(WEAKNESS_EDITS_KEY) || '{}');
+  const visible = top
+    .map(([phrase, c]) => ({ phrase, label: edits[phrase] !== undefined ? edits[phrase] : phrase, c }))
+    .filter(x => x.label !== null); // null = deleted
+
+  renderWeaknessChips(visible);
+}
+
+function renderWeaknessChips(chips) {
+  if (!chips || !chips.length) {
     $('commonMistakes').innerHTML = '<div class="hint">Need 2+ evaluations with overlapping weaknesses to detect theme patterns.</div>';
-  } else {
-    $('commonMistakes').innerHTML =
-      '<div class="hint" style="margin-bottom:10px;">Topic themes that keep appearing in your weaknesses and missing points — these are your blind spots:</div>' +
-      '<div style="display:flex; gap:8px; flex-wrap:wrap;">' +
-      top.map(([phrase, c]) =>
-        `<span style="background:var(--danger-soft);color:var(--danger);padding:5px 12px;border-radius:99px;font-size:13px;font-weight:600;display:inline-flex;align-items:center;gap:6px;">
-          ${escapeHtml(phrase)} <span style="background:var(--danger);color:#fff;border-radius:99px;padding:1px 7px;font-size:11px;">×${c}</span>
-        </span>`
-      ).join('') + '</div>';
+    return;
   }
+  const edits = JSON.parse(localStorage.getItem(WEAKNESS_EDITS_KEY) || '{}');
+  const deletedCount = Object.values(edits).filter(v => v === null).length;
+  $('commonMistakes').innerHTML =
+    `<div style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">
+      Topic themes that keep appearing in your weaknesses — your blind spots.
+      <span style="opacity:0.7;">Click label to rename · × to hide.</span>
+      ${deletedCount ? `<button id="resetWeaknessBtn" style="margin-left:8px;font-size:11px;background:none;border:1px solid var(--border);border-radius:4px;padding:1px 7px;cursor:pointer;color:var(--text-muted);">Restore ${deletedCount} hidden</button>` : ''}
+    </div>` +
+    '<div style="display:flex; gap:8px; flex-wrap:wrap;" id="weaknessChipList">' +
+    chips.map(({phrase, label, c}) =>
+      `<span style="background:var(--danger-soft);color:var(--danger);padding:5px 10px;border-radius:99px;font-size:13px;font-weight:600;display:inline-flex;align-items:center;gap:5px;">
+        <span class="wk-label" data-phrase="${escapeHtml(phrase)}" style="cursor:pointer;" title="Click to rename">${escapeHtml(label)}</span>
+        <span style="background:var(--danger);color:#fff;border-radius:99px;padding:1px 6px;font-size:11px;">×${c}</span>
+        <button data-del-phrase="${escapeHtml(phrase)}" style="background:none;border:none;cursor:pointer;color:var(--danger);opacity:0.6;font-size:14px;line-height:1;padding:0 2px;" title="Hide this theme">×</button>
+      </span>`
+    ).join('') + '</div>';
+
+  // rename on label click
+  $('commonMistakes').querySelectorAll('.wk-label').forEach(lbl => {
+    lbl.addEventListener('click', () => {
+      const phrase = lbl.dataset.phrase;
+      const edits = JSON.parse(localStorage.getItem(WEAKNESS_EDITS_KEY) || '{}');
+      const cur = edits[phrase] !== undefined ? edits[phrase] : phrase;
+      const newLabel = prompt('Rename this theme:', cur);
+      if (newLabel === null) return; // cancelled
+      edits[phrase] = newLabel.trim() || phrase;
+      localStorage.setItem(WEAKNESS_EDITS_KEY, JSON.stringify(edits));
+      renderHistory();
+    });
+  });
+
+  // delete (hide) on × click
+  $('commonMistakes').querySelectorAll('[data-del-phrase]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const phrase = btn.dataset.delPhrase;
+      const edits = JSON.parse(localStorage.getItem(WEAKNESS_EDITS_KEY) || '{}');
+      edits[phrase] = null; // null = hidden
+      localStorage.setItem(WEAKNESS_EDITS_KEY, JSON.stringify(edits));
+      renderHistory();
+    });
+  });
+
+  // restore hidden
+  const resetBtn = $('resetWeaknessBtn');
+  if (resetBtn) {
+    resetBtn.addEventListener('click', () => {
+      localStorage.removeItem(WEAKNESS_EDITS_KEY);
+      renderHistory();
+    });
+  }
+}
 
   // stats (used in daily view too)
   updateStreakStats(h);
