@@ -478,6 +478,66 @@
     .heatmap { grid-template-columns: repeat(20, 1fr); }
     h1 { font-size: 20px; }
   }
+
+  /* ===== TIMER ===== */
+  .timer-area { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+  .timer-display {
+    font-size: 30px; font-weight: 700; font-variant-numeric: tabular-nums;
+    color: var(--primary); min-width: 90px; letter-spacing: 2px;
+  }
+  .timer-display.warn { color: var(--warn); }
+  .timer-display.danger { color: var(--danger); animation: blink 1s step-start infinite; }
+  @keyframes blink { 50% { opacity: 0.35; } }
+
+  /* ===== TREND CHART ===== */
+  .trend-svg { width: 100%; overflow: visible; display: block; }
+  .chart-legend { display: flex; gap: 14px; font-size: 12px; margin-top: 8px; flex-wrap: wrap; }
+  .chart-legend span { display: flex; align-items: center; gap: 5px; }
+  .legend-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+
+  /* ===== PAPER ANALYTICS BARS ===== */
+  .paper-bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .paper-bar-label { width: 52px; font-size: 12px; font-weight: 700; color: var(--text-soft); flex-shrink: 0; }
+  .paper-bar-bg { flex: 1; height: 22px; background: var(--section-bg); border-radius: 4px; overflow: hidden; border: 1px solid var(--border); }
+  .paper-bar-fill { height: 100%; border-radius: 4px; transition: width 0.6s; }
+  .paper-bar-val { font-size: 13px; font-weight: 700; color: var(--primary); min-width: 70px; text-align: right; }
+
+  /* ===== SPACED REPETITION ===== */
+  .srs-item {
+    background: var(--warn-soft); border: 1px solid var(--warn);
+    border-radius: 8px; padding: 10px 14px; margin-bottom: 8px;
+    display: flex; justify-content: space-between; align-items: center; gap: 10px;
+  }
+  .srs-item .srs-q { font-size: 13px; color: var(--text); flex: 1; line-height: 1.4; }
+  .srs-item .srs-meta { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
+
+  /* ===== NOTES ===== */
+  .history-note {
+    width: 100%; padding: 6px 10px; font-size: 12px; border-radius: 6px;
+    border: 1px solid var(--border); background: var(--input-bg); color: var(--text);
+    resize: none; min-height: 42px; font-family: inherit; margin-top: 6px;
+    display: none;
+  }
+  .history-note.visible { display: block; }
+  .note-toggle {
+    font-size: 11px; padding: 3px 8px; margin-top: 5px;
+    background: transparent; color: var(--text-muted);
+    border: 1px solid var(--border); border-radius: 5px;
+  }
+  .note-toggle:hover { background: var(--section-bg); transform: none; }
+  .note-toggle.has-note { color: var(--warn); border-color: var(--warn); }
+
+  /* ===== PRINT ===== */
+  @media print {
+    .nav, .header-right, .btn-row, #status, #errorBox,
+    .selfscore-box, .timer-area, .abhyas-hint, .footer,
+    #view-daily, #view-pyq, #view-compare, #view-history, #view-settings,
+    #directiveBanner, #selfScoreResult { display: none !important; }
+    body { background: #fff !important; padding: 0; color: #000; }
+    .card { box-shadow: none !important; border: 1px solid #ccc; page-break-inside: avoid; }
+    .score-block { background: #1e3a8a !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    ul li { background: #f9fafb !important; }
+  }
 </style>
 </head>
 <body>
@@ -568,6 +628,13 @@
         <label for="selfScore">🎯 Predict your own score (calibration):</label>
         <input type="number" id="selfScore" min="0" max="10" step="0.5" placeholder="e.g. 6.5" />
         <span class="hint" style="margin: 0;">optional — train your inner examiner</span>
+      </div>
+
+      <div class="timer-area" id="timerArea">
+        <span id="timerDisplay" class="timer-display" style="display:none;"></span>
+        <button id="timerStartBtn" type="button" class="btn-ghost" style="font-size:13px; padding:6px 14px;">⏱ Timer</button>
+        <button id="timerStopBtn" type="button" class="btn-secondary" style="font-size:13px; padding:6px 14px; display:none;">■ Stop</button>
+        <span id="timerHint" class="hint" style="font-size:12px;"></span>
       </div>
 
       <div class="btn-row">
@@ -662,6 +729,7 @@
         </div>
 
         <div class="btn-row">
+          <button id="exportPdfBtn" type="button" class="btn-ghost">📄 Export PDF</button>
           <button id="shareBtn" type="button" class="btn-ghost">🔗 Share Eval (URL)</button>
           <button id="rewriteBtn" type="button">✨ Rewrite My Answer Better</button>
         </div>
@@ -700,6 +768,12 @@
           <div class="stat-value" id="avgScore">—</div>
         </div>
       </div>
+    </div>
+
+    <div class="card" id="srsCard" style="display:none;">
+      <h3 class="section h3" style="margin-bottom:10px; color:var(--warn);">🔁 Due for Review</h3>
+      <div class="hint" style="margin-bottom:8px;">Questions where you scored below 75% — spaced repetition kicks in.</div>
+      <div id="srsList"></div>
     </div>
   </section>
 
@@ -769,6 +843,16 @@
     </div>
 
     <div class="card">
+      <h3 class="section h3" style="margin-bottom: 12px;">📈 Score Trend (last 60)</h3>
+      <div id="trendChart"><div class="hint">No evaluations yet.</div></div>
+    </div>
+
+    <div class="card">
+      <h3 class="section h3" style="margin-bottom: 12px;">📊 Paper Breakdown</h3>
+      <div id="paperAnalytics"><div class="hint">No evaluations yet.</div></div>
+    </div>
+
+    <div class="card">
       <h3 class="section h3" style="margin-bottom: 12px;">📜 All Evaluations</h3>
       <div id="historyList">No evaluations saved yet.</div>
       <div class="btn-row" style="margin-top: 10px;">
@@ -801,6 +885,22 @@
         <button id="setReminder" type="button">Set</button>
       </div>
       <div class="hint" id="reminderStatus">Browser notification fires while this tab stays open. Permission required.</div>
+    </div>
+
+    <div class="card">
+      <label>☁️ GitHub Gist Backup</label>
+      <div class="key-row">
+        <input type="password" id="githubToken" placeholder="ghp_... (needs gist scope)" autocomplete="off" />
+        <button id="saveGithubToken" type="button">Save Token</button>
+      </div>
+      <div class="hint">
+        <a href="https://github.com/settings/tokens/new?scopes=gist" target="_blank">Create a token</a> with <strong>gist</strong> scope. Stored locally only. Backs up your full evaluation history to a private Gist.
+      </div>
+      <div class="btn-row" style="margin-top:10px; justify-content:flex-start;">
+        <button id="backupGistBtn" type="button" class="btn-ghost">☁️ Backup to Gist</button>
+        <button id="restoreGistBtn" type="button" class="btn-ghost">📥 Restore from Gist</button>
+      </div>
+      <div id="gistStatus" class="hint" style="margin-top:8px;"></div>
     </div>
 
     <div class="card">
@@ -1330,8 +1430,10 @@ $('evalBtn').addEventListener('click', async () => {
       verdict: lastResult.verdict,
       selfScore: selfScore || null,
       weaknesses: lastResult.weaknesses || [],
-      missing_points: lastResult.missing_points || []
+      missing_points: lastResult.missing_points || [],
+      result: lastResult
     });
+    updateSrs(question, lastResult.total_score, maxMarks);
 
     $('status').innerHTML = '';
   } catch (e) {
@@ -1561,6 +1663,9 @@ function renderHistory() {
   $('heatmapHint').textContent = `${h.length} evaluations total · ${Object.keys(counts).length} active days in last ${days}`;
 
   // history list
+  renderTrendChart(h);
+  renderPaperAnalytics(h);
+
   if (!h.length) {
     $('historyList').innerHTML = 'No evaluations saved yet.';
     $('commonMistakes').innerHTML = 'No evaluations yet.';
@@ -1569,15 +1674,41 @@ function renderHistory() {
   const sorted = [...h].reverse().slice(0, 100);
   $('historyList').innerHTML = sorted.map((e, idx) => {
     const date = new Date(e.ts).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
-    const realIdx = h.length - 1 - idx;
-    return `<div class="history-item">
-      <div>
-        <div class="hi-q">${escapeHtml((e.question||'').slice(0, 140))}${e.question && e.question.length > 140 ? '...' : ''}</div>
-        <div class="hi-meta">${date} · ${escapeHtml(e.paper)} · ${e.maxMarks || marksFromWordLimit(e.wordLimit)}M · ${e.wordLimit}w · ${escapeHtml(e.model)} ${e.selfScore ? '· self: '+e.selfScore : ''}</div>
+    const hasNote = e.notes && e.notes.trim();
+    return `<div class="history-item" style="display:block;">
+      <div style="display:grid; grid-template-columns:1fr auto; gap:10px; align-items:start;">
+        <div>
+          <div class="hi-q">${escapeHtml((e.question||'').slice(0, 140))}${e.question && e.question.length > 140 ? '…' : ''}</div>
+          <div class="hi-meta">${date} · ${escapeHtml(e.paper)} · ${e.maxMarks || marksFromWordLimit(e.wordLimit)}M · ${e.wordLimit}w · ${escapeHtml(e.model)} ${e.selfScore ? '· self: '+e.selfScore : ''}</div>
+          <button class="note-toggle${hasNote ? ' has-note' : ''}" data-note-toggle="${e.ts}">${hasNote ? '📝 Note' : '+ Note'}</button>
+          <textarea class="history-note${hasNote ? ' visible' : ''}" data-note-ts="${e.ts}" placeholder="Add a personal note…">${escapeHtml(e.notes || '')}</textarea>
+        </div>
+        <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
+          <div class="hi-score" title="${escapeHtml(e.grade||'')}">${e.score ?? '—'}</div>
+          ${e.result ? `<button data-hist-view="${idx}" style="padding:4px 9px;font-size:11px;background:var(--primary-soft);color:var(--primary);border:1px solid var(--border);">👁 View</button>` : ''}
+        </div>
       </div>
-      <div class="hi-score" title="${escapeHtml(e.grade||'')}">${e.score ?? '—'}</div>
     </div>`;
   }).join('');
+
+  // note toggle + autosave
+  $('historyList').querySelectorAll('[data-note-toggle]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const ts = parseInt(btn.dataset.noteToggle);
+      const ta = $('historyList').querySelector(`[data-note-ts="${ts}"]`);
+      ta.classList.toggle('visible');
+      if (ta.classList.contains('visible')) ta.focus();
+    });
+  });
+  $('historyList').querySelectorAll('[data-note-ts]').forEach(ta => {
+    ta.addEventListener('input', () => {
+      const ts = parseInt(ta.dataset.noteTs);
+      const btn = $('historyList').querySelector(`[data-note-toggle="${ts}"]`);
+      saveNote(ts, ta.value);
+      btn.classList.toggle('has-note', ta.value.trim().length > 0);
+      btn.textContent = ta.value.trim() ? '📝 Note' : '+ Note';
+    });
+  });
 
   // common mistakes — word freq from weaknesses + missing
   const stop = new Set(('the a an and or but of to in for with on at by from is are was were be been being it this that these those you your they their our we i me my as into not no can could should would do does did has have had your you the').split(' '));
@@ -1646,6 +1777,30 @@ $('clearHistoryBtn').addEventListener('click', () => {
     localStorage.removeItem(HIST_KEY);
     renderHistory();
   }
+});
+
+$('historyList').addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-hist-view]');
+  if (!btn) return;
+  const h = loadHistory();
+  const sorted = [...h].reverse().slice(0, 100);
+  const idx = parseInt(btn.dataset.histView, 10);
+  const entry = sorted[idx];
+  if (!entry || !entry.result) return;
+  // Restore question + answer
+  $('question').value = entry.question || '';
+  if (entry.answer && entry.answer !== '(images)') $('answer').value = entry.answer;
+  // Set controls to match
+  if (entry.paper) $('paper').value = entry.paper;
+  if (entry.wordLimit) $('wordLimit').value = String(entry.wordLimit);
+  currentMaxMarks = entry.maxMarks || marksFromWordLimit(entry.wordLimit);
+  updateMarksUi();
+  updateWordCount();
+  $('question').dispatchEvent(new Event('input'));
+  // Re-render the full evaluation
+  lastResult = entry.result;
+  render(entry.result, { maxMarks: currentMaxMarks, selfScore: entry.selfScore });
+  switchView('evaluate');
 });
 $('exportHistoryBtn').addEventListener('click', () => {
   const h = loadHistory();
@@ -1778,6 +1933,7 @@ $('pyqList').addEventListener('click', (e) => {
 // =================== DAILY ===================
 async function renderDaily() {
   updateStreakStats();
+  renderSrs();
   if (!pyqLoaded) await loadPyqs();
   if (!currentDaily) pickDaily();
   if (currentDaily) {
@@ -2008,13 +2164,264 @@ function scheduleReminder() {
   }, ms);
 }
 
+// =================== TIMER ===================
+let timerInterval = null;
+let timerSeconds = 0;
+
+function timerSecsFromLimit(wl) {
+  const w = parseInt(wl);
+  if (w <= 150) return 10 * 60;
+  if (w <= 250) return 15 * 60;
+  return 60 * 60;
+}
+function fmtTime(s) {
+  return String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
+}
+function setTimerHint() {
+  const secs = timerSecsFromLimit($('wordLimit').value);
+  $('timerHint').textContent = Math.round(secs / 60) + ' min for ' + $('wordLimit').value + '-word answer';
+}
+function tickTimer() {
+  timerSeconds--;
+  const el = $('timerDisplay');
+  el.textContent = fmtTime(timerSeconds);
+  el.className = 'timer-display' + (timerSeconds <= 120 ? ' danger' : timerSeconds <= 300 ? ' warn' : '');
+  if (timerSeconds <= 0) {
+    clearInterval(timerInterval); timerInterval = null;
+    el.textContent = '00:00';
+    $('timerStopBtn').style.display = 'none';
+    $('timerStartBtn').style.display = '';
+    $('timerHint').textContent = '⏰ Time\'s up!';
+  }
+}
+$('timerStartBtn').addEventListener('click', () => {
+  timerSeconds = timerSecsFromLimit($('wordLimit').value);
+  const el = $('timerDisplay');
+  el.style.display = '';
+  el.textContent = fmtTime(timerSeconds);
+  el.className = 'timer-display';
+  $('timerStartBtn').style.display = 'none';
+  $('timerStopBtn').style.display = '';
+  $('timerHint').textContent = 'Running — write!';
+  clearInterval(timerInterval);
+  timerInterval = setInterval(tickTimer, 1000);
+  $('answer').focus();
+});
+$('timerStopBtn').addEventListener('click', () => {
+  clearInterval(timerInterval); timerInterval = null;
+  $('timerDisplay').style.display = 'none';
+  $('timerStopBtn').style.display = 'none';
+  $('timerStartBtn').style.display = '';
+  setTimerHint();
+});
+// update hint when word limit changes
+$('wordLimit').addEventListener('change', setTimerHint);
+
+// =================== PDF EXPORT ===================
+$('exportPdfBtn').addEventListener('click', () => window.print());
+
+// =================== SCORE TREND CHART ===================
+function renderTrendChart(history) {
+  const el = $('trendChart');
+  if (!history.length) { el.innerHTML = '<div class="hint">No evaluations yet.</div>'; return; }
+  const data = [...history].slice(-60).map(e => ({
+    date: new Date(e.ts),
+    pct: ((parseFloat(e.score) || 0) / (e.maxMarks || 10)) * 100,
+    score: e.score, maxMarks: e.maxMarks || 10, paper: e.paper || 'GS-2'
+  }));
+  const COLORS = { 'GS-1':'#6366f1','GS-2':'#2563eb','GS-3':'#059669','GS-4':'#d97706','Essay':'#dc2626' };
+  const W = 700, H = 200, P = { t:12, r:20, b:38, l:36 };
+  const cW = W - P.l - P.r, cH = H - P.t - P.b;
+  const n = data.length;
+  const xs = data.map((_, i) => P.l + (n < 2 ? cW / 2 : (i / (n - 1)) * cW));
+  const ys = data.map(d => P.t + cH - (Math.min(d.pct, 100) / 100) * cH);
+
+  let grid = '';
+  [0, 25, 50, 75, 100].forEach(pct => {
+    const y = P.t + cH - (pct / 100) * cH;
+    grid += `<line x1="${P.l}" y1="${y}" x2="${W-P.r}" y2="${y}" stroke="var(--border)" stroke-width="1"/>
+             <text x="${P.l-4}" y="${y+4}" text-anchor="end" font-size="10" fill="var(--text-muted)">${pct}%</text>`;
+  });
+
+  const path = xs.map((x, i) => (i ? 'L' : 'M') + x.toFixed(1) + ',' + ys[i].toFixed(1)).join(' ');
+  const dots = data.map((d, i) => {
+    const col = COLORS[d.paper] || '#2563eb';
+    const lbl = d.date.toLocaleDateString('en-IN',{day:'numeric',month:'short'}) + ' · ' + d.paper + ' · ' + d.score + '/' + d.maxMarks + ' (' + d.pct.toFixed(0) + '%)';
+    return `<circle cx="${xs[i].toFixed(1)}" cy="${ys[i].toFixed(1)}" r="5" fill="${col}" stroke="var(--card)" stroke-width="2"><title>${lbl}</title></circle>`;
+  }).join('');
+
+  const step = Math.max(1, Math.floor(n / 6));
+  let xlabels = '';
+  for (let i = 0; i < n; i += step) {
+    xlabels += `<text x="${xs[i].toFixed(1)}" y="${H-5}" text-anchor="middle" font-size="10" fill="var(--text-muted)">${data[i].date.toLocaleDateString('en-IN',{day:'numeric',month:'short'})}</text>`;
+  }
+
+  const usedPapers = [...new Set(data.map(d => d.paper))];
+  const legend = usedPapers.map(p => `<span><span class="legend-dot" style="background:${COLORS[p]||'#2563eb'}"></span>${p}</span>`).join('');
+
+  el.innerHTML = `
+    <svg viewBox="0 0 ${W} ${H}" class="trend-svg">
+      ${grid}
+      <path d="${path}" fill="none" stroke="var(--accent)" stroke-width="1.5" opacity="0.35"/>
+      ${dots}${xlabels}
+    </svg>
+    <div class="chart-legend">${legend}</div>`;
+}
+
+// =================== PAPER ANALYTICS ===================
+function renderPaperAnalytics(history) {
+  const el = $('paperAnalytics');
+  if (!history.length) { el.innerHTML = '<div class="hint">No evaluations yet.</div>'; return; }
+  const COLORS = { 'GS-1':'#6366f1','GS-2':'#2563eb','GS-3':'#059669','GS-4':'#d97706','Essay':'#dc2626' };
+  const rows = ['GS-1','GS-2','GS-3','GS-4','Essay'].map(p => {
+    const es = history.filter(e => e.paper === p && e.score != null);
+    if (!es.length) return null;
+    const avgPct = es.reduce((s, e) => s + ((parseFloat(e.score)||0) / (e.maxMarks||10)) * 100, 0) / es.length;
+    const avgScore = (es.reduce((s, e) => s + (parseFloat(e.score)||0), 0) / es.length).toFixed(1);
+    return { p, pct: avgPct, avgScore, maxM: es[0].maxMarks || 10, count: es.length, color: COLORS[p] || '#2563eb' };
+  }).filter(Boolean);
+  if (!rows.length) { el.innerHTML = '<div class="hint">No evaluations yet.</div>'; return; }
+  el.innerHTML = rows.map(r =>
+    `<div class="paper-bar-row">
+      <div class="paper-bar-label">${r.p}</div>
+      <div class="paper-bar-bg"><div class="paper-bar-fill" style="width:${r.pct.toFixed(1)}%;background:${r.color};"></div></div>
+      <div class="paper-bar-val">${r.avgScore}/${r.maxM} <small style="font-size:10px;color:var(--text-muted);">×${r.count}</small></div>
+    </div>`).join('');
+}
+
+// =================== SPACED REPETITION ===================
+const SRS_KEY = 'upsc_srs';
+function srsHash(q) {
+  let h = 0;
+  for (let i = 0; i < Math.min(q.length, 120); i++) h = (Math.imul(31, h) + q.charCodeAt(i)) | 0;
+  return Math.abs(h).toString(36);
+}
+function srsIntervalDays(score, maxMarks) {
+  const pct = (parseFloat(score)||0) / (maxMarks||10);
+  if (pct < 0.5)  return 3;
+  if (pct < 0.65) return 5;
+  if (pct < 0.75) return 10;
+  return 21;
+}
+function updateSrs(question, score, maxMarks) {
+  if (!question || question === '(images)') return;
+  const srs = JSON.parse(localStorage.getItem(SRS_KEY) || '{}');
+  const key = srsHash(question);
+  const days = srsIntervalDays(score, maxMarks);
+  srs[key] = {
+    question: question.slice(0, 220),
+    score, maxMarks,
+    attempts: (srs[key]?.attempts || 0) + 1,
+    lastReview: Date.now(),
+    nextReview: Date.now() + days * 86400000
+  };
+  localStorage.setItem(SRS_KEY, JSON.stringify(srs));
+}
+function renderSrs() {
+  const due = Object.values(JSON.parse(localStorage.getItem(SRS_KEY) || '{}')).filter(e => e.nextReview <= Date.now());
+  const card = $('srsCard');
+  if (!due.length) { card.style.display = 'none'; return; }
+  card.style.display = 'block';
+  $('srsList').innerHTML = due.map((e, i) =>
+    `<div class="srs-item">
+      <div>
+        <div class="srs-q">${escapeHtml(e.question.slice(0,130))}${e.question.length>130?'…':''}</div>
+        <div class="srs-meta">Last score: ${e.score}/${e.maxMarks} · ${e.attempts} attempt(s)</div>
+      </div>
+      <button data-srs="${i}" style="font-size:12px;padding:5px 10px;flex-shrink:0;">Retry →</button>
+    </div>`).join('');
+  $('srsList').querySelectorAll('[data-srs]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const entry = due[parseInt(btn.dataset.srs)];
+      $('question').value = entry.question;
+      $('question').dispatchEvent(new Event('input'));
+      switchView('evaluate');
+    });
+  });
+}
+
+// =================== NOTES ===================
+function saveNote(ts, text) {
+  const h = loadHistory();
+  const e = h.find(x => x.ts === ts);
+  if (e) { e.notes = text; saveHistory(h); }
+}
+
+// =================== GITHUB GIST BACKUP ===================
+const GIST_ID_KEY = 'upsc_gist_id';
+const GH_TOKEN_KEY = 'upsc_gh_token';
+const ghTokenSaved = localStorage.getItem(GH_TOKEN_KEY);
+if (ghTokenSaved) $('githubToken').value = ghTokenSaved;
+
+$('saveGithubToken').addEventListener('click', () => {
+  const t = $('githubToken').value.trim();
+  if (!t) return;
+  localStorage.setItem(GH_TOKEN_KEY, t);
+  $('saveGithubToken').textContent = 'Saved!';
+  setTimeout(() => $('saveGithubToken').textContent = 'Save Token', 1500);
+});
+
+$('backupGistBtn').addEventListener('click', async () => {
+  const token = $('githubToken').value.trim() || localStorage.getItem(GH_TOKEN_KEY);
+  const statusEl = $('gistStatus');
+  if (!token) { statusEl.innerHTML = '<span style="color:var(--danger)">No token saved. Add one above.</span>'; return; }
+  statusEl.innerHTML = '<span class="spinner"></span>Backing up…';
+  try {
+    const history = loadHistory();
+    const gistId = localStorage.getItem(GIST_ID_KEY);
+    const res = await fetch(gistId ? `https://api.github.com/gists/${gistId}` : 'https://api.github.com/gists', {
+      method: gistId ? 'PATCH' : 'POST',
+      headers: { Authorization: 'token ' + token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        description: 'UPSC Evaluator History Backup',
+        public: false,
+        files: { 'upsc-history.json': { content: JSON.stringify(history, null, 2) } }
+      })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || res.status);
+    localStorage.setItem(GIST_ID_KEY, data.id);
+    statusEl.innerHTML = `<span style="color:var(--good)">✓ Backed up ${history.length} entries · ${new Date().toLocaleString('en-IN')} · <a href="${data.html_url}" target="_blank">View Gist</a></span>`;
+  } catch (e) {
+    statusEl.innerHTML = `<span style="color:var(--danger)">✗ ${escapeHtml(e.message)}</span>`;
+  }
+});
+
+$('restoreGistBtn').addEventListener('click', async () => {
+  const token = $('githubToken').value.trim() || localStorage.getItem(GH_TOKEN_KEY);
+  const gistId = localStorage.getItem(GIST_ID_KEY);
+  const statusEl = $('gistStatus');
+  if (!token) { statusEl.innerHTML = '<span style="color:var(--danger)">No token saved.</span>'; return; }
+  if (!gistId) { statusEl.innerHTML = '<span style="color:var(--danger)">No Gist ID found — backup first.</span>'; return; }
+  if (!confirm('Restore from Gist? New entries will be merged in (nothing deleted).')) return;
+  statusEl.innerHTML = '<span class="spinner"></span>Restoring…';
+  try {
+    const res = await fetch(`https://api.github.com/gists/${gistId}`, { headers: { Authorization: 'token ' + token } });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || res.status);
+    const raw = data.files?.['upsc-history.json']?.content;
+    if (!raw) throw new Error('upsc-history.json not found in Gist');
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) throw new Error('Invalid format — expected array');
+    const existing = loadHistory();
+    const tsSet = new Set(existing.map(x => x.ts));
+    const fresh = parsed.filter(x => !tsSet.has(x.ts));
+    const merged = [...existing, ...fresh].sort((a, b) => a.ts - b.ts);
+    saveHistory(merged);
+    statusEl.innerHTML = `<span style="color:var(--good)">✓ Merged ${fresh.length} new entries. Total: ${merged.length}.</span>`;
+    if ($('view-history').classList.contains('active')) renderHistory();
+  } catch (e) {
+    statusEl.innerHTML = `<span style="color:var(--danger)">✗ ${escapeHtml(e.message)}</span>`;
+  }
+});
+
 // =================== INIT ===================
 function init() {
   initTheme();
   updateWordCount();
+  setTimerHint();
   loadShareFromHash();
   loadReminder();
-  // pre-warm streak stats in daily view
   if (loadHistory().length) updateStreakStats();
 }
 init();
