@@ -1892,6 +1892,9 @@ function renderHistory() {
     .filter(x => x.label !== null); // null = deleted
 
   renderWeaknessChips(visible);
+
+  // stats (used in daily view too)
+  updateStreakStats(h);
 }
 
 function renderWeaknessChips(chips) {
@@ -1949,10 +1952,6 @@ function renderWeaknessChips(chips) {
       renderHistory();
     });
   }
-}
-
-  // stats (used in daily view too)
-  updateStreakStats(h);
 }
 
 function updateStreakStats(h) {
