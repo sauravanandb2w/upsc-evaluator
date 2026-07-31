@@ -372,8 +372,9 @@
   .history-item {
     background: var(--section-bg); border: 1px solid var(--border);
     border-radius: 8px; padding: 12px 14px; margin-bottom: 8px;
-    display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center;
+    cursor: pointer; transition: border-color 0.15s;
   }
+  .history-item:hover { border-color: var(--primary); }
   .history-item .hi-q { font-size: 13px; line-height: 1.4; color: var(--text); }
   .history-item .hi-meta { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
   .history-item .hi-score {
@@ -383,6 +384,33 @@
   }
   .history-item .hi-actions { display: flex; gap: 6px; flex-direction: column; }
   .history-item button { padding: 5px 9px; font-size: 11px; }
+  .hi-expand {
+    display: none; margin-top: 12px; padding-top: 12px;
+    border-top: 1px solid var(--border);
+    font-size: 13px;
+  }
+  .hi-expand.open { display: block; }
+  .hi-verdict { color: var(--text-soft); margin-bottom: 8px; font-style: italic; line-height: 1.5; }
+  .hi-subscores {
+    display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px;
+  }
+  .hi-sub {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 6px; padding: 3px 9px; font-size: 11px; color: var(--text-soft);
+  }
+  .hi-sw { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .hi-sw-col { background: var(--card); border-radius: 6px; padding: 8px 10px; }
+  .hi-sw-col h5 { font-size: 11px; font-weight: 700; margin-bottom: 5px; }
+  .hi-sw-col ul { padding-left: 14px; }
+  .hi-sw-col li { font-size: 12px; margin-bottom: 3px; color: var(--text-soft); }
+  .hi-expand-toggle { font-size: 11px; color: var(--text-muted); margin-top: 6px; user-select: none; }
+  /* Heatmap custom tooltip */
+  #hmTooltip {
+    position: fixed; pointer-events: none; z-index: 9999;
+    background: var(--text); color: var(--bg); font-size: 11px;
+    padding: 4px 8px; border-radius: 5px; white-space: nowrap;
+    opacity: 0; transition: opacity 0.1s;
+  }
 
   /* PYQ PICKER */
   .pyq-filters {
@@ -1675,21 +1703,59 @@ function renderHistory() {
   $('historyList').innerHTML = sorted.map((e, idx) => {
     const date = new Date(e.ts).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
     const hasNote = e.notes && e.notes.trim();
-    return `<div class="history-item" style="display:block;">
+    // Build inline expand content from saved data
+    const r = e.result || {};
+    const verdict = e.verdict || r.verdict || '';
+    const strengths = r.strengths || [];
+    const weaknesses = e.weaknesses || r.weaknesses || [];
+    const missing = e.missing_points || r.missing_points || [];
+    const subscores = r.subscores || {};
+    const subHtml = Object.entries(subscores).map(([k,v]) =>
+      `<span class="hi-sub">${escapeHtml(k.replace(/_/g,' '))}: ${v}</span>`).join('');
+    const strHtml = strengths.slice(0,3).map(s => `<li>${escapeHtml(String(s).slice(0,120))}</li>`).join('');
+    const wkHtml = [...weaknesses, ...missing].slice(0,4).map(w => `<li>${escapeHtml(String(w).slice(0,120))}</li>`).join('');
+    const hasDetail = verdict || strengths.length || weaknesses.length || missing.length;
+    return `<div class="history-item" data-hi-idx="${idx}">
       <div style="display:grid; grid-template-columns:1fr auto; gap:10px; align-items:start;">
         <div>
-          <div class="hi-q">${escapeHtml((e.question||'').slice(0, 140))}${e.question && e.question.length > 140 ? '…' : ''}</div>
-          <div class="hi-meta">${date} · ${escapeHtml(e.paper)} · ${e.maxMarks || marksFromWordLimit(e.wordLimit)}M · ${e.wordLimit}w · ${escapeHtml(e.model)} ${e.selfScore ? '· self: '+e.selfScore : ''}</div>
-          <button class="note-toggle${hasNote ? ' has-note' : ''}" data-note-toggle="${e.ts}">${hasNote ? '📝 Note' : '+ Note'}</button>
-          <textarea class="history-note${hasNote ? ' visible' : ''}" data-note-ts="${e.ts}" placeholder="Add a personal note…">${escapeHtml(e.notes || '')}</textarea>
+          <div class="hi-q">${escapeHtml((e.question||'(no question)').slice(0, 160))}${e.question && e.question.length > 160 ? '…' : ''}</div>
+          <div class="hi-meta">${date} · ${escapeHtml(e.paper||'')} · ${e.maxMarks || marksFromWordLimit(e.wordLimit)}M · ${e.wordLimit||'?'}w · ${escapeHtml(e.model||'')} ${e.selfScore ? '· self: '+e.selfScore : ''}</div>
+          ${hasDetail ? `<div class="hi-expand-toggle">▶ tap to expand</div>` : ''}
         </div>
         <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
-          <div class="hi-score" title="${escapeHtml(e.grade||'')}">${e.score ?? '—'}</div>
-          ${e.result ? `<button data-hist-view="${idx}" style="padding:4px 9px;font-size:11px;background:var(--primary-soft);color:var(--primary);border:1px solid var(--border);">👁 View</button>` : ''}
+          <div class="hi-score" title="${escapeHtml(e.grade||'')}">${e.score ?? '—'}<small style="font-size:12px;font-weight:400;"> ${escapeHtml(e.grade||'')}</small></div>
+          ${e.result ? `<button data-hist-view="${idx}" style="padding:4px 9px;font-size:11px;background:var(--primary-soft);color:var(--primary);border:1px solid var(--border);border-radius:6px;cursor:pointer;">👁 Full eval</button>` : ''}
         </div>
       </div>
+      ${hasDetail ? `<div class="hi-expand" id="hi-exp-${idx}">
+        ${verdict ? `<div class="hi-verdict">"${escapeHtml(verdict)}"</div>` : ''}
+        ${subHtml ? `<div class="hi-subscores">${subHtml}</div>` : ''}
+        ${(strHtml || wkHtml) ? `<div class="hi-sw">
+          ${strHtml ? `<div class="hi-sw-col"><h5 style="color:var(--good)">✓ Strengths</h5><ul>${strHtml}</ul></div>` : ''}
+          ${wkHtml ? `<div class="hi-sw-col"><h5 style="color:var(--danger)">✗ Gaps / Weaknesses</h5><ul>${wkHtml}</ul></div>` : ''}
+        </div>` : ''}
+        <button class="note-toggle${hasNote ? ' has-note' : ''}" data-note-toggle="${e.ts}" style="margin-top:8px;">${hasNote ? '📝 Note' : '+ Note'}</button>
+        <textarea class="history-note${hasNote ? ' visible' : ''}" data-note-ts="${e.ts}" placeholder="Add a personal note…">${escapeHtml(e.notes || '')}</textarea>
+      </div>` : `
+        <button class="note-toggle${hasNote ? ' has-note' : ''}" data-note-toggle="${e.ts}" style="margin-top:6px;">${hasNote ? '📝 Note' : '+ Note'}</button>
+        <textarea class="history-note${hasNote ? ' visible' : ''}" data-note-ts="${e.ts}" placeholder="Add a personal note…">${escapeHtml(e.notes || '')}</textarea>
+      `}
     </div>`;
   }).join('');
+
+  // expand/collapse on card click
+  $('historyList').querySelectorAll('.history-item[data-hi-idx]').forEach(card => {
+    card.addEventListener('click', (ev) => {
+      // don't expand if clicking a button or textarea
+      if (ev.target.closest('button') || ev.target.closest('textarea')) return;
+      const idx = card.dataset.hiIdx;
+      const exp = card.querySelector(`#hi-exp-${idx}`);
+      if (!exp) return;
+      const toggle = card.querySelector('.hi-expand-toggle');
+      const open = exp.classList.toggle('open');
+      if (toggle) toggle.textContent = open ? '▼ tap to collapse' : '▶ tap to expand';
+    });
+  });
 
   // note toggle + autosave
   $('historyList').querySelectorAll('[data-note-toggle]').forEach(btn => {
@@ -2425,6 +2491,28 @@ function init() {
   if (loadHistory().length) updateStreakStats();
 }
 init();
+
+// =================== HEATMAP TOOLTIP ===================
+(function() {
+  const tip = document.createElement('div');
+  tip.id = 'hmTooltip';
+  document.body.appendChild(tip);
+  document.addEventListener('mouseover', e => {
+    const cell = e.target.closest('.hm-cell');
+    if (!cell) { tip.style.opacity = 0; return; }
+    tip.textContent = cell.title;
+    tip.style.opacity = 1;
+  });
+  document.addEventListener('mousemove', e => {
+    if (tip.style.opacity !== '1') return;
+    const x = e.clientX + 12, y = e.clientY - 28;
+    tip.style.left = Math.min(x, window.innerWidth - tip.offsetWidth - 8) + 'px';
+    tip.style.top = Math.max(y, 4) + 'px';
+  });
+  document.addEventListener('mouseout', e => {
+    if (e.target.closest('.hm-cell')) tip.style.opacity = 0;
+  });
+})();
 </script>
 </body>
 </html>
