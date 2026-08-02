@@ -615,10 +615,21 @@
         <div>
           <label for="model">Model</label>
           <select id="model">
-            <option value="qwen/qwen3.6-27b" selected>Qwen 3.6 27B (vision + text)</option>
-            <option value="openai/gpt-oss-120b">GPT-OSS 120B (text)</option>
-            <option value="llama-3.3-70b-versatile">Llama 3.3 70B (text, legacy)</option>
-            <option value="__consensus__">🎯 Multi-Model Consensus (3 models)</option>
+            <optgroup label="Vision + Text (for image uploads)">
+              <option value="qwen/qwen3.6-27b" selected>Qwen 3.6 27B ⭐ (vision, recommended)</option>
+              <option value="meta-llama/llama-4-scout-17b-16e-instruct">Llama 4 Scout (vision, fast)</option>
+              <option value="meta-llama/llama-4-maverick-17b-128e-instruct">Llama 4 Maverick (vision, detailed)</option>
+            </optgroup>
+            <optgroup label="Text Only (faster, higher limits)">
+              <option value="openai/gpt-oss-120b">GPT-OSS 120B (strongest)</option>
+              <option value="deepseek-r1-distill-llama-70b">DeepSeek R1 70B (deep reasoning)</option>
+              <option value="llama-3.3-70b-versatile">Llama 3.3 70B</option>
+              <option value="qwen/qwen3-32b">Qwen 3 32B</option>
+              <option value="gemma2-9b-it">Gemma 2 9B (fastest, high limits)</option>
+            </optgroup>
+            <optgroup label="Special">
+              <option value="__consensus__">🎯 Multi-Model Consensus (3 models)</option>
+            </optgroup>
           </select>
         </div>
       </div>
@@ -1382,12 +1393,16 @@ async function callGroq(model, prompt, apiKey, images) {
   if (!res.ok) {
     const errText = await res.text();
     let msg = errText;
-    try {
-      const errJson = JSON.parse(errText);
-      msg = errJson?.error?.message || errText;
-    } catch { /* keep raw */ }
+    try { const j = JSON.parse(errText); msg = j?.error?.message || errText; } catch {}
+    if (res.status === 429) {
+      const retryAfter = res.headers.get('retry-after') || res.headers.get('x-ratelimit-reset-requests') || '60';
+      const wait = parseInt(retryAfter) || 60;
+      const err = new Error(`RATE_LIMIT:${model}:${wait}`);
+      err.isRateLimit = true; err.retryAfter = wait; err.limitedModel = model;
+      throw err;
+    }
     if (/decommission|deprecated|no longer supported|model.*not found/i.test(msg)) {
-      throw new Error(model + ' is unavailable on Groq (' + msg.slice(0, 120) + '). Pick Qwen 3.6 27B, GPT-OSS 120B, or Multi-Model Consensus.');
+      throw new Error(model + ' is unavailable on Groq. ' + msg.slice(0, 120));
     }
     throw new Error('Groq API error ' + res.status + ': ' + msg.slice(0, 200));
   }
@@ -1404,14 +1419,37 @@ async function callGroq(model, prompt, apiKey, images) {
 }
 
 // =================== MULTI-MODEL CONSENSUS ===================
-// Scout deprecated Jul 2026 → Qwen 3.6 27B vision; Maverick deprecated Mar 2026 → GPT-OSS 120B
-const VISION_MODEL_ID = 'qwen/qwen3.6-27b';
-const VISION_MODEL_IDS = new Set([VISION_MODEL_ID]);
+const VISION_MODEL_IDS = new Set([
+  'qwen/qwen3.6-27b',
+  'meta-llama/llama-4-scout-17b-16e-instruct',
+  'meta-llama/llama-4-maverick-17b-128e-instruct'
+]);
 const CONSENSUS_MODELS = [
-  { id: VISION_MODEL_ID, name: 'Qwen 3.6 27B', vision: true },
-  { id: 'openai/gpt-oss-120b', name: 'GPT-OSS 120B', vision: false },
-  { id: 'llama-3.3-70b-versatile', name: 'Llama 3.3 70B', vision: false }
+  { id: 'qwen/qwen3.6-27b',                              name: 'Qwen 3.6 27B',      vision: true  },
+  { id: 'openai/gpt-oss-120b',                           name: 'GPT-OSS 120B',      vision: false },
+  { id: 'llama-3.3-70b-versatile',                       name: 'Llama 3.3 70B',     vision: false }
 ];
+// fallback chain when a model hits rate limit
+const RATE_LIMIT_FALLBACK = {
+  'qwen/qwen3.6-27b':                              'meta-llama/llama-4-scout-17b-16e-instruct',
+  'meta-llama/llama-4-scout-17b-16e-instruct':     'meta-llama/llama-4-maverick-17b-128e-instruct',
+  'meta-llama/llama-4-maverick-17b-128e-instruct': 'qwen/qwen3.6-27b',
+  'openai/gpt-oss-120b':                           'deepseek-r1-distill-llama-70b',
+  'deepseek-r1-distill-llama-70b':                 'llama-3.3-70b-versatile',
+  'llama-3.3-70b-versatile':                       'qwen/qwen3-32b',
+  'qwen/qwen3-32b':                                'gemma2-9b-it',
+};
+function modelLabel(id) {
+  const labels = {
+    'qwen/qwen3.6-27b': 'Qwen 3.6 27B', 'openai/gpt-oss-120b': 'GPT-OSS 120B',
+    'meta-llama/llama-4-scout-17b-16e-instruct': 'Llama 4 Scout',
+    'meta-llama/llama-4-maverick-17b-128e-instruct': 'Llama 4 Maverick',
+    'deepseek-r1-distill-llama-70b': 'DeepSeek R1 70B',
+    'llama-3.3-70b-versatile': 'Llama 3.3 70B',
+    'qwen/qwen3-32b': 'Qwen 3 32B', 'gemma2-9b-it': 'Gemma 2 9B'
+  };
+  return labels[id] || id;
+}
 
 async function runConsensus(prompt, apiKey, images, buildTextPrompt) {
   const hasImages = images && images.length;
@@ -1503,7 +1541,33 @@ $('evalBtn').addEventListener('click', async () => {
     } else {
       lastConsensus = null;
       $('consensusBox').style.display = 'none';
-      const result = await callGroq(model, prompt, apiKey, isVision ? uploadedImages : null);
+      // auto-fallback on 429: try up to 3 models in the fallback chain
+      let activeModel = model;
+      let result = null;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          result = await callGroq(activeModel, prompt, apiKey, isVision ? uploadedImages : null);
+          if (attempt > 0) {
+            $('errorBox').innerHTML = `<div style="background:var(--warn-soft);color:var(--warn);padding:8px 12px;border-radius:6px;font-size:13px;">
+              ⚠️ ${modelLabel(model)} hit rate limit — evaluated with <strong>${modelLabel(activeModel)}</strong> instead.
+            </div>`;
+          }
+          break;
+        } catch (e) {
+          if (e.isRateLimit && RATE_LIMIT_FALLBACK[activeModel]) {
+            const next = RATE_LIMIT_FALLBACK[activeModel];
+            // only fall back to vision model if we need vision
+            if (isVision && !VISION_MODEL_IDS.has(next)) {
+              throw new Error(`Rate limit reached for ${modelLabel(activeModel)} and no vision fallback available. Wait ~${e.retryAfter}s or switch model.`);
+            }
+            $('status').innerHTML = `<span class="spinner"></span>Rate limit on ${modelLabel(activeModel)}, trying ${modelLabel(next)}…`;
+            activeModel = next;
+          } else {
+            throw e;
+          }
+        }
+      }
+      if (!result) throw new Error('All fallback models hit rate limits. Wait a minute and retry.');
       lastResult = result;
       render(result, { selfScore, maxMarks });
     }
