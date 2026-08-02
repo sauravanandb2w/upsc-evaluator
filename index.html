@@ -1972,7 +1972,8 @@ $('evalBtn').addEventListener('click', async () => {
 
     saveToHistory({
       ts,
-      paper, wordLimit, maxMarks, model: isConsensus ? 'consensus' : model,
+      paper, wordLimit, maxMarks,
+      model: isConsensus ? 'consensus' : isAllVision ? 'all-vision' : isAllText ? 'all-text' : isAllModels ? 'all-models' : model,
       question, answer: isVision ? '(images)' : answer,
       imageUrls,      // GitHub raw URLs (preferred — no localStorage cost)
       images: imagesFallback.filter(Boolean), // base64 fallback for pages that failed upload
