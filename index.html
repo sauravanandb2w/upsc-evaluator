@@ -762,6 +762,19 @@
           <div class="highlight-wrap" id="lineHighlight"></div>
         </div>
 
+        <div class="section" id="articulationSection" style="display:none;">
+          <h3>🖊️ Articulation <button class="copy-btn" type="button" data-copy="articulation">📋 Copy</button></h3>
+          <div id="articulationEconomy" style="font-size:14px; margin-bottom:8px; display:none;"></div>
+          <div style="margin-bottom:8px;">
+            <div style="font-size:13px; font-weight:600; color:var(--danger); margin-bottom:4px;">Filler / vague phrases found</div>
+            <ul class="weak" id="articulationFillers"></ul>
+          </div>
+          <div>
+            <div style="font-size:13px; font-weight:600; margin-bottom:4px;">Precision swaps</div>
+            <ul id="articulationSwaps"></ul>
+          </div>
+        </div>
+
         <div class="section">
           <h3 class="success">Strengths <button class="copy-btn" type="button" data-copy="strengths">📋 Copy → Abhyas Strengths</button></h3>
           <ul class="strengths" id="strengths"></ul>
@@ -1291,8 +1304,11 @@ RUBRIC (each sub-criterion scored 0-10 internally; combine into total out of ${m
 4. MULTI-DIMENSIONALITY — political/economic/social/environmental/ethical angles.
 5. SUBSTANTIATION — examples, data, reports, articles, judgments, schemes, thinkers.
 6. WORD LIMIT & PRESENTATION — within ±10%; headings/bullets/diagrams.
+7. ARTICULATION — precision and economy of language, NOT vocabulary size. UPSC does not reward fancy/GRE-style words; it rewards the exact word/phrase for the idea, short sentences (one idea each), active voice, and zero filler. Penalize: vague filler phrases ("it can be said that", "various factors are responsible", "it is important to note that", "in today's world", "there is a need to"), generic terms used where a specific fact/term/scheme name was available, run-on or nested sentences, and passive-voice throat-clearing. Reward: exact terminology (e.g. "quasi-federal" vs just "federal" when precision matters), short declarative sentences, one idea per sentence.
 
 EXTRACT THE DIRECTIVE WORD from the question (examine / critically examine / analyze / discuss / evaluate / comment / elucidate / illustrate / enumerate / substantiate / justify) and return verdict on whether it was honored.
+
+ARTICULATION ANALYSIS: Scan the answer for filler/vague phrases verbatim and specific-word opportunities. Return in "articulation_notes": {"filler_phrases": ["<exact phrase found in answer>", ...] (empty array if none found — do not invent), "word_swaps": [{"vague": "<exact vague word/phrase used>", "precise": "<better word/phrase for this exact context>", "why": "<one-line reason>"}] (2-4 items, only real ones from the answer), "sentence_economy": "<one-line verdict: e.g. 'Sentences average ~28 words with 2 run-ons — split into shorter, one-idea sentences' or 'Good — mostly short, direct sentences'>"}.
 
 LINE-LEVEL ANALYSIS: Split the student's answer into 5-15 logical chunks (sentences or short groups). For each, label "good" (clear, well-substantiated, on-point), "weak" (vague, factually thin, off-directive), or "neutral". Return in "line_analysis": [{ "text": "<exact chunk>", "rating": "good|weak|neutral", "note": "<one-line reason or fix>" }, ...]. Use the EXACT text from the student's answer/transcription; do not paraphrase.
 
@@ -1318,12 +1334,18 @@ OUTPUT — ONLY valid JSON:
     "content_depth": <0-10>,
     "multi_dimensionality": <0-10>,
     "substantiation": <0-10>,
-    "word_limit_presentation": <0-10>
+    "word_limit_presentation": <0-10>,
+    "articulation": <0-10>
   },
   "strengths": ["s1","s2","s3"],
   "weaknesses": ["w1 with fix","w2 with fix","w3 with fix"],
   "missing_points": ["m1","m2","m3"],
   "improvement_suggestions": ["i1","i2","i3"],
+  "articulation_notes": {
+    "filler_phrases": ["<exact phrase>", "..."],
+    "word_swaps": [{"vague":"<exact word/phrase used>","precise":"<better word>","why":"<one line>"}],
+    "sentence_economy": "<one-line verdict>"
+  },
   "line_analysis": [
     {"text":"<exact chunk from answer>","rating":"good|weak|neutral","note":"<reason>"}
   ],
@@ -1580,6 +1602,9 @@ function render(result, opts) {
   // line highlights
   renderLineHighlights(result);
 
+  // articulation notes
+  renderArticulationNotes(result.articulation_notes);
+
   // paper feedback
   if (result.paper_feedback && result.paper_feedback.length) {
     $('paperFeedbackSection').style.display = 'block';
@@ -1591,7 +1616,8 @@ function render(result, opts) {
   // subscores
   const labels = {
     structure: 'Structure', directive_adherence: 'Directive', content_depth: 'Content',
-    multi_dimensionality: 'Multi-Dim', substantiation: 'Substantiation', word_limit_presentation: 'Word/Format'
+    multi_dimensionality: 'Multi-Dim', substantiation: 'Substantiation', word_limit_presentation: 'Word/Format',
+    articulation: 'Articulation'
   };
   $('subscores').innerHTML = Object.entries(result.subscores || {}).map(([k, v]) => {
     const pct = (v / 10) * 100;
@@ -1612,6 +1638,40 @@ function render(result, opts) {
   $('modelAnswer').textContent = result.model_answer || '';
   $('result').style.display = 'block';
   $('result').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function renderArticulationNotes(notes) {
+  const sec = $('articulationSection');
+  const hasFillers = notes && notes.filler_phrases && notes.filler_phrases.length;
+  const hasSwaps = notes && notes.word_swaps && notes.word_swaps.length;
+  const hasEconomy = notes && notes.sentence_economy;
+  if (!notes || (!hasFillers && !hasSwaps && !hasEconomy)) {
+    sec.style.display = 'none';
+    return;
+  }
+  sec.style.display = 'block';
+
+  $('articulationEconomy').textContent = hasEconomy ? notes.sentence_economy : '';
+  $('articulationEconomy').style.display = hasEconomy ? 'block' : 'none';
+
+  const fillerWrap = $('articulationFillers');
+  if (hasFillers) {
+    fillerWrap.innerHTML = notes.filler_phrases.map(p => '<li>"' + escapeHtml(p) + '"</li>').join('');
+    fillerWrap.parentElement.style.display = 'block';
+  } else {
+    fillerWrap.parentElement.style.display = 'none';
+  }
+
+  const swapWrap = $('articulationSwaps');
+  if (hasSwaps) {
+    swapWrap.innerHTML = notes.word_swaps.map(s =>
+      '<li><span style="color:var(--danger); text-decoration:line-through;">' + escapeHtml(s.vague) + '</span> → <span style="color:var(--good); font-weight:600;">' + escapeHtml(s.precise) + '</span>' +
+      (s.why ? ' <span style="opacity:0.7;">— ' + escapeHtml(s.why) + '</span>' : '') + '</li>'
+    ).join('');
+    swapWrap.parentElement.style.display = 'block';
+  } else {
+    swapWrap.parentElement.style.display = 'none';
+  }
 }
 
 function renderLineHighlights(result) {
@@ -1690,6 +1750,19 @@ function buildCopyText(kind) {
     }
     case 'missing': return joinList(r.missing_points);
     case 'improvements': return joinList(r.improvement_suggestions);
+    case 'articulation': {
+      const n = r.articulation_notes;
+      if (!n) return '';
+      const parts = [];
+      if (n.sentence_economy) parts.push(n.sentence_economy);
+      if (n.filler_phrases && n.filler_phrases.length) {
+        parts.push('\nFiller/vague phrases:\n' + n.filler_phrases.map((p,i) => (i+1)+'. "'+p+'"').join('\n'));
+      }
+      if (n.word_swaps && n.word_swaps.length) {
+        parts.push('\nPrecision swaps:\n' + n.word_swaps.map((s,i) => (i+1)+'. '+s.vague+' → '+s.precise+(s.why ? ' ('+s.why+')' : '')).join('\n'));
+      }
+      return parts.join('\n');
+    }
     case 'model': return r.model_answer || '';
     default: return '';
   }
