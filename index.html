@@ -1728,13 +1728,30 @@ async function callLLM(provider, model, prompt, apiKey, images, useJsonFormat = 
   const data = await res.json();
   const raw = data.choices?.[0]?.message?.content;
   if (!raw) throw new Error('Empty response from ' + model);
-  try {
-    return JSON.parse(raw);
-  } catch {
-    const match = raw.match(/\{[\s\S]*\}/);
-    if (match) return JSON.parse(match[0]);
-    throw new Error('Invalid JSON from ' + model);
+  // strip think/reasoning blocks (Gemini 3.5, DeepSeek R1, etc.)
+  const stripped = raw.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+  // try direct parse first
+  try { return JSON.parse(stripped); } catch {}
+  // extract outermost JSON object robustly
+  const start = stripped.indexOf('{');
+  if (start !== -1) {
+    let depth = 0, inStr = false, esc = false;
+    for (let i = start; i < stripped.length; i++) {
+      const c = stripped[i];
+      if (esc) { esc = false; continue; }
+      if (c === '\\' && inStr) { esc = true; continue; }
+      if (c === '"') { inStr = !inStr; continue; }
+      if (inStr) continue;
+      if (c === '{') depth++;
+      else if (c === '}') { depth--; if (depth === 0) {
+        try { return JSON.parse(stripped.slice(start, i + 1)); } catch {}
+      }}
+    }
   }
+  // last resort: strip markdown fences
+  const fenced = stripped.replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,'');
+  try { return JSON.parse(fenced); } catch {}
+  throw new Error('Invalid JSON from ' + model);
 }
 
 // =================== MULTI-MODEL CONSENSUS ===================
