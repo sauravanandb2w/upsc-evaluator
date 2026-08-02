@@ -1183,11 +1183,12 @@ async function fetchLiveModels(provider) {
     if (provider === 'gemini') {
       // Google returns ids like "models/gemini-3.5-flash" — strip prefix
       models = models.map(m => ({ ...m, id: m.id.replace(/^models\//, '') }));
-      // keep only current chat models; exclude deprecated/preview/specialist
+      // whitelist: only gemini-2.5.x and gemini-3.x stable models
       models = models.filter(m => {
         const id = m.id;
         if (/(embedding|tts|imagen|veo|lyria|aqa|omni|live|translate|robotics|banana|deep-research|antigravity|computer-use)/i.test(id)) return false;
-        if (/(preview|exp|experimental)/i.test(id)) return false; // only stable
+        if (/(preview|exp|experimental)/i.test(id)) return false;
+        if (!(/^gemini-(2\.5|3\.)/.test(id))) return false; // only 2.5+ stable
         return true;
       });
     }
@@ -1278,6 +1279,21 @@ function getCachedModels(provider) {
 }
 
 async function initModelRefresh() {
+  // v2: force-clear gemini model+probe cache to remove deprecated 2.0/preview/omni models
+  const MODEL_CACHE_VERSION = 2;
+  if (localStorage.getItem('upsc_model_cache_v') !== String(MODEL_CACHE_VERSION)) {
+    try {
+      const cache = JSON.parse(localStorage.getItem(MODEL_CACHE_KEY) || '{}');
+      delete cache.gemini;
+      localStorage.setItem(MODEL_CACHE_KEY, JSON.stringify(cache));
+      // clear all gemini probes
+      const probes = JSON.parse(localStorage.getItem(MODEL_PROBE_KEY) || '{}');
+      Object.keys(probes).filter(k => k.startsWith('gemini')).forEach(k => delete probes[k]);
+      localStorage.setItem(MODEL_PROBE_KEY, JSON.stringify(probes));
+    } catch {}
+    localStorage.setItem('upsc_model_cache_v', String(MODEL_CACHE_VERSION));
+  }
+
   const providers = ['groq','gemini','openrouter'];
   for (let i = 0; i < providers.length; i++) {
     const p = providers[i];
