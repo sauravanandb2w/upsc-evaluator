@@ -1123,10 +1123,9 @@ const PROVIDERS = {
     baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai',
     storageKey: GEMINI_KEY_KEY,
     models: [
-      { id: 'gemini-2.0-flash',        name: 'Gemini 2.0 Flash ⭐ (vision)', vision: true  },
-      { id: 'gemini-2.0-flash-lite',   name: 'Gemini 2.0 Flash Lite (fast)', vision: true  },
-      { id: 'gemini-1.5-flash-latest', name: 'Gemini 1.5 Flash (vision)',    vision: true  },
-      { id: 'gemini-1.5-pro-latest',   name: 'Gemini 1.5 Pro (vision)',      vision: true  },
+      { id: 'gemini-2.0-flash',              name: 'Gemini 2.0 Flash ⭐ (vision)',      vision: true  },
+      { id: 'gemini-2.0-flash-lite',         name: 'Gemini 2.0 Flash Lite (fast)',      vision: true  },
+      { id: 'gemini-2.5-flash-preview-05-20', name: 'Gemini 2.5 Flash Preview (vision)', vision: true  },
     ]
   },
   openrouter: {
@@ -1134,7 +1133,7 @@ const PROVIDERS = {
     baseUrl: 'https://openrouter.ai/api/v1',
     storageKey: OPENROUTER_KEY_KEY,
     models: [
-      { id: 'google/gemini-flash-1.5:free',                    name: 'Gemini Flash 1.5 (free, vision)', vision: true  },
+      { id: 'google/gemini-2.0-flash-lite-001:free',           name: 'Gemini 2.0 Flash Lite (free, vision)', vision: true  },
       { id: 'meta-llama/llama-3.2-11b-vision-instruct:free',   name: 'Llama 3.2 11B Vision (free)',     vision: true  },
       { id: 'qwen/qwen-2.5-72b-instruct:free',                 name: 'Qwen 2.5 72B (free)',             vision: false },
       { id: 'meta-llama/llama-3.3-70b-instruct:free',          name: 'Llama 3.3 70B (free)',            vision: false },
@@ -1586,13 +1585,12 @@ const RATE_LIMIT_FALLBACK = {
   'openai/gpt-oss-120b':     'openai/gpt-oss-20b',
   'openai/gpt-oss-20b':      'llama-3.3-70b-versatile',
   'llama-3.3-70b-versatile': 'llama-3.1-8b-instant',
-  'gemini-2.0-flash':          'gemini-2.0-flash-lite',
-  'gemini-2.0-flash-lite':     'gemini-1.5-flash-latest',
-  'gemini-1.5-flash-latest':   'gemini-1.5-pro-latest',
+  'gemini-2.0-flash':               'gemini-2.0-flash-lite',
+  'gemini-2.0-flash-lite':          'gemini-2.5-flash-preview-05-20',
   // OpenRouter fallback chain
-  'google/gemini-flash-1.5:free':               'google/gemini-2.0-flash-001:free',
-  'google/gemini-2.0-flash-001:free':           'meta-llama/llama-3.3-70b-instruct:free',
-  'meta-llama/llama-3.2-11b-vision-instruct:free': 'google/gemini-flash-1.5:free',
+  'google/gemini-2.0-flash-lite-001:free':         'google/gemini-2.0-flash-001:free',
+  'google/gemini-2.0-flash-001:free':              'meta-llama/llama-3.3-70b-instruct:free',
+  'meta-llama/llama-3.2-11b-vision-instruct:free': 'google/gemini-2.0-flash-lite-001:free',
 };
 function modelLabel(id) {
   for (const p of Object.values(PROVIDERS)) {
