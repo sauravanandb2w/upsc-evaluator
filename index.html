@@ -621,7 +621,7 @@
           </select>
         </div>
         <div>
-          <label for="model">Model</label>
+          <label for="model">Model <span id="modelCacheStatus" style="font-size:10px;color:var(--text-muted);font-weight:400;"></span></label>
           <select id="model"></select>
         </div>
       </div>
@@ -1142,6 +1142,102 @@ const PROVIDERS = {
   }
 };
 const REMINDER_KEY = 'upsc_reminder_time';
+const MODEL_CACHE_KEY = 'upsc_model_cache'; // { provider: { models: [...], ts: epoch } }
+const MODEL_CACHE_TTL = 6 * 60 * 60 * 1000; // 6 hours
+
+// Vision model id patterns for auto-detection
+const VISION_PATTERNS = /vision|flash|gemini|qwen.*vl|llava|pixtral|molmo/i;
+// Known non-vision models to exclude from vision detection
+const NON_VISION_IDS = /embedding|tts|whisper|moderation|rerank|instruct(?!.*vision)/i;
+
+function knownVision(id) {
+  // explicit known vision IDs
+  const yes = ['qwen/qwen3.6-27b','gemini-3.5-flash','gemini-2.5-flash-lite',
+    'google/gemini-3.5-flash:free','meta-llama/llama-3.2-11b-vision-instruct:free',
+    'meta-llama/llama-3.2-90b-vision-instruct:free'];
+  if (yes.includes(id)) return true;
+  if (/vision|llava|pixtral|molmo/i.test(id)) return true;
+  if (/gemini/i.test(id) && !/embedding|tts/i.test(id)) return true;
+  if (/qwen.*vl|vl.*qwen/i.test(id)) return true;
+  return false;
+}
+
+async function fetchLiveModels(provider) {
+  const cfg = PROVIDERS[provider];
+  const key = localStorage.getItem(cfg.storageKey);
+  if (!key) return null;
+  try {
+    const headers = { 'Authorization': 'Bearer ' + key };
+    if (provider === 'openrouter') {
+      headers['HTTP-Referer'] = 'https://sauravanandb2w.github.io/upsc-evaluator/';
+      headers['X-Title'] = 'UPSC Evaluator';
+    }
+    const res = await fetch(cfg.baseUrl + '/models', { headers });
+    if (!res.ok) return null;
+    const data = await res.json();
+    let models = (data.data || data.models || []);
+
+    if (provider === 'openrouter') {
+      // keep only :free models
+      models = models.filter(m => m.id.endsWith(':free'));
+    }
+    if (provider === 'gemini') {
+      // keep only generateContent-capable text models
+      models = models.filter(m =>
+        m.id && !/(embedding|tts|imagen|veo|lyria|aqa)/i.test(m.id)
+      );
+    }
+    if (provider === 'groq') {
+      // exclude whisper/distil/guard models
+      models = models.filter(m =>
+        m.id && !/(whisper|guard|distil|tool-use)/i.test(m.id)
+      );
+    }
+
+    return models.map(m => ({
+      id: m.id,
+      name: m.id.split('/').pop().replace(/:free$/,'').replace(/-/g,' ').replace(/\b\w/g,c=>c.toUpperCase()),
+      vision: knownVision(m.id)
+    }));
+  } catch { return null; }
+}
+
+async function refreshModelCache(provider) {
+  const live = await fetchLiveModels(provider);
+  if (!live || !live.length) return;
+  const cache = JSON.parse(localStorage.getItem(MODEL_CACHE_KEY) || '{}');
+  cache[provider] = { models: live, ts: Date.now() };
+  localStorage.setItem(MODEL_CACHE_KEY, JSON.stringify(cache));
+  // if this is the active provider, repopulate dropdown
+  if (getActiveProvider() === provider) populateModelDropdown();
+}
+
+function getCachedModels(provider) {
+  try {
+    const cache = JSON.parse(localStorage.getItem(MODEL_CACHE_KEY) || '{}');
+    const entry = cache[provider];
+    if (entry && (Date.now() - entry.ts) < MODEL_CACHE_TTL && entry.models.length) {
+      return entry.models;
+    }
+  } catch {}
+  return null;
+}
+
+async function initModelRefresh() {
+  // refresh all providers that have keys, staggered to avoid rate limits
+  const providers = ['groq','gemini','openrouter'];
+  for (let i = 0; i < providers.length; i++) {
+    const p = providers[i];
+    const cache = getCachedModels(p);
+    if (!cache) { // no valid cache → fetch now
+      setTimeout(() => refreshModelCache(p), i * 1500);
+    }
+  }
+  // schedule refresh every 6 hours
+  setInterval(() => {
+    providers.forEach((p, i) => setTimeout(() => refreshModelCache(p), i * 1500));
+  }, MODEL_CACHE_TTL);
+}
 
 // =================== DOM REFS ===================
 const $ = (id) => document.getElementById(id);
@@ -1601,7 +1697,25 @@ function modelLabel(id) {
 // populate model dropdown based on selected provider
 function populateModelDropdown() {
   const p = getActiveProvider();
-  const models = PROVIDERS[p]?.models || [];
+  // use live cache if available, else fall back to hardcoded list
+  const cached = getCachedModels(p);
+  const staticModels = PROVIDERS[p]?.models || [];
+  const special = staticModels.filter(m => m.id === '__consensus__');
+  const base = cached || staticModels.filter(m => m.id !== '__consensus__');
+  const models = p === 'groq' ? [...base, ...special] : base;
+  // update cache status label
+  const statusEl = $('modelCacheStatus');
+  if (statusEl) {
+    try {
+      const entry = JSON.parse(localStorage.getItem(MODEL_CACHE_KEY)||'{}')[p];
+      if (entry && cached) {
+        const mins = Math.round((Date.now()-entry.ts)/60000);
+        statusEl.textContent = `· live (${mins < 1 ? 'just now' : mins + 'm ago'}, ${base.length} models)`;
+      } else {
+        statusEl.textContent = localStorage.getItem(PROVIDERS[p]?.storageKey) ? '· fetching…' : '· add key to fetch live';
+      }
+    } catch { statusEl.textContent = ''; }
+  }
   const sel = $('model');
   const prev = sel.value;
   sel.innerHTML = '';
@@ -3027,6 +3141,7 @@ function init() {
   loadShareFromHash();
   loadReminder();
   if (loadHistory().length) updateStreakStats();
+  initModelRefresh();
 }
 init();
 
