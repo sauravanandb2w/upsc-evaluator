@@ -1553,12 +1553,12 @@ async function callLLM(provider, model, prompt, apiKey, images, useJsonFormat = 
     }
     // 400 with response_format → retry without it (some models don't support it)
     if (res.status === 400 && useJsonFormat) {
-      return callGroq(model, prompt, apiKey, images, false);
+      return callLLM(provider, model, prompt, apiKey, images, false);
     }
     if (/decommission|deprecated|no longer supported|model.*not found/i.test(msg)) {
-      throw new Error(model + ' is unavailable on Groq. ' + msg.slice(0, 120));
+      throw new Error(model + ' is unavailable on ' + (PROVIDERS[provider]?.name || provider) + '. ' + msg.slice(0, 120));
     }
-    throw new Error('Groq API error ' + res.status + ': ' + msg.slice(0, 200));
+    throw new Error((PROVIDERS[provider]?.name || provider) + ' API error ' + res.status + ': ' + msg.slice(0, 200));
   }
   const data = await res.json();
   const raw = data.choices?.[0]?.message?.content;
