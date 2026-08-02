@@ -613,24 +613,16 @@
           </select>
         </div>
         <div>
-          <label for="model">Model</label>
-          <select id="model">
-            <optgroup label="Vision + Text (for image uploads)">
-              <option value="qwen/qwen3.6-27b" selected>Qwen 3.6 27B ⭐ (vision, recommended)</option>
-              <option value="meta-llama/llama-4-scout-17b-16e-instruct">Llama 4 Scout (vision, fast)</option>
-              <option value="meta-llama/llama-4-maverick-17b-128e-instruct">Llama 4 Maverick (vision, detailed)</option>
-            </optgroup>
-            <optgroup label="Text Only (faster, higher limits)">
-              <option value="openai/gpt-oss-120b">GPT-OSS 120B (strongest)</option>
-              <option value="deepseek-r1-distill-llama-70b">DeepSeek R1 70B (deep reasoning)</option>
-              <option value="llama-3.3-70b-versatile">Llama 3.3 70B</option>
-              <option value="qwen/qwen3-32b">Qwen 3 32B</option>
-              <option value="gemma2-9b-it">Gemma 2 9B (fastest, high limits)</option>
-            </optgroup>
-            <optgroup label="Special">
-              <option value="__consensus__">🎯 Multi-Model Consensus (3 models)</option>
-            </optgroup>
+          <label for="provider">Provider</label>
+          <select id="provider">
+            <option value="groq">Groq (free)</option>
+            <option value="gemini">Google Gemini (free)</option>
+            <option value="openrouter">OpenRouter (free tier)</option>
           </select>
+        </div>
+        <div>
+          <label for="model">Model</label>
+          <select id="model"></select>
         </div>
       </div>
 
@@ -956,13 +948,82 @@
   <!-- ============ SETTINGS VIEW ============ -->
   <section class="view" id="view-settings">
     <div class="card">
-      <label for="apiKey">Groq API Key</label>
+      <h3 style="font-size:14px;font-weight:700;margin-bottom:12px;">🔑 API Keys</h3>
+
+      <!-- Provider Setup Guide -->
+      <details style="margin-bottom:18px;" open>
+        <summary style="cursor:pointer;font-weight:600;font-size:14px;color:var(--accent);user-select:none;">📋 Provider Setup Guide</summary>
+        <div style="margin-top:12px;font-size:13px;line-height:1.6;">
+          <p style="margin:0 0 10px;color:var(--text-muted);">Paste keys for any provider(s) you want to use. You can have all three active simultaneously.</p>
+          <table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:12px;">
+            <thead>
+              <tr style="background:var(--bg-hover);">
+                <th style="padding:6px 8px;text-align:left;border-bottom:1px solid var(--border);">Provider</th>
+                <th style="padding:6px 8px;text-align:left;border-bottom:1px solid var(--border);">Free Tier</th>
+                <th style="padding:6px 8px;text-align:left;border-bottom:1px solid var(--border);">Vision?</th>
+                <th style="padding:6px 8px;text-align:left;border-bottom:1px solid var(--border);">Get Key</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style="padding:6px 8px;border-bottom:1px solid var(--border);font-weight:600;">Groq</td>
+                <td style="padding:6px 8px;border-bottom:1px solid var(--border);">~30 req/min (text)<br>2–5 req/min (vision)</td>
+                <td style="padding:6px 8px;border-bottom:1px solid var(--border);">✅ Qwen 3.6 27B</td>
+                <td style="padding:6px 8px;border-bottom:1px solid var(--border);"><a href="https://console.groq.com/keys" target="_blank">console.groq.com/keys</a></td>
+              </tr>
+              <tr>
+                <td style="padding:6px 8px;border-bottom:1px solid var(--border);font-weight:600;">Google Gemini</td>
+                <td style="padding:6px 8px;border-bottom:1px solid var(--border);">15 RPM / 1M TPM<br>(most generous)</td>
+                <td style="padding:6px 8px;border-bottom:1px solid var(--border);">✅ Gemini 2.0 Flash</td>
+                <td style="padding:6px 8px;border-bottom:1px solid var(--border);"><a href="https://aistudio.google.com/apikey" target="_blank">aistudio.google.com/apikey</a></td>
+              </tr>
+              <tr>
+                <td style="padding:6px 8px;font-weight:600;">OpenRouter</td>
+                <td style="padding:6px 8px;">100+ models, many free</td>
+                <td style="padding:6px 8px;">✅ Several models</td>
+                <td style="padding:6px 8px;"><a href="https://openrouter.ai/keys" target="_blank">openrouter.ai/keys</a></td>
+              </tr>
+            </tbody>
+          </table>
+          <div style="background:var(--bg-hover);border-radius:8px;padding:10px 12px;margin-bottom:10px;">
+            <strong>How to use:</strong>
+            <ol style="margin:6px 0 0 0;padding-left:18px;">
+              <li>Paste keys below for whichever providers you want</li>
+              <li>On the Evaluate form → select Provider → model list updates automatically</li>
+              <li>Your provider/model selection is remembered across sessions</li>
+            </ol>
+          </div>
+          <div style="background:#fff3cd;color:#856404;border-radius:8px;padding:8px 12px;font-size:12px;">
+            💡 <strong>Hit Groq vision rate limit?</strong> Switch to <strong>Google Gemini</strong> — it's free with much higher limits and supports image uploads.
+          </div>
+        </div>
+      </details>
+
+      <label for="apiKey">Groq API Key <span style="font-size:11px;color:var(--text-muted);">(free · qwen/gpt-oss/llama)</span></label>
       <div class="key-row">
         <input type="password" id="apiKey" placeholder="gsk_..." autocomplete="off" />
         <button id="saveKey" type="button">Save</button>
       </div>
+      <div class="hint" style="margin-bottom:12px;">
+        <a href="https://console.groq.com/keys" target="_blank">console.groq.com/keys</a> — no card needed.
+      </div>
+
+      <label for="geminiKey">Google Gemini API Key <span style="font-size:11px;color:var(--text-muted);">(free · vision · generous limits)</span></label>
+      <div class="key-row">
+        <input type="password" id="geminiKey" placeholder="AIza..." autocomplete="off" />
+        <button id="saveGeminiKey" type="button">Save</button>
+      </div>
+      <div class="hint" style="margin-bottom:12px;">
+        <a href="https://aistudio.google.com/apikey" target="_blank">aistudio.google.com/apikey</a> — free, 15 RPM / 1M TPM.
+      </div>
+
+      <label for="openrouterKey">OpenRouter API Key <span style="font-size:11px;color:var(--text-muted);">(free models available)</span></label>
+      <div class="key-row">
+        <input type="password" id="openrouterKey" placeholder="sk-or-..." autocomplete="off" />
+        <button id="saveOpenrouterKey" type="button">Save</button>
+      </div>
       <div class="hint">
-        Free key at <a href="https://console.groq.com/keys" target="_blank">console.groq.com/keys</a> (no card). Saved in browser only.
+        <a href="https://openrouter.ai/keys" target="_blank">openrouter.ai/keys</a> — 100+ models, many free.
       </div>
     </div>
 
@@ -1035,9 +1096,53 @@ let currentDaily = null;
 let reminderTimer = null;
 
 const HIST_KEY = 'upsc_eval_history';
-const KEY_KEY = 'groq_api_key';
+const KEY_KEY  = 'groq_api_key';
+const GEMINI_KEY_KEY     = 'gemini_api_key';
+const OPENROUTER_KEY_KEY = 'openrouter_api_key';
+const PROVIDER_KEY = 'upsc_provider';
 const THEME_KEY = 'upsc_theme';
-const WEAKNESS_EDITS_KEY = 'upsc_weakness_edits'; // { phrase: 'edited label' | null (deleted) }
+const WEAKNESS_EDITS_KEY = 'upsc_weakness_edits';
+
+// =================== PROVIDER CONFIG ===================
+const PROVIDERS = {
+  groq: {
+    name: 'Groq',
+    baseUrl: 'https://api.groq.com/openai/v1',
+    storageKey: KEY_KEY,
+    models: [
+      { id: 'qwen/qwen3.6-27b',        name: 'Qwen 3.6 27B ⭐',    vision: true  },
+      { id: 'openai/gpt-oss-120b',     name: 'GPT-OSS 120B',       vision: false },
+      { id: 'openai/gpt-oss-20b',      name: 'GPT-OSS 20B (fast)', vision: false },
+      { id: 'llama-3.3-70b-versatile', name: 'Llama 3.3 70B',      vision: false },
+      { id: 'llama-3.1-8b-instant',    name: 'Llama 3.1 8B',       vision: false },
+      { id: '__consensus__',           name: '🎯 Multi-Model Consensus', vision: false },
+    ]
+  },
+  gemini: {
+    name: 'Google Gemini',
+    baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai',
+    storageKey: GEMINI_KEY_KEY,
+    models: [
+      { id: 'gemini-2.0-flash',   name: 'Gemini 2.0 Flash ⭐ (vision)', vision: true  },
+      { id: 'gemini-1.5-flash',   name: 'Gemini 1.5 Flash (vision)',    vision: true  },
+      { id: 'gemini-1.5-pro',     name: 'Gemini 1.5 Pro (vision)',      vision: true  },
+      { id: 'gemini-2.0-flash-lite', name: 'Gemini 2.0 Flash Lite (fastest)', vision: false },
+    ]
+  },
+  openrouter: {
+    name: 'OpenRouter',
+    baseUrl: 'https://openrouter.ai/api/v1',
+    storageKey: OPENROUTER_KEY_KEY,
+    models: [
+      { id: 'google/gemini-flash-1.5:free',                    name: 'Gemini Flash 1.5 (free, vision)', vision: true  },
+      { id: 'meta-llama/llama-3.2-11b-vision-instruct:free',   name: 'Llama 3.2 11B Vision (free)',     vision: true  },
+      { id: 'qwen/qwen-2.5-72b-instruct:free',                 name: 'Qwen 2.5 72B (free)',             vision: false },
+      { id: 'meta-llama/llama-3.3-70b-instruct:free',          name: 'Llama 3.3 70B (free)',            vision: false },
+      { id: 'deepseek/deepseek-r1:free',                       name: 'DeepSeek R1 (free)',              vision: false },
+      { id: 'google/gemini-2.0-flash-001:free',                name: 'Gemini 2.0 Flash (free)',         vision: false },
+    ]
+  }
+};
 const REMINDER_KEY = 'upsc_reminder_time';
 
 // =================== DOM REFS ===================
@@ -1071,15 +1176,40 @@ function switchView(name) {
   if (name === 'pyq' && !pyqLoaded) loadPyqs();
 }
 
-// =================== API KEY ===================
+// =================== API KEYS ===================
 const savedKey = localStorage.getItem(KEY_KEY);
 if (savedKey) $('apiKey').value = savedKey;
+const savedGemini = localStorage.getItem(GEMINI_KEY_KEY);
+if (savedGemini) $('geminiKey').value = savedGemini;
+const savedOR = localStorage.getItem(OPENROUTER_KEY_KEY);
+if (savedOR) $('openrouterKey').value = savedOR;
+
 $('saveKey').addEventListener('click', () => {
   const k = $('apiKey').value.trim();
   if (!k) return alert('Paste your Groq API key first');
   localStorage.setItem(KEY_KEY, k);
   $('saveKey').textContent = 'Saved!';
   setTimeout(() => $('saveKey').textContent = 'Save', 1500);
+});
+$('saveGeminiKey').addEventListener('click', () => {
+  const k = $('geminiKey').value.trim();
+  if (!k) return alert('Paste your Gemini API key first');
+  localStorage.setItem(GEMINI_KEY_KEY, k);
+  $('saveGeminiKey').textContent = 'Saved!';
+  setTimeout(() => $('saveGeminiKey').textContent = 'Save', 1500);
+});
+$('saveOpenrouterKey').addEventListener('click', () => {
+  const k = $('openrouterKey').value.trim();
+  if (!k) return alert('Paste your OpenRouter API key first');
+  localStorage.setItem(OPENROUTER_KEY_KEY, k);
+  $('saveOpenrouterKey').textContent = 'Saved!';
+  setTimeout(() => $('saveOpenrouterKey').textContent = 'Save', 1500);
+});
+
+// provider change → repopulate models, persist choice
+$('provider').addEventListener('change', () => {
+  localStorage.setItem(PROVIDER_KEY, $('provider').value);
+  populateModelDropdown();
 });
 
 // =================== TAB SWITCHER (text/upload) ===================
@@ -1366,7 +1496,22 @@ OUTPUT — ONLY valid JSON:
 }
 
 // =================== API CALL ===================
-async function callGroq(model, prompt, apiKey, images) {
+function getActiveProvider() {
+  return $('provider').value || localStorage.getItem(PROVIDER_KEY) || 'groq';
+}
+function getActiveApiKey() {
+  const p = getActiveProvider();
+  const el = p === 'gemini' ? $('geminiKey') : p === 'openrouter' ? $('openrouterKey') : $('apiKey');
+  return (el && el.value.trim()) || localStorage.getItem(PROVIDERS[p]?.storageKey || KEY_KEY) || '';
+}
+
+async function callGroq(model, prompt, apiKey, images, useJsonFormat = true) {
+  const provider = getActiveProvider();
+  return callLLM(provider, model, prompt, apiKey, images, useJsonFormat);
+}
+
+async function callLLM(provider, model, prompt, apiKey, images, useJsonFormat = true) {
+  const cfg = PROVIDERS[provider] || PROVIDERS.groq;
   let userContent;
   if (images && images.length) {
     userContent = [{ type: 'text', text: prompt }];
@@ -1374,20 +1519,25 @@ async function callGroq(model, prompt, apiKey, images) {
   } else {
     userContent = prompt;
   }
-  const maxTokens = model.includes('gpt-oss') ? 4096 : 4500;
+  const maxTokens = model.includes('pro') ? 8192 : model.includes('8b') ? 4096 : 4500;
   const payload = {
-    model: model,
+    model,
     messages: [
-      { role: 'system', content: 'You are an expert UPSC Mains examiner. Return only valid JSON, no markdown.' },
+      { role: 'system', content: 'You are an expert UPSC Mains examiner. Return ONLY valid JSON, no markdown fences.' },
       { role: 'user', content: userContent }
     ],
     temperature: 0.3,
     max_tokens: maxTokens,
-    response_format: { type: 'json_object' }
+    ...(useJsonFormat ? { response_format: { type: 'json_object' } } : {})
   };
-  const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+  const headers = {
+    'Authorization': 'Bearer ' + apiKey,
+    'Content-Type': 'application/json',
+    ...(provider === 'openrouter' ? { 'HTTP-Referer': 'https://sauravanandb2w.github.io/upsc-evaluator/', 'X-Title': 'UPSC Evaluator' } : {})
+  };
+  const res = await fetch(cfg.baseUrl + '/chat/completions', {
     method: 'POST',
-    headers: { Authorization: 'Bearer ' + apiKey, 'Content-Type': 'application/json' },
+    headers,
     body: JSON.stringify(payload)
   });
   if (!res.ok) {
@@ -1395,11 +1545,15 @@ async function callGroq(model, prompt, apiKey, images) {
     let msg = errText;
     try { const j = JSON.parse(errText); msg = j?.error?.message || errText; } catch {}
     if (res.status === 429) {
-      const retryAfter = res.headers.get('retry-after') || res.headers.get('x-ratelimit-reset-requests') || '60';
+      const retryAfter = res.headers.get('retry-after') || '60';
       const wait = parseInt(retryAfter) || 60;
       const err = new Error(`RATE_LIMIT:${model}:${wait}`);
       err.isRateLimit = true; err.retryAfter = wait; err.limitedModel = model;
       throw err;
+    }
+    // 400 with response_format → retry without it (some models don't support it)
+    if (res.status === 400 && useJsonFormat) {
+      return callGroq(model, prompt, apiKey, images, false);
     }
     if (/decommission|deprecated|no longer supported|model.*not found/i.test(msg)) {
       throw new Error(model + ' is unavailable on Groq. ' + msg.slice(0, 120));
@@ -1419,40 +1573,60 @@ async function callGroq(model, prompt, apiKey, images) {
 }
 
 // =================== MULTI-MODEL CONSENSUS ===================
-const VISION_MODEL_IDS = new Set([
-  'qwen/qwen3.6-27b',
-  'meta-llama/llama-4-scout-17b-16e-instruct',
-  'meta-llama/llama-4-maverick-17b-128e-instruct'
-]);
-const CONSENSUS_MODELS = [
-  { id: 'qwen/qwen3.6-27b',                              name: 'Qwen 3.6 27B',      vision: true  },
-  { id: 'openai/gpt-oss-120b',                           name: 'GPT-OSS 120B',      vision: false },
-  { id: 'llama-3.3-70b-versatile',                       name: 'Llama 3.3 70B',     vision: false }
-];
-// fallback chain when a model hits rate limit
+function getVisionModelIds() {
+  const p = getActiveProvider();
+  return new Set((PROVIDERS[p]?.models || []).filter(m => m.vision).map(m => m.id));
+}
+function getConsensusModels() {
+  // always use Groq for consensus (most reliable)
+  return PROVIDERS.groq.models.filter(m => m.id !== '__consensus__').slice(0, 3);
+}
 const RATE_LIMIT_FALLBACK = {
-  'qwen/qwen3.6-27b':                              'meta-llama/llama-4-scout-17b-16e-instruct',
-  'meta-llama/llama-4-scout-17b-16e-instruct':     'meta-llama/llama-4-maverick-17b-128e-instruct',
-  'meta-llama/llama-4-maverick-17b-128e-instruct': 'qwen/qwen3.6-27b',
-  'openai/gpt-oss-120b':                           'deepseek-r1-distill-llama-70b',
-  'deepseek-r1-distill-llama-70b':                 'llama-3.3-70b-versatile',
-  'llama-3.3-70b-versatile':                       'qwen/qwen3-32b',
-  'qwen/qwen3-32b':                                'gemma2-9b-it',
+  'qwen/qwen3.6-27b':        'openai/gpt-oss-120b',
+  'openai/gpt-oss-120b':     'openai/gpt-oss-20b',
+  'openai/gpt-oss-20b':      'llama-3.3-70b-versatile',
+  'llama-3.3-70b-versatile': 'llama-3.1-8b-instant',
+  'gemini-2.0-flash':        'gemini-1.5-flash',
+  'gemini-1.5-flash':        'gemini-2.0-flash-lite',
 };
 function modelLabel(id) {
-  const labels = {
-    'qwen/qwen3.6-27b': 'Qwen 3.6 27B', 'openai/gpt-oss-120b': 'GPT-OSS 120B',
-    'meta-llama/llama-4-scout-17b-16e-instruct': 'Llama 4 Scout',
-    'meta-llama/llama-4-maverick-17b-128e-instruct': 'Llama 4 Maverick',
-    'deepseek-r1-distill-llama-70b': 'DeepSeek R1 70B',
-    'llama-3.3-70b-versatile': 'Llama 3.3 70B',
-    'qwen/qwen3-32b': 'Qwen 3 32B', 'gemma2-9b-it': 'Gemma 2 9B'
-  };
-  return labels[id] || id;
+  for (const p of Object.values(PROVIDERS)) {
+    const m = p.models.find(x => x.id === id);
+    if (m) return m.name.replace(/ ⭐/,'').replace(/ \(.*\)/,'');
+  }
+  return id;
+}
+
+// populate model dropdown based on selected provider
+function populateModelDropdown() {
+  const p = getActiveProvider();
+  const models = PROVIDERS[p]?.models || [];
+  const sel = $('model');
+  const prev = sel.value;
+  sel.innerHTML = '';
+  let visionGroup = null, textGroup = null, specialGroup = null;
+  models.forEach(m => {
+    const opt = document.createElement('option');
+    opt.value = m.id;
+    opt.textContent = m.name;
+    if (m.id === '__consensus__') {
+      if (!specialGroup) { specialGroup = document.createElement('optgroup'); specialGroup.label = 'Special'; sel.appendChild(specialGroup); }
+      specialGroup.appendChild(opt);
+    } else if (m.vision) {
+      if (!visionGroup) { visionGroup = document.createElement('optgroup'); visionGroup.label = 'Vision + Text'; sel.appendChild(visionGroup); }
+      visionGroup.appendChild(opt);
+    } else {
+      if (!textGroup) { textGroup = document.createElement('optgroup'); textGroup.label = 'Text Only'; sel.appendChild(textGroup); }
+      textGroup.appendChild(opt);
+    }
+  });
+  // restore previous selection if still valid
+  if ([...sel.options].some(o => o.value === prev)) sel.value = prev;
 }
 
 async function runConsensus(prompt, apiKey, images, buildTextPrompt) {
   const hasImages = images && images.length;
+  const CONSENSUS_MODELS = getConsensusModels();
   if (!hasImages) {
     const calls = CONSENSUS_MODELS.map(m =>
       callGroq(m.id, prompt, apiKey, null)
@@ -1488,7 +1662,7 @@ async function runConsensus(prompt, apiKey, images, buildTextPrompt) {
 // =================== EVAL FLOW ===================
 $('evalBtn').addEventListener('click', async () => {
   $('errorBox').innerHTML = '';
-  const apiKey = $('apiKey').value.trim() || localStorage.getItem(KEY_KEY);
+  const apiKey = getActiveApiKey();
   const paper = $('paper').value;
   const wordLimit = parseInt($('wordLimit').value);
   const maxMarks = marksFromWordLimit(wordLimit);
@@ -1507,8 +1681,8 @@ $('evalBtn').addEventListener('click', async () => {
   if (!isVision && answer.split(/\s+/).length < 20) return showError('Answer too short (min 20 words)');
 
   const isConsensus = model === '__consensus__';
-  if (isVision && !isConsensus && !VISION_MODEL_IDS.has(model)) {
-    return showError('Vision needs Qwen 3.6 27B. Switch model or pick Consensus.');
+  if (isVision && !isConsensus && !getVisionModelIds().has(model)) {
+    return showError('Selected model does not support image uploads. Choose a Vision model or switch provider.');
   }
 
   $('evalBtn').disabled = true;
@@ -1557,7 +1731,7 @@ $('evalBtn').addEventListener('click', async () => {
           if (e.isRateLimit && RATE_LIMIT_FALLBACK[activeModel]) {
             const next = RATE_LIMIT_FALLBACK[activeModel];
             // only fall back to vision model if we need vision
-            if (isVision && !VISION_MODEL_IDS.has(next)) {
+            if (isVision && !getVisionModelIds().has(next)) {
               throw new Error(`Rate limit reached for ${modelLabel(activeModel)} and no vision fallback available. Wait ~${e.retryAfter}s or switch model.`);
             }
             $('status').innerHTML = `<span class="spinner"></span>Rate limit on ${modelLabel(activeModel)}, trying ${modelLabel(next)}…`;
@@ -2363,7 +2537,7 @@ $('dailyUseBtn').addEventListener('click', () => {
 // =================== COMPARE ===================
 $('cmpBtn').addEventListener('click', async () => {
   $('cmpError').innerHTML = '';
-  const apiKey = $('apiKey').value.trim() || localStorage.getItem(KEY_KEY);
+  const apiKey = getActiveApiKey();
   const q = $('cmpQuestion').value.trim();
   const oldA = $('cmpOld').value.trim();
   const newA = $('cmpNew').value.trim();
@@ -2843,6 +3017,10 @@ $('restoreGistBtn').addEventListener('click', async () => {
 // =================== INIT ===================
 function init() {
   initTheme();
+  // restore saved provider and populate model dropdown
+  const savedProvider = localStorage.getItem(PROVIDER_KEY);
+  if (savedProvider && PROVIDERS[savedProvider]) $('provider').value = savedProvider;
+  populateModelDropdown();
   updateWordCount();
   setTimerHint();
   loadShareFromHash();
