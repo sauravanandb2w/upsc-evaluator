@@ -2269,6 +2269,12 @@ async function copyToClipboard(text, btn) {
 function loadHistory() {
   try { return JSON.parse(localStorage.getItem(HIST_KEY) || '[]'); } catch { return []; }
 }
+const DELETED_TS_KEY = 'upsc_deleted_ts';
+function getDeletedTs() { try { return new Set(JSON.parse(localStorage.getItem(DELETED_TS_KEY)||'[]')); } catch { return new Set(); } }
+function markDeleted(ts) {
+  const d = getDeletedTs(); d.add(ts);
+  localStorage.setItem(DELETED_TS_KEY, JSON.stringify([...d].slice(-1000)));
+}
 function saveHistory(h) { localStorage.setItem(HIST_KEY, JSON.stringify(h.slice(-500))); }
 function saveToHistory(entry) {
   const h = loadHistory();
@@ -2309,6 +2315,7 @@ function renderHistory() {
   const sorted = [...h].reverse().slice(0, 100);
   $('historyList').innerHTML = sorted.map((e, idx) => {
     const date = new Date(e.ts).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+    const tsKey = e.ts;
     const hasNote = e.notes && e.notes.trim();
     const r = e.result || {};
     const verdict = e.verdict || r.verdict || '';
@@ -2346,7 +2353,10 @@ function renderHistory() {
           <div class="hi-expand-toggle" style="margin-top:5px;">▶ click to see feedback</div>
         </div>
         <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
-          <div class="hi-score">${e.score ?? '—'}<div style="font-size:11px;font-weight:500;text-align:center;color:var(--text-muted);margin-top:2px;">${escapeHtml(e.grade||'')}</div></div>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <button data-delete-ts="${tsKey}" title="Delete this entry" style="background:none;border:none;cursor:pointer;font-size:15px;color:var(--text-muted);padding:2px 4px;line-height:1;border-radius:4px;" onmouseover="this.style.color='#e53935'" onmouseout="this.style.color='var(--text-muted)'">✕</button>
+            <div class="hi-score">${e.score ?? '—'}<div style="font-size:11px;font-weight:500;text-align:center;color:var(--text-muted);margin-top:2px;">${escapeHtml(e.grade||'')}</div></div>
+          </div>
           ${e.result ? `<button data-hist-view="${idx}" style="padding:4px 10px;font-size:11px;background:var(--primary-soft);color:var(--primary);border:1px solid var(--border);border-radius:6px;cursor:pointer;white-space:nowrap;">👁 Full view</button>` : ''}
         </div>
       </div>
@@ -2412,6 +2422,16 @@ function renderHistory() {
   });
 
   // note toggle + autosave
+  $('historyList').querySelectorAll('[data-delete-ts]').forEach(btn => {
+    btn.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      const ts = parseInt(btn.dataset.deleteTs);
+      markDeleted(ts);
+      saveHistory(loadHistory().filter(e => e.ts !== ts));
+      renderHistory();
+    });
+  });
+
   $('historyList').querySelectorAll('[data-note-toggle]').forEach(btn => {
     btn.addEventListener('click', () => {
       const ts = parseInt(btn.dataset.noteToggle);
@@ -3241,7 +3261,8 @@ $('restoreGistBtn').addEventListener('click', async () => {
     if (!Array.isArray(parsed)) throw new Error('Invalid format — expected array');
     const existing = loadHistory();
     const tsSet = new Set(existing.map(x => x.ts));
-    const fresh = parsed.filter(x => !tsSet.has(x.ts));
+    const deleted = getDeletedTs();
+    const fresh = parsed.filter(x => !tsSet.has(x.ts) && !deleted.has(x.ts));
     const merged = [...existing, ...fresh].sort((a, b) => a.ts - b.ts);
     saveHistory(merged);
     statusEl.innerHTML = `<span style="color:var(--good)">✓ Merged ${fresh.length} new entries. Total: ${merged.length}.</span>`;
