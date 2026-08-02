@@ -1123,10 +1123,10 @@ const PROVIDERS = {
     baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai',
     storageKey: GEMINI_KEY_KEY,
     models: [
-      { id: 'gemini-2.0-flash',   name: 'Gemini 2.0 Flash ⭐ (vision)', vision: true  },
-      { id: 'gemini-1.5-flash',   name: 'Gemini 1.5 Flash (vision)',    vision: true  },
-      { id: 'gemini-1.5-pro',     name: 'Gemini 1.5 Pro (vision)',      vision: true  },
-      { id: 'gemini-2.0-flash-lite', name: 'Gemini 2.0 Flash Lite (fastest)', vision: false },
+      { id: 'gemini-2.0-flash',        name: 'Gemini 2.0 Flash ⭐ (vision)', vision: true  },
+      { id: 'gemini-2.0-flash-lite',   name: 'Gemini 2.0 Flash Lite (fast)', vision: true  },
+      { id: 'gemini-1.5-flash-latest', name: 'Gemini 1.5 Flash (vision)',    vision: true  },
+      { id: 'gemini-1.5-pro-latest',   name: 'Gemini 1.5 Pro (vision)',      vision: true  },
     ]
   },
   openrouter: {
@@ -1586,8 +1586,13 @@ const RATE_LIMIT_FALLBACK = {
   'openai/gpt-oss-120b':     'openai/gpt-oss-20b',
   'openai/gpt-oss-20b':      'llama-3.3-70b-versatile',
   'llama-3.3-70b-versatile': 'llama-3.1-8b-instant',
-  'gemini-2.0-flash':        'gemini-1.5-flash',
-  'gemini-1.5-flash':        'gemini-2.0-flash-lite',
+  'gemini-2.0-flash':          'gemini-2.0-flash-lite',
+  'gemini-2.0-flash-lite':     'gemini-1.5-flash-latest',
+  'gemini-1.5-flash-latest':   'gemini-1.5-pro-latest',
+  // OpenRouter fallback chain
+  'google/gemini-flash-1.5:free':               'google/gemini-2.0-flash-001:free',
+  'google/gemini-2.0-flash-001:free':           'meta-llama/llama-3.3-70b-instruct:free',
+  'meta-llama/llama-3.2-11b-vision-instruct:free': 'google/gemini-flash-1.5:free',
 };
 function modelLabel(id) {
   for (const p of Object.values(PROVIDERS)) {
@@ -1672,7 +1677,7 @@ $('evalBtn').addEventListener('click', async () => {
   const answer = $('answer').value.trim();
   const selfScore = $('selfScore').value;
 
-  if (!apiKey) return showError('Add your Groq API key (Settings tab)');
+  if (!apiKey) return showError('Add your ' + (PROVIDERS[getActiveProvider()]?.name || 'API') + ' key in Settings tab');
   if (!question) return showError('Paste the question');
 
   const isVision = inputMode === 'upload' && uploadedImages.length > 0;
