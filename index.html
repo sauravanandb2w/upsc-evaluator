@@ -1123,7 +1123,7 @@ const PROVIDERS = {
     baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai',
     storageKey: GEMINI_KEY_KEY,
     models: [
-      { id: 'gemini-2.5-flash',      name: 'Gemini 2.5 Flash ⭐ (vision)', vision: true  },
+      { id: 'gemini-3.5-flash',      name: 'Gemini 3.5 Flash ⭐ (vision)', vision: true  },
       { id: 'gemini-2.5-flash-lite', name: 'Gemini 2.5 Flash Lite (fast)', vision: true  },
     ]
   },
@@ -1132,7 +1132,7 @@ const PROVIDERS = {
     baseUrl: 'https://openrouter.ai/api/v1',
     storageKey: OPENROUTER_KEY_KEY,
     models: [
-      { id: 'google/gemini-2.5-flash:free',                    name: 'Gemini 2.5 Flash (free, vision)',      vision: true  },
+      { id: 'google/gemini-3.5-flash:free',                    name: 'Gemini 3.5 Flash (free, vision)',      vision: true  },
       { id: 'meta-llama/llama-3.2-11b-vision-instruct:free',   name: 'Llama 3.2 11B Vision (free)',     vision: true  },
       { id: 'qwen/qwen-2.5-72b-instruct:free',                 name: 'Qwen 2.5 72B (free)',             vision: false },
       { id: 'meta-llama/llama-3.3-70b-instruct:free',          name: 'Llama 3.3 70B (free)',            vision: false },
@@ -1584,9 +1584,9 @@ const RATE_LIMIT_FALLBACK = {
   'openai/gpt-oss-120b':     'openai/gpt-oss-20b',
   'openai/gpt-oss-20b':      'llama-3.3-70b-versatile',
   'llama-3.3-70b-versatile': 'llama-3.1-8b-instant',
-  'gemini-2.5-flash':      'gemini-2.5-flash-lite',
+  'gemini-3.5-flash':      'gemini-2.5-flash-lite',
   // OpenRouter fallback chain
-  'google/gemini-2.5-flash:free':                  'google/gemini-2.0-flash-001:free',
+  'google/gemini-3.5-flash:free':                  'meta-llama/llama-3.3-70b-instruct:free',
   'google/gemini-2.0-flash-001:free':              'meta-llama/llama-3.3-70b-instruct:free',
   'meta-llama/llama-3.2-11b-vision-instruct:free': 'google/gemini-2.5-flash:free',
 };
