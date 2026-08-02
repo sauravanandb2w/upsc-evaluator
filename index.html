@@ -1178,17 +1178,20 @@ async function fetchLiveModels(provider) {
     let models = (data.data || data.models || []);
 
     if (provider === 'openrouter') {
-      // keep only :free models
       models = models.filter(m => m.id.endsWith(':free'));
     }
     if (provider === 'gemini') {
-      // keep only generateContent-capable text models
-      models = models.filter(m =>
-        m.id && !/(embedding|tts|imagen|veo|lyria|aqa)/i.test(m.id)
-      );
+      // Google returns ids like "models/gemini-3.5-flash" — strip prefix
+      models = models.map(m => ({ ...m, id: m.id.replace(/^models\//, '') }));
+      // keep only current chat models; exclude deprecated/preview/specialist
+      models = models.filter(m => {
+        const id = m.id;
+        if (/(embedding|tts|imagen|veo|lyria|aqa|omni|live|translate|robotics|banana|deep-research|antigravity|computer-use)/i.test(id)) return false;
+        if (/(preview|exp|experimental)/i.test(id)) return false; // only stable
+        return true;
+      });
     }
     if (provider === 'groq') {
-      // exclude whisper/distil/guard models
       models = models.filter(m =>
         m.id && !/(whisper|guard|distil|tool-use)/i.test(m.id)
       );
@@ -1197,9 +1200,60 @@ async function fetchLiveModels(provider) {
     return models.map(m => ({
       id: m.id,
       name: m.id.split('/').pop().replace(/:free$/,'').replace(/-/g,' ').replace(/\b\w/g,c=>c.toUpperCase()),
-      vision: knownVision(m.id)
+      vision: knownVision(m.id),
+      available: true // will be probed later
     }));
   } catch { return null; }
+}
+
+// probe a model with a tiny request to check if it's actually available
+const MODEL_PROBE_KEY = 'upsc_model_probes'; // { id: { ok: bool, ts: epoch } }
+const PROBE_TTL = 6 * 60 * 60 * 1000;
+
+function getProbedStatus(id) {
+  try {
+    const probes = JSON.parse(localStorage.getItem(MODEL_PROBE_KEY) || '{}');
+    const p = probes[id];
+    if (p && (Date.now() - p.ts) < PROBE_TTL) return p.ok;
+  } catch {}
+  return null; // unknown
+}
+
+async function probeModel(provider, modelId, apiKey) {
+  const cfg = PROVIDERS[provider];
+  const headers = {
+    'Authorization': 'Bearer ' + apiKey,
+    'Content-Type': 'application/json',
+    ...(provider === 'openrouter' ? { 'HTTP-Referer': 'https://sauravanandb2w.github.io/upsc-evaluator/', 'X-Title': 'UPSC Evaluator' } : {})
+  };
+  try {
+    const res = await fetch(cfg.baseUrl + '/chat/completions', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ model: modelId, messages: [{ role: 'user', content: 'hi' }], max_tokens: 1 })
+    });
+    const ok = res.ok || res.status === 429; // 429 = rate limited but model exists
+    const probes = JSON.parse(localStorage.getItem(MODEL_PROBE_KEY) || '{}');
+    probes[modelId] = { ok, ts: Date.now() };
+    localStorage.setItem(MODEL_PROBE_KEY, JSON.stringify(probes));
+    return ok;
+  } catch { return null; }
+}
+
+async function probeAllModels(provider) {
+  const key = localStorage.getItem(PROVIDERS[provider]?.storageKey);
+  if (!key) return;
+  const cached = getCachedModels(provider);
+  const models = (cached || PROVIDERS[provider]?.models || []).filter(m => !m.id.startsWith('__'));
+  // probe in parallel, max 4 at a time
+  for (let i = 0; i < models.length; i += 4) {
+    const batch = models.slice(i, i + 4);
+    await Promise.all(batch.map(m => {
+      if (getProbedStatus(m.id) !== null) return Promise.resolve(); // already probed
+      return probeModel(provider, m.id, key);
+    }));
+    if (getActiveProvider() === provider) populateModelDropdown(); // update UI after each batch
+  }
 }
 
 async function refreshModelCache(provider) {
@@ -1224,18 +1278,19 @@ function getCachedModels(provider) {
 }
 
 async function initModelRefresh() {
-  // refresh all providers that have keys, staggered to avoid rate limits
   const providers = ['groq','gemini','openrouter'];
   for (let i = 0; i < providers.length; i++) {
     const p = providers[i];
     const cache = getCachedModels(p);
-    if (!cache) { // no valid cache → fetch now
-      setTimeout(() => refreshModelCache(p), i * 1500);
+    if (!cache) {
+      setTimeout(() => refreshModelCache(p).then(() => probeAllModels(p)), i * 2000);
+    } else {
+      // cache exists but probes may be stale — probe in background
+      setTimeout(() => probeAllModels(p), i * 3000);
     }
   }
-  // schedule refresh every 6 hours
   setInterval(() => {
-    providers.forEach((p, i) => setTimeout(() => refreshModelCache(p), i * 1500));
+    providers.forEach((p, i) => setTimeout(() => refreshModelCache(p).then(() => probeAllModels(p)), i * 2000));
   }, MODEL_CACHE_TTL);
 }
 
@@ -1720,14 +1775,27 @@ function populateModelDropdown() {
   const prev = sel.value;
   sel.innerHTML = '';
   let visionGroup = null, textGroup = null, specialGroup = null;
-  models.forEach(m => {
+
+  // add eval-all options at top
+  if (!specialGroup) { specialGroup = document.createElement('optgroup'); specialGroup.label = '⚡ Eval All'; sel.appendChild(specialGroup); }
+  [
+    { id: '__all_vision__', label: '🖼️ All Vision Models' },
+    { id: '__all_text__',   label: '📝 All Text Models'   },
+    { id: '__all__',        label: '🔥 All Models'         },
+    ...(p === 'groq' ? [{ id: '__consensus__', label: '🎯 Multi-Model Consensus' }] : [])
+  ].forEach(({ id, label }) => {
+    const opt = document.createElement('option'); opt.value = id; opt.textContent = label;
+    specialGroup.appendChild(opt);
+  });
+
+  models.filter(m => !m.id.startsWith('__')).forEach(m => {
+    const probeStatus = getProbedStatus(m.id);
     const opt = document.createElement('option');
     opt.value = m.id;
-    opt.textContent = m.name;
-    if (m.id === '__consensus__') {
-      if (!specialGroup) { specialGroup = document.createElement('optgroup'); specialGroup.label = 'Special'; sel.appendChild(specialGroup); }
-      specialGroup.appendChild(opt);
-    } else if (m.vision) {
+    const statusIcon = probeStatus === false ? ' ⚫' : probeStatus === null ? ' ◌' : '';
+    opt.textContent = m.name + statusIcon;
+    if (probeStatus === false) { opt.disabled = true; opt.style.color = '#999'; }
+    if (m.vision) {
       if (!visionGroup) { visionGroup = document.createElement('optgroup'); visionGroup.label = 'Vision + Text'; sel.appendChild(visionGroup); }
       visionGroup.appendChild(opt);
     } else {
@@ -1735,7 +1803,6 @@ function populateModelDropdown() {
       textGroup.appendChild(opt);
     }
   });
-  // restore previous selection if still valid
   if ([...sel.options].some(o => o.value === prev)) sel.value = prev;
 }
 
@@ -1796,14 +1863,32 @@ $('evalBtn').addEventListener('click', async () => {
   if (!isVision && answer.split(/\s+/).length < 20) return showError('Answer too short (min 20 words)');
 
   const isConsensus = model === '__consensus__';
-  if (isVision && !isConsensus && !getVisionModelIds().has(model)) {
+  const isAllVision = model === '__all_vision__';
+  const isAllText   = model === '__all_text__';
+  const isAllModels = model === '__all__';
+  const isMultiEval = isConsensus || isAllVision || isAllText || isAllModels;
+
+  if (isVision && !isMultiEval && !getVisionModelIds().has(model)) {
     return showError('Selected model does not support image uploads. Choose a Vision model or switch provider.');
+  }
+
+  // build list of models for multi-eval modes
+  function getMultiEvalModels() {
+    const provider = getActiveProvider();
+    const cached = getCachedModels(provider);
+    const all = (cached || PROVIDERS[provider]?.models || []).filter(m => !m.id.startsWith('__'));
+    if (isConsensus) return PROVIDERS.groq.models.filter(m => !m.id.startsWith('__')).slice(0,3).map(m => ({ ...m, provider: 'groq' }));
+    const available = all.filter(m => getProbedStatus(m.id) !== false);
+    if (isAllVision) return available.filter(m => m.vision).map(m => ({ ...m, provider }));
+    if (isAllText)   return available.filter(m => !m.vision).map(m => ({ ...m, provider }));
+    return available.map(m => ({ ...m, provider })); // __all__
   }
 
   $('evalBtn').disabled = true;
   $('result').style.display = 'none';
+  const multiModels = isMultiEval ? getMultiEvalModels() : [];
   $('status').innerHTML = '<span class="spinner"></span>' + (
-    isConsensus ? 'Running 3 models in parallel... (40-90s)' :
+    isMultiEval ? `Running ${multiModels.length} models in parallel…` :
     isVision ? 'Transcribing + evaluating ' + uploadedImages.length + ' image(s)... (30-90s)' :
     'Evaluating (' + maxMarks + ' marks)... (15-30s)'
   );
@@ -1811,13 +1896,16 @@ $('evalBtn').addEventListener('click', async () => {
   try {
     const prompt = buildPrompt(paper, wordLimit, maxMarks, question, answer, isVision);
 
-    if (isConsensus) {
-      const results = await runConsensus(
-        prompt,
-        apiKey,
-        isVision ? uploadedImages : null,
-        (transcription) => buildPrompt(paper, wordLimit, maxMarks, question, transcription, false)
-      );
+    if (isMultiEval) {
+      // build per-model calls — skip vision models if no images, skip text-only if images
+      const calls = multiModels.map(m => {
+        if (isVision && !m.vision) return Promise.resolve({ model: m.id, error: 'text-only model skipped for image input' });
+        const key = localStorage.getItem(PROVIDERS[m.provider]?.storageKey) || apiKey;
+        return callLLM(m.provider, m.id, prompt, key, isVision ? uploadedImages : null)
+          .then(result => ({ model: m.id, result }))
+          .catch(e => ({ model: m.id, error: e.message }));
+      });
+      const results = await Promise.all(calls);
       const ok = results.filter(r => r.result);
       if (!ok.length) throw new Error(results.map(r => r.error).join(' | '));
       // pick the median-scored result as the canonical
