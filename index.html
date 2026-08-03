@@ -559,7 +559,7 @@
   @media print {
     .nav, .header-right, .btn-row, #status, #errorBox,
     .selfscore-box, .timer-area, .abhyas-hint, .footer,
-    #view-daily, #view-pyq, #view-compare, #view-history, #view-settings,
+    #view-daily, #view-pyq, #view-compare, #view-history, #view-practice, #view-settings,
     #directiveBanner, #selfScoreResult { display: none !important; }
     body { background: #fff !important; padding: 0; color: #000; }
     .card { box-shadow: none !important; border: 1px solid #ccc; page-break-inside: avoid; }
@@ -586,6 +586,7 @@
     <button class="nav-btn" data-view="pyq">📚 PYQs</button>
     <button class="nav-btn" data-view="compare">🔄 Compare</button>
     <button class="nav-btn" data-view="history">📊 History</button>
+    <button class="nav-btn" data-view="practice">🖊️ Practice Log</button>
     <button class="nav-btn" data-view="settings">⚙️ Settings</button>
   </nav>
 
@@ -945,6 +946,55 @@
     </div>
   </section>
 
+  <!-- ============ PRACTICE LOG VIEW ============ -->
+  <section class="view" id="view-practice">
+    <div class="card">
+      <h3 class="section h3" style="margin-bottom: 12px;">🖊️ Log Today's Articulation Drill</h3>
+      <div class="hint" style="margin-bottom:10px;">Daily sentence-drill + paragraph practice from the 4-Week Articulation Sprint. Log each session so you can see the trend over weeks.</div>
+      <div style="margin-bottom:12px;">
+        <label>Week / Day (e.g. "Week 1, Day 3")</label>
+        <input type="text" id="pLogDay" placeholder="Week 1, Day 3" />
+      </div>
+      <div style="margin-bottom:12px;">
+        <label>Filler count / note</label>
+        <input type="text" id="pLogFiller" placeholder="e.g. Low — 1 stock phrase left" />
+      </div>
+      <div style="margin-bottom:12px;">
+        <label>Precision hits</label>
+        <input type="text" id="pLogPrecision" placeholder="e.g. 4/5 sentences named real facts/mechanisms" />
+      </div>
+      <div style="margin-bottom:12px;">
+        <label>Sentence economy note</label>
+        <input type="text" id="pLogEconomy" placeholder="e.g. subject-verb agreement errors recurring" />
+      </div>
+      <div style="margin-bottom:12px;">
+        <label>Carry-forward tip</label>
+        <input type="text" id="pLogTip" placeholder="e.g. verify facts before writing them" />
+      </div>
+      <div style="margin-bottom:12px;">
+        <label>Drill / paragraph text (optional, for your own reference)</label>
+        <textarea id="pLogText" rows="4" placeholder="Paste your rewrites / paragraph here if you want it saved"></textarea>
+      </div>
+      <div class="btn-row" style="justify-content:flex-start;">
+        <button id="pLogSaveBtn" type="button">Save Entry</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3 class="section h3" style="margin-bottom: 12px;">📈 Practice Trend</h3>
+      <div id="pLogTrend"><div class="hint">No entries yet.</div></div>
+    </div>
+
+    <div class="card">
+      <h3 class="section h3" style="margin-bottom: 12px;">📜 All Entries</h3>
+      <div id="pLogList">No entries logged yet.</div>
+      <div class="btn-row" style="margin-top: 10px;">
+        <button id="pLogClearBtn" class="btn-secondary" type="button">Clear All Entries</button>
+        <button id="pLogExportBtn" class="btn-ghost" type="button">Export as JSON</button>
+      </div>
+    </div>
+  </section>
+
   <!-- ============ SETTINGS VIEW ============ -->
   <section class="view" id="view-settings">
     <div class="card">
@@ -1102,6 +1152,7 @@ const OPENROUTER_KEY_KEY = 'openrouter_api_key';
 const PROVIDER_KEY = 'upsc_provider';
 const THEME_KEY = 'upsc_theme';
 const WEAKNESS_EDITS_KEY = 'upsc_weakness_edits';
+const PRACTICE_LOG_KEY = 'upsc_articulation_practice_log';
 
 // =================== PROVIDER CONFIG ===================
 const PROVIDERS = {
@@ -1339,6 +1390,7 @@ function switchView(name) {
   if (name === 'history') renderHistory();
   if (name === 'daily') renderDaily();
   if (name === 'pyq' && !pyqLoaded) loadPyqs();
+  if (name === 'practice') renderPracticeLog();
 }
 
 // =================== API KEYS ===================
@@ -3108,6 +3160,122 @@ function renderPaperAnalytics(history) {
       <div class="paper-bar-val">${r.avgScore}/${r.maxM} <small style="font-size:10px;color:var(--text-muted);">×${r.count}</small></div>
     </div>`).join('');
 }
+
+// =================== ARTICULATION PRACTICE LOG ===================
+function loadPracticeLog() {
+  try { return JSON.parse(localStorage.getItem(PRACTICE_LOG_KEY) || '[]'); } catch { return []; }
+}
+function savePracticeLog(entries) {
+  localStorage.setItem(PRACTICE_LOG_KEY, JSON.stringify(entries.slice(-500)));
+}
+function savePracticeEntry() {
+  const day = $('pLogDay').value.trim();
+  const filler = $('pLogFiller').value.trim();
+  const precision = $('pLogPrecision').value.trim();
+  const economy = $('pLogEconomy').value.trim();
+  const tip = $('pLogTip').value.trim();
+  const text = $('pLogText').value.trim();
+  if (!day && !filler && !precision && !economy && !tip && !text) return;
+  const entries = loadPracticeLog();
+  entries.push({ ts: Date.now(), day, filler, precision, economy, tip, text });
+  savePracticeLog(entries);
+  ['pLogDay','pLogFiller','pLogPrecision','pLogEconomy','pLogTip','pLogText'].forEach(id => $(id).value = '');
+  renderPracticeLog();
+}
+function deletePracticeEntry(ts) {
+  const entries = loadPracticeLog().filter(e => e.ts !== ts);
+  savePracticeLog(entries);
+  renderPracticeLog();
+}
+function renderPracticeLog() {
+  const entries = loadPracticeLog();
+
+  // trend: simple counts of filler/precision mentions per week label
+  const trendEl = $('pLogTrend');
+  if (!entries.length) {
+    trendEl.innerHTML = '<div class="hint">No entries yet.</div>';
+  } else {
+    const byWeek = {};
+    entries.forEach(e => {
+      const wk = (e.day.match(/week\s*\d+/i) || ['Other'])[0];
+      byWeek[wk] = byWeek[wk] || [];
+      byWeek[wk].push(e);
+    });
+    trendEl.innerHTML = Object.entries(byWeek).map(([wk, es]) =>
+      `<div style="margin-bottom:10px;">
+        <div style="font-weight:600;font-size:13px;margin-bottom:4px;">${escapeHtml(wk)} <small style="color:var(--text-muted);font-weight:400;">(${es.length} ${es.length===1?'entry':'entries'})</small></div>
+        <div style="font-size:12px;color:var(--text-soft);">${es.map(e => escapeHtml(e.day||'')).join(' · ')}</div>
+      </div>`
+    ).join('');
+  }
+
+  const listEl = $('pLogList');
+  if (!entries.length) {
+    listEl.innerHTML = 'No entries logged yet.';
+    return;
+  }
+  const sorted = [...entries].reverse();
+  listEl.innerHTML = sorted.map(e => {
+    const date = new Date(e.ts).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+    return `<div class="history-item">
+      <div style="display:grid; grid-template-columns:1fr auto; gap:10px; align-items:start;">
+        <div>
+          <div class="hi-q">${escapeHtml(e.day || '(no label)')}</div>
+          <div class="hi-meta">${date}</div>
+        </div>
+        <button data-plog-delete="${e.ts}" title="Delete" style="background:none;border:none;cursor:pointer;font-size:15px;color:var(--text-muted);padding:2px 4px;">✕</button>
+      </div>
+      <div style="margin-top:8px;font-size:13px;line-height:1.6;">
+        ${e.filler ? '<div><strong>Filler:</strong> ' + escapeHtml(e.filler) + '</div>' : ''}
+        ${e.precision ? '<div><strong>Precision hits:</strong> ' + escapeHtml(e.precision) + '</div>' : ''}
+        ${e.economy ? '<div><strong>Sentence economy:</strong> ' + escapeHtml(e.economy) + '</div>' : ''}
+        ${e.tip ? '<div><strong>Carry-forward tip:</strong> ' + escapeHtml(e.tip) + '</div>' : ''}
+        ${e.text ? '<div style="margin-top:6px;white-space:pre-wrap;color:var(--text-soft);">' + escapeHtml(e.text) + '</div>' : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+$('pLogSaveBtn').addEventListener('click', savePracticeEntry);
+$('pLogClearBtn').addEventListener('click', () => {
+  if (confirm('Clear all practice log entries?')) { savePracticeLog([]); renderPracticeLog(); }
+});
+$('pLogExportBtn').addEventListener('click', () => {
+  const blob = new Blob([JSON.stringify(loadPracticeLog(), null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'articulation-practice-log.json'; a.click();
+  URL.revokeObjectURL(url);
+});
+document.addEventListener('click', (e) => {
+  const delBtn = e.target.closest('[data-plog-delete]');
+  if (delBtn) deletePracticeEntry(Number(delBtn.dataset.plogDelete));
+});
+
+// one-time seed of Day 1 + Day 2 (reviewed in chat before this tab existed) — only runs if log is empty
+(function seedPracticeLogOnce() {
+  if (loadPracticeLog().length) return;
+  const base = Date.now() - 2 * 86400000;
+  savePracticeLog([
+    {
+      ts: base,
+      day: 'Week 1, Day 1',
+      filler: 'Low — "it can be said that", "there is a need to", "in today\'s world" mostly eliminated',
+      precision: '2/5 sentences reached real precision (Panchayati Raj = 73rd Amendment; unemployment = named schemes in feedback). Paragraph: correctly identified holding-together federalism, FC devolution dependency, Governor\'s role, political bias — but first attempt confused cooperative societies with cooperative federalism.',
+      economy: 'Sentences still fragment or run-on; several rewrites dropped the verb entirely.',
+      tip: 'Stop swapping one vague word for another ("various"→"multiple"/"key") — name the actual fact/mechanism. Double-check FC number (15th is current, not 16th).',
+      text: ''
+    },
+    {
+      ts: base + 86400000,
+      day: 'Week 1, Day 2',
+      filler: 'Near zero — no stock filler phrases in any of the 5 rewrites',
+      precision: '4/5 sentences named real mechanisms/facts (corruption+inefficient administration; Article 32; sanitation+separate classrooms; West Asia conflict+COVID); 1/5 still used a generic placeholder ("sustainable growth measures")',
+      economy: 'Subject-verb agreement errors recurring ("issues... makes", "pandemic... has done"); one run-on; otherwise clean, direct sentences.',
+      tip: 'Fix subject-verb agreement. Verify facts before writing (RTE Act is 2009, not 2002). Add outcome-level dimension (learning levels, not just access) for "examine" answers.',
+      text: ''
+    }
+  ]);
+})();
 
 // =================== SPACED REPETITION ===================
 const SRS_KEY = 'upsc_srs';
