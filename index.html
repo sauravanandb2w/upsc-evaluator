@@ -1243,6 +1243,10 @@
             <div class="p-label">Test Name</div>
             <input type="text" id="p-name" class="p-input" placeholder="e.g. Vision IAS Mock 3" />
           </div>
+          <div style="grid-column:1/-1;display:flex;align-items:center;gap:8px;margin-top:2px;">
+            <input type="checkbox" id="p-official" style="width:16px;height:16px;cursor:pointer;" />
+            <label for="p-official" style="font-size:13px;cursor:pointer;">🏛️ This is an official UPSC exam (not a mock test)</label>
+          </div>
         </div>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
           <button class="p-btn p-btn-primary" id="p-start-omr">Load OMR Sheet →</button>
@@ -1325,9 +1329,15 @@
 
     <!-- ANALYTICS -->
     <div class="prelims-pane" id="pane-analytics">
-      <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;">
-        <button class="p-tab-inner active" id="pa-gs-btn">GS</button>
-        <button class="p-tab-inner" id="pa-csat-btn">CSAT</button>
+      <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;align-items:center;justify-content:space-between;">
+        <div style="display:flex;gap:6px;">
+          <button class="p-tab-inner active" id="pa-gs-btn">GS</button>
+          <button class="p-tab-inner" id="pa-csat-btn">CSAT</button>
+        </div>
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;">
+          <input type="checkbox" id="pa-official-only" style="width:14px;height:14px;" />
+          🏛️ UPSC official only
+        </label>
       </div>
       <div id="p-analytics-content">
         <div style="color:var(--text-muted);font-size:13px;padding:20px 0;">Add at least one completed test (with answer key) to see analytics.</div>
@@ -4087,7 +4097,7 @@ function renderHistory(filterType) {
     card.innerHTML = `
       <div style="display:flex;justify-content:space-between;align-items:flex-start;">
         <div>
-          <div class="ptc-id">${t.id}</div>
+          <div class="ptc-id">${t.id}${t.official ? ' 🏛️' : ''}</div>
           <div class="ptc-name">${t.name}</div>
           <div class="ptc-date">${t.date}</div>
         </div>
@@ -4160,12 +4170,14 @@ function refreshAKSelector() {
 function renderAnalytics(filterType) {
   const el = document.getElementById('p-analytics-content');
   if (!el) return;
+  const officialOnly = document.getElementById('pa-official-only')?.checked || false;
   const deleted = pGetDeleted();
   const tests = pGetTests()
-    .filter(t => !deleted.includes(t.id) && t.type === filterType && t.scored)
+    .filter(t => !deleted.includes(t.id) && t.type === filterType && t.scored && (!officialOnly || t.official))
     .sort((a,b) => new Date(a.date) - new Date(b.date));
   if (!tests.length) {
-    el.innerHTML = `<div style="color:var(--text-muted);font-size:13px;padding:20px 0;">Add at least one scored test to see analytics.</div>`;
+    const hint = officialOnly ? 'No official UPSC tests scored yet. Uncheck the filter to see mock tests.' : 'Add at least one scored test to see analytics.';
+    el.innerHTML = `<div style="color:var(--text-muted);font-size:13px;padding:20px 0;">${hint}</div>`;
     return;
   }
 
@@ -4445,6 +4457,9 @@ function prelimsInit() {
     document.getElementById('pa-gs-btn').classList.remove('active');
     renderAnalytics('CSAT');
   });
+  document.getElementById('pa-official-only').addEventListener('change', () => {
+    renderAnalytics(currentAnalyticsType);
+  });
 
   // OMR Start
   document.getElementById('p-start-omr').addEventListener('click', startOMR);
@@ -4487,9 +4502,10 @@ function startOMR() {
   const type = document.getElementById('p-type').value;
   const date = document.getElementById('p-date').value;
   const name = document.getElementById('p-name').value.trim() || 'Untitled Test';
+  const official = document.getElementById('p-official').checked;
   if (!date) { alert('Please select a test date.'); return; }
-  omrData = { type, date, name, responses:{}, tags:{} };
-  showOMRContainer(type, name);
+  omrData = { type, date, name, official, responses:{}, tags:{} };
+  showOMRContainer(type, name, official);
   pSaveDraft({ ...omrData, _partial: true });
 }
 
@@ -4504,9 +4520,9 @@ function resumeOMR() {
   showOMRContainer(draft.type, draft.name || 'Resumed Draft');
 }
 
-function showOMRContainer(type, name) {
+function showOMRContainer(type, name, official) {
   document.getElementById('p-omr-container').style.display = '';
-  document.getElementById('p-omr-title').textContent = `${type} — ${name}`;
+  document.getElementById('p-omr-title').textContent = `${type} — ${name}${official ? ' 🏛️' : ''}`;
   const n = type === 'CSAT' ? 80 : 100;
   document.getElementById('p-omr-progress').textContent = `${Object.keys(omrData.responses).length}/${n} answered`;
   const grid = document.getElementById('p-omr-grid');
@@ -4525,6 +4541,7 @@ function saveOMR() {
   const type = omrData.type;
   const date = document.getElementById('p-date').value;
   const name = document.getElementById('p-name').value.trim() || 'Untitled Test';
+  const official = document.getElementById('p-official').checked;
   if (!date) { alert('Select a date first.'); return; }
   const n = type === 'CSAT' ? 80 : 100;
   // Validate at least 1 answer
@@ -4533,7 +4550,7 @@ function saveOMR() {
   }
   const id = pGenId(type);
   const testObj = {
-    id, type, date, name,
+    id, type, date, name, official,
     responses: { ...omrData.responses },
     tags: { ...omrData.tags },
     savedAt: Date.now(),
