@@ -6065,10 +6065,17 @@ function generateMasterSummary() {
 // PAPERS PANE
 // =====================================================================
 function renderOMRRefPreview() {
-  // Renders an SVG mini-diagram showing the real UPSC OMR sheet layout
   const el = document.getElementById('omr-ref-preview');
   if (!el || el.dataset.rendered) return;
   el.dataset.rendered = '1';
+  // Show the real UPSC OMR image
+  el.innerHTML = `<img src="omr-reference.png" alt="Real UPSC OMR Sheet" style="width:100%;max-width:700px;display:block;border:1px solid #e8a0b4;border-radius:6px;" onerror="this.style.display='none';renderOMRRefSVG();" />`;
+  return; // skip SVG path if image loads
+  // (SVG fallback below is still defined as renderOMRRefSVG)
+}
+function renderOMRRefSVG() {
+  const el = document.getElementById('omr-ref-preview');
+  if (!el) return;
   const W = 560, H = 260;
   const cols = [
     { label:'Q 1–40', x:10, active:40 },
