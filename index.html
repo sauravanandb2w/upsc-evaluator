@@ -1174,6 +1174,7 @@
       <button class="prelims-sub-btn" data-pane="review">🔍 Review</button>
       <button class="prelims-sub-btn" data-pane="papers">📄 Papers</button>
       <button class="prelims-sub-btn" data-pane="suggestions">💡 Suggestions</button>
+      <button class="prelims-sub-btn" data-pane="workitems">✅ Work Items</button>
       <button class="prelims-sub-btn" data-pane="resources">📚 Resources</button>
       <div style="margin-left:auto;display:flex;align-items:center;gap:6px;padding:4px 0;">
         <select id="p-provider-sel" class="p-select" style="font-size:11px;" title="LLM Provider">
@@ -1417,18 +1418,58 @@
           <button class="p-tab-inner active" id="sug-gs-btn">GS</button>
           <button class="p-tab-inner" id="sug-csat-btn">CSAT</button>
         </div>
-        <button class="p-btn p-btn-primary" id="sug-master-btn" style="font-size:12px;padding:6px 14px;">⚡ Generate Master Summary</button>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <select id="sug-last-n" class="p-select" style="font-size:11px;">
+            <option value="0">All tests</option>
+          </select>
+          <button class="p-btn p-btn-primary" id="sug-master-btn" style="font-size:12px;padding:6px 14px;">⚡ Summary</button>
+        </div>
       </div>
       <div id="sug-per-test-list"></div>
       <div id="sug-master-view" style="display:none;">
         <div class="p-card" style="border:2px solid var(--primary);">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-            <strong style="font-size:14px;">🎯 Master Suggestions</strong>
+            <strong style="font-size:14px;" id="sug-master-title">🎯 Master Suggestions</strong>
             <button class="p-btn p-btn-ghost" id="sug-master-close" style="font-size:11px;padding:4px 10px;">✕ Close</button>
           </div>
           <div id="sug-master-content"></div>
         </div>
       </div>
+    </div>
+
+    <!-- WORK ITEMS -->
+    <div class="prelims-pane" id="pane-workitems">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+        <strong style="font-size:14px;">✅ Work Items</strong>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <select id="wi-filter" class="p-select" style="font-size:11px;">
+            <option value="all">All</option>
+            <option value="open">Open</option>
+            <option value="done">Done</option>
+          </select>
+          <button class="p-btn p-btn-primary" id="wi-add-btn" style="font-size:11px;padding:5px 12px;">+ Add Item</button>
+        </div>
+      </div>
+      <!-- Inline add form -->
+      <div id="wi-add-form" style="display:none;border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:12px;background:var(--section-bg);">
+        <div style="display:flex;gap:6px;margin-bottom:6px;">
+          <input id="wi-inp-text" class="p-input" style="flex:1;font-size:12px;" placeholder="What needs to be done…" />
+          <select id="wi-inp-priority" class="p-select" style="font-size:11px;width:90px;">
+            <option value="high">🔴 High</option>
+            <option value="mid" selected>🟡 Mid</option>
+            <option value="low">🟢 Low</option>
+          </select>
+        </div>
+        <div style="display:flex;gap:6px;margin-bottom:6px;">
+          <input id="wi-inp-section" class="p-input" style="flex:1;font-size:12px;" placeholder="Section / category (e.g. Polity, Strategy…)" />
+          <input id="wi-inp-due" class="p-input" type="date" style="width:140px;font-size:12px;" />
+        </div>
+        <div style="display:flex;gap:6px;justify-content:flex-end;">
+          <button class="p-btn p-btn-primary" id="wi-save-btn" style="font-size:11px;padding:4px 12px;">Add</button>
+          <button class="p-btn p-btn-ghost" id="wi-cancel-btn" style="font-size:11px;padding:4px 10px;">Cancel</button>
+        </div>
+      </div>
+      <div id="wi-list"></div>
     </div>
 
     <!-- RESOURCES -->
@@ -6070,6 +6111,7 @@ function prelimsInit() {
       if (btn.dataset.pane === 'answerkey') { refreshAKSelector(); }
       if (btn.dataset.pane === 'resources') { renderTricks(); renderTagRef(); renderBlogs(); }
       if (btn.dataset.pane === 'suggestions') { renderSuggestions(currentSugType); }
+      if (btn.dataset.pane === 'workitems') { renderWorkItems(); }
       if (btn.dataset.pane === 'papers') { renderPapers(); }
       if (btn.dataset.pane === 'review') { refreshReviewSelector(); }
     });
@@ -6194,6 +6236,9 @@ function prelimsInit() {
   renderTricks();
   renderTagRef();
   renderBlogs();
+
+  // Init work items
+  initWorkItems();
 
   // Prelims provider/model bar — sync with main selects
   syncPrelimsModelSel();
@@ -6534,6 +6579,20 @@ function renderSuggestions(filterType) {
     .sort((a,b) => new Date(b.date) - new Date(a.date));
   const allSugs = pGetSuggestions();
 
+  // Rebuild Last-N dropdown in AP of 3
+  const sugLastN = document.getElementById('sug-last-n');
+  if (sugLastN) {
+    const prev = parseInt(sugLastN.value || '0');
+    sugLastN.innerHTML = '<option value="0">All tests</option>';
+    for (let n = 3; n <= tests.length; n += 3) {
+      const opt = document.createElement('option');
+      opt.value = n; opt.textContent = `Last ${n}`;
+      if (n === prev) opt.selected = true;
+      sugLastN.appendChild(opt);
+    }
+    if (prev > tests.length) sugLastN.value = '0';
+  }
+
   if (!tests.length) {
     list.innerHTML = `<div style="color:var(--text-muted);font-size:13px;padding:20px 0;">No scored ${filterType} tests yet.</div>`;
     return;
@@ -6631,15 +6690,39 @@ function renderSuggestions(filterType) {
   list.querySelectorAll('[data-add-manual]').forEach(btn => {
     btn.addEventListener('click', () => {
       const testId = btn.dataset.addManual;
-      const text = prompt('Add a manual suggestion/note:');
-      if (!text?.trim()) return;
-      const allS = pGetSuggestions();
-      if (!allS[testId]) allS[testId] = { items:[], llmRaw:'', prompt:'' };
-      allS[testId].items.push({ id:`m-${Date.now()}`, section:'Manual', text:text.trim(), checked:false, manual:true });
-      pSaveSuggestions(allS);
+      // Find or create inline add-row after sug-items
       const itemDiv = list.querySelector(`.sug-items[data-test="${testId}"]`);
-      if (itemDiv) itemDiv.innerHTML = renderSugItems(allS[testId].items, testId);
-      wireSugItems(list, testId);
+      if (!itemDiv) return;
+      const existing = itemDiv.parentElement.querySelector('.sug-add-row');
+      if (existing) { existing.querySelector('input').focus(); return; }
+      const row = document.createElement('div');
+      row.className = 'sug-add-row';
+      row.style.cssText = 'display:flex;gap:6px;margin-top:6px;';
+      const inp = document.createElement('input');
+      inp.className = 'p-input'; inp.placeholder = 'Type note and press Enter…';
+      inp.style.cssText = 'flex:1;font-size:12px;';
+      const saveB = document.createElement('button');
+      saveB.className = 'p-btn p-btn-primary'; saveB.style.cssText = 'font-size:11px;padding:4px 10px;';
+      saveB.textContent = 'Add';
+      const cancelB = document.createElement('button');
+      cancelB.className = 'p-btn p-btn-ghost'; cancelB.style.cssText = 'font-size:11px;padding:4px 8px;';
+      cancelB.textContent = '✕';
+      row.append(inp, saveB, cancelB);
+      itemDiv.after(row);
+      inp.focus();
+      function doAdd() {
+        const text = inp.value.trim(); if (!text) return;
+        const allS = pGetSuggestions();
+        if (!allS[testId]) allS[testId] = { items:[], llmRaw:'', prompt:'' };
+        allS[testId].items.push({ id:`m-${Date.now()}`, section:'Manual', text, checked:false, manual:true });
+        pSaveSuggestions(allS);
+        itemDiv.innerHTML = renderSugItems(allS[testId].items, testId);
+        wireSugItems(list, testId);
+        row.remove();
+      }
+      saveB.addEventListener('click', doAdd);
+      inp.addEventListener('keydown', e => { if (e.key === 'Enter') doAdd(); if (e.key === 'Escape') row.remove(); });
+      cancelB.addEventListener('click', () => row.remove());
     });
   });
 
@@ -6665,11 +6748,12 @@ function renderSugItems(items, testId) {
       ${sitems.map(item => `
         <div class="sug-item" data-item-id="${item.id}" data-test-id="${testId}"
           style="display:flex;align-items:flex-start;gap:8px;padding:5px 6px;border-radius:6px;margin-bottom:3px;
-          background:${item.checked?'var(--good-soft)':'var(--section-bg)'};border:1px solid ${item.checked?'var(--good)':'var(--border)'};cursor:pointer;transition:all .15s;">
+          background:${item.checked?'var(--good-soft)':'var(--section-bg)'};border:1px solid ${item.checked?'var(--good)':'var(--border)'};transition:all .15s;">
           <input type="checkbox" ${item.checked?'checked':''} data-check="${item.id}" data-test="${testId}"
             style="margin-top:2px;width:14px;height:14px;flex-shrink:0;cursor:pointer;" />
-          <span style="font-size:12px;${item.checked?'text-decoration:line-through;opacity:.6;':''}${item.manual?'font-style:italic;':''}">${item.text}</span>
-          ${item.manual ? `<button data-del-sug="${item.id}" data-test="${testId}" style="margin-left:auto;background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:11px;padding:0 2px;" title="Delete">✕</button>` : ''}
+          <span class="sug-item-text" style="font-size:12px;flex:1;${item.checked?'text-decoration:line-through;opacity:.6;':''}${item.manual?'font-style:italic;':''}">${item.text}</span>
+          <button data-edit-sug="${item.id}" data-test="${testId}" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:11px;padding:0 2px;" title="Edit">✏️</button>
+          <button data-del-sug="${item.id}" data-test="${testId}" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:11px;padding:0 2px;" title="Delete">✕</button>
         </div>`).join('')}
     </div>`).join('');
 }
@@ -6692,6 +6776,33 @@ function wireSugItems(container, testId) {
       }
     });
   });
+  container.querySelectorAll(`[data-edit-sug][data-test="${testId}"]`).forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const row = btn.closest('.sug-item');
+      const spanEl = row?.querySelector('.sug-item-text');
+      if (!spanEl || row.querySelector('.sug-edit-inp')) return; // already editing
+      const oldText = spanEl.textContent;
+      const inp = document.createElement('input');
+      inp.className = 'p-input sug-edit-inp';
+      inp.value = oldText;
+      inp.style.cssText = 'flex:1;font-size:12px;';
+      spanEl.replaceWith(inp);
+      inp.focus(); inp.select();
+      function commitEdit() {
+        const newText = inp.value.trim() || oldText;
+        const allS = pGetSuggestions();
+        const sug = allS[testId];
+        if (sug) { const item = sug.items.find(x => x.id === btn.dataset.editSug); if (item) { item.text = newText; pSaveSuggestions(allS); } }
+        const itemDiv = container.querySelector(`.sug-items[data-test="${testId}"]`);
+        if (itemDiv) itemDiv.innerHTML = renderSugItems(allS[testId]?.items || [], testId);
+        wireSugItems(container, testId);
+      }
+      inp.addEventListener('blur', commitEdit);
+      inp.addEventListener('keydown', e2 => { if (e2.key === 'Enter') inp.blur(); if (e2.key === 'Escape') { inp.value = oldText; inp.blur(); } });
+    });
+  });
+
   container.querySelectorAll(`[data-del-sug][data-test="${testId}"]`).forEach(btn => {
     btn.addEventListener('click', e => {
       e.stopPropagation();
@@ -6709,8 +6820,13 @@ function wireSugItems(container, testId) {
 function generateMasterSummary() {
   const allS = pGetSuggestions();
   const deleted = pGetDeleted();
-  const tests = pGetTests().filter(t => !deleted.includes(t.id) && t.scored);
+  const lastN = parseInt(document.getElementById('sug-last-n')?.value || '0');
+  let tests = pGetTests().filter(t => !deleted.includes(t.id) && t.scored)
+    .sort((a,b) => new Date(a.date) - new Date(b.date));
+  if (lastN > 0) tests = tests.slice(-lastN);
   if (!tests.length) { alert('No scored tests found.'); return; }
+  const titleEl = document.getElementById('sug-master-title');
+  if (titleEl) titleEl.textContent = `🎯 ${lastN > 0 ? 'Last ' + lastN + ' Tests' : 'All Tests'} — Master Suggestions`;
 
   // Aggregate all suggestion items across tests
   const sectionMap = {};
@@ -6780,6 +6896,169 @@ function generateMasterSummary() {
 
   document.getElementById('sug-master-view').style.display = '';
   document.getElementById('sug-master-view').scrollIntoView({ behavior:'smooth' });
+}
+
+// =====================================================================
+// WORK ITEMS
+// =====================================================================
+const WI_KEY = 'upsc_work_items';
+function wiGet()       { try { return JSON.parse(localStorage.getItem(WI_KEY)) || []; } catch { return []; } }
+function wiSave(arr)   { localStorage.setItem(WI_KEY, JSON.stringify(arr)); }
+
+const WI_PRI_LABELS = { high:'🔴 High', mid:'🟡 Mid', low:'🟢 Low' };
+const WI_PRI_ORDER  = { high:0, mid:1, low:2 };
+
+function renderWorkItems() {
+  const list = document.getElementById('wi-list');
+  if (!list) return;
+  const filter = document.getElementById('wi-filter')?.value || 'all';
+  let items = wiGet();
+  if (filter === 'open') items = items.filter(x => !x.done);
+  if (filter === 'done') items = items.filter(x =>  x.done);
+
+  // Group by section
+  const sections = {};
+  items.forEach(it => {
+    const s = it.section || 'General';
+    if (!sections[s]) sections[s] = [];
+    sections[s].push(it);
+  });
+  // Sort within section by priority then date
+  Object.values(sections).forEach(arr => arr.sort((a,b) => (WI_PRI_ORDER[a.priority]||1) - (WI_PRI_ORDER[b.priority]||1)));
+
+  list.innerHTML = '';
+  if (!items.length) {
+    list.innerHTML = '<div style="color:var(--text-muted);font-size:13px;padding:20px 0;">No work items yet. Add one above.</div>';
+    return;
+  }
+
+  Object.entries(sections).forEach(([sec, sitems]) => {
+    const secHdr = document.createElement('div');
+    secHdr.style.cssText = 'font-size:11px;font-weight:700;color:var(--text-muted);margin:10px 0 4px;text-transform:uppercase;letter-spacing:.5px;';
+    secHdr.textContent = sec;
+    list.appendChild(secHdr);
+
+    sitems.forEach(it => {
+      const row = document.createElement('div');
+      const today = new Date().toISOString().slice(0,10);
+      const overdue = it.due && !it.done && it.due < today;
+      row.style.cssText = `display:flex;align-items:flex-start;gap:8px;padding:8px 10px;border-radius:8px;margin-bottom:4px;border:1px solid ${it.done?'var(--good)':overdue?'var(--danger)':'var(--border)'};background:${it.done?'var(--good-soft)':overdue?'rgba(239,68,68,.06)':'var(--section-bg)'};transition:all .15s;`;
+
+      // Checkbox
+      const cb = document.createElement('input');
+      cb.type = 'checkbox'; cb.checked = it.done;
+      cb.style.cssText = 'width:15px;height:15px;margin-top:2px;flex-shrink:0;cursor:pointer;';
+      cb.addEventListener('change', () => {
+        const all = wiGet(); const idx = all.findIndex(x => x.id === it.id);
+        if (idx >= 0) { all[idx].done = cb.checked; wiSave(all); renderWorkItems(); }
+      });
+
+      // Text + meta
+      const body = document.createElement('div');
+      body.style.cssText = 'flex:1;min-width:0;';
+      const textEl = document.createElement('div');
+      textEl.style.cssText = `font-size:13px;${it.done?'text-decoration:line-through;opacity:.5;':''}`;
+      textEl.textContent = it.text;
+      const meta = document.createElement('div');
+      meta.style.cssText = 'display:flex;gap:8px;margin-top:3px;flex-wrap:wrap;';
+      meta.innerHTML = `<span style="font-size:10px;">${WI_PRI_LABELS[it.priority]||''}</span>`
+        + (it.due ? `<span style="font-size:10px;color:${overdue?'var(--danger)':'var(--text-muted)'};">📅 ${it.due}${overdue?' ⚠️ Overdue':''}</span>` : '')
+        + (it.source ? `<span style="font-size:10px;color:var(--text-muted);">↳ ${it.source}</span>` : '');
+      body.append(textEl, meta);
+
+      // Edit + delete buttons
+      const btnWrap = document.createElement('div');
+      btnWrap.style.cssText = 'display:flex;gap:3px;flex-shrink:0;';
+      const editBtn = document.createElement('button');
+      editBtn.style.cssText = 'background:none;border:none;cursor:pointer;font-size:12px;color:var(--text-muted);padding:1px 3px;';
+      editBtn.textContent = '✏️'; editBtn.title = 'Edit';
+      const delBtn = document.createElement('button');
+      delBtn.style.cssText = 'background:none;border:none;cursor:pointer;font-size:12px;color:var(--text-muted);padding:1px 3px;';
+      delBtn.textContent = '✕'; delBtn.title = 'Delete';
+      btnWrap.append(editBtn, delBtn);
+
+      row.append(cb, body, btnWrap);
+      list.appendChild(row);
+
+      // Inline edit
+      editBtn.addEventListener('click', () => {
+        if (row.querySelector('.wi-edit-wrap')) return;
+        const editWrap = document.createElement('div');
+        editWrap.className = 'wi-edit-wrap';
+        editWrap.style.cssText = 'margin-top:8px;display:flex;flex-direction:column;gap:5px;';
+        editWrap.innerHTML = `
+          <input class="p-input wi-e-text" value="${it.text.replace(/"/g,'&quot;')}" style="font-size:12px;" />
+          <div style="display:flex;gap:5px;">
+            <input class="p-input wi-e-sec" value="${(it.section||'').replace(/"/g,'&quot;')}" placeholder="Section…" style="flex:1;font-size:11px;" />
+            <select class="p-select wi-e-pri" style="font-size:11px;width:90px;">
+              <option value="high" ${it.priority==='high'?'selected':''}>🔴 High</option>
+              <option value="mid"  ${it.priority==='mid' ?'selected':''}>🟡 Mid</option>
+              <option value="low"  ${it.priority==='low' ?'selected':''}>🟢 Low</option>
+            </select>
+            <input class="p-input wi-e-due" type="date" value="${it.due||''}" style="width:130px;font-size:11px;" />
+          </div>
+          <div style="display:flex;gap:5px;justify-content:flex-end;">
+            <button class="p-btn p-btn-primary wi-e-save" style="font-size:11px;padding:3px 10px;">Save</button>
+            <button class="p-btn p-btn-ghost wi-e-cancel" style="font-size:11px;padding:3px 8px;">Cancel</button>
+          </div>`;
+        body.appendChild(editWrap);
+        editWrap.querySelector('.wi-e-save').addEventListener('click', () => {
+          const all = wiGet(); const idx2 = all.findIndex(x => x.id === it.id);
+          if (idx2 >= 0) {
+            all[idx2].text     = editWrap.querySelector('.wi-e-text').value.trim() || it.text;
+            all[idx2].section  = editWrap.querySelector('.wi-e-sec').value.trim();
+            all[idx2].priority = editWrap.querySelector('.wi-e-pri').value;
+            all[idx2].due      = editWrap.querySelector('.wi-e-due').value;
+            wiSave(all); renderWorkItems();
+          }
+        });
+        editWrap.querySelector('.wi-e-cancel').addEventListener('click', () => editWrap.remove());
+      });
+
+      delBtn.addEventListener('click', () => {
+        const all = wiGet(); wiSave(all.filter(x => x.id !== it.id)); renderWorkItems();
+      });
+    });
+  });
+}
+
+function initWorkItems() {
+  const addBtn    = document.getElementById('wi-add-btn');
+  const form      = document.getElementById('wi-add-form');
+  const saveBtn   = document.getElementById('wi-save-btn');
+  const cancelBtn = document.getElementById('wi-cancel-btn');
+  const filter    = document.getElementById('wi-filter');
+  if (!addBtn) return;
+
+  addBtn.addEventListener('click', () => {
+    form.style.display = form.style.display === 'none' ? '' : 'none';
+    if (form.style.display !== 'none') document.getElementById('wi-inp-text').focus();
+  });
+  cancelBtn.addEventListener('click', () => { form.style.display = 'none'; });
+  filter.addEventListener('change', renderWorkItems);
+
+  function doAdd() {
+    const text = document.getElementById('wi-inp-text').value.trim();
+    if (!text) { document.getElementById('wi-inp-text').style.borderColor = 'var(--danger)'; return; }
+    const item = {
+      id:       `wi-${Date.now()}`,
+      text,
+      section:  document.getElementById('wi-inp-section').value.trim() || 'General',
+      priority: document.getElementById('wi-inp-priority').value,
+      due:      document.getElementById('wi-inp-due').value || '',
+      done:     false,
+      source:   '',
+    };
+    const all = wiGet(); all.push(item); wiSave(all);
+    // reset form
+    ['wi-inp-text','wi-inp-section','wi-inp-due'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('wi-inp-priority').value = 'mid';
+    document.getElementById('wi-inp-text').style.borderColor = '';
+    form.style.display = 'none';
+    renderWorkItems();
+  }
+  saveBtn.addEventListener('click', doAdd);
+  document.getElementById('wi-inp-text').addEventListener('keydown', e => { if (e.key === 'Enter') doAdd(); });
 }
 
 // =====================================================================
