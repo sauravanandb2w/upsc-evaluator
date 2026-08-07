@@ -576,17 +576,26 @@
   .prelims-pane.active { display:block; }
   .p-card { background:var(--card-bg); border:1px solid var(--border); border-radius:10px; padding:14px; margin-bottom:12px; }
   .p-label { font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:.5px; margin-bottom:5px; }
-  .omr-grid { display:grid; grid-template-columns:1fr 1fr; gap:2px 8px; margin-top:10px; }
-  .omr-row { display:flex; align-items:center; gap:5px; padding:3px 4px; border-radius:5px; font-size:12px; }
-  .omr-row:hover { background:var(--bg-hover); }
-  .omr-qnum { width:28px; color:var(--text-muted); font-size:11px; flex-shrink:0; }
-  .omr-bubble { width:26px; height:26px; border-radius:50%; border:2px solid var(--border); background:none; cursor:pointer; font-size:11px; font-weight:700; color:var(--text-soft); transition:all .12s; flex-shrink:0; }
-  .omr-bubble:hover { border-color:var(--primary); color:var(--primary); }
-  .omr-bubble.selected { background:var(--primary); border-color:var(--primary); color:#fff; }
+  /* Real UPSC OMR 4-column layout */
+  .omr-sheet { background:#fff5f5; border:2px solid #d4608a; border-radius:10px; padding:10px; margin-top:8px; }
+  .omr-sheet-header { background:#c2185b; color:#fff; text-align:center; padding:6px 10px; border-radius:6px; margin-bottom:8px; font-size:12px; font-weight:700; letter-spacing:.5px; }
+  .omr-columns { display:grid; grid-template-columns:repeat(4,1fr); gap:4px; }
+  .omr-col { border:1px solid #e8a0b4; border-radius:6px; overflow:hidden; background:#fff; }
+  .omr-col-header { background:#d4608a; color:#fff; text-align:center; font-size:10px; font-weight:700; padding:3px; letter-spacing:.3px; }
+  .omr-grid { display:contents; }
+  .omr-row { display:flex; align-items:center; gap:3px; padding:2px 4px; font-size:11px; border-bottom:1px solid #fce4ec; }
+  .omr-row:last-child { border-bottom:none; }
+  .omr-row:hover { background:#fce4ec; }
+  .omr-row.omr-inactive { opacity:.35; pointer-events:none; }
+  .omr-qnum { width:22px; color:#880e4f; font-size:9px; font-weight:700; flex-shrink:0; text-align:right; }
+  .omr-bubbles { display:flex; gap:2px; flex-shrink:0; }
+  .omr-bubble { width:22px; height:22px; border-radius:50%; border:2px solid #e8a0b4; background:#fff; cursor:pointer; font-size:10px; font-weight:700; color:#880e4f; transition:all .12s; flex-shrink:0; }
+  .omr-bubble:hover { border-color:#c2185b; color:#c2185b; background:#fce4ec; }
+  .omr-bubble.selected { background:#c2185b; border-color:#c2185b; color:#fff; }
   .omr-bubble.correct { background:#22c55e; border-color:#22c55e; color:#fff; }
   .omr-bubble.wrong { background:#ef4444; border-color:#ef4444; color:#fff; }
   .omr-bubble.missed { background:#f59e0b; border-color:#f59e0b; color:#fff; }
-  .omr-tag-sel { display:flex; gap:2px; flex-wrap:wrap; max-width:160px; }
+  .omr-tag-sel { display:flex; gap:2px; flex-wrap:wrap; max-width:130px; }
   .omr-tag-btn { padding:1px 4px; border-radius:3px; cursor:pointer; font-size:9px; font-weight:700; border:1px solid transparent; opacity:.55; transition:all .1s; }
   .omr-tag-btn:hover { opacity:.9; }
   .omr-tag-btn.active-tag { opacity:1; box-shadow:0 0 0 2px var(--primary); }
@@ -636,7 +645,7 @@
   .p-tab-inner { padding:4px 12px; border-radius:14px; font-size:12px; border:1px solid var(--border); cursor:pointer; background:none; color:var(--text-soft); }
   .p-tab-inner.active { background:var(--accent); color:#fff; border-color:var(--accent); }
   .analytics-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px; }
-  @media(max-width:640px){ .analytics-row { grid-template-columns:1fr; } .omr-grid { grid-template-columns:1fr; } }
+  @media(max-width:640px){ .analytics-row { grid-template-columns:1fr; } .omr-columns { grid-template-columns:repeat(2,1fr); } }
   .chart-wrap { background:var(--card-bg); border:1px solid var(--border); border-radius:10px; padding:12px; }
   .chart-title { font-size:12px; font-weight:700; color:var(--text-muted); margin-bottom:8px; text-transform:uppercase; letter-spacing:.4px; }
   /* analytics stat cards */
@@ -672,12 +681,13 @@
   .top-tab-btn { flex:1; padding:12px 16px; border:none; background:none; font-size:14px; font-weight:600; cursor:pointer; color:var(--text-muted); border-bottom:3px solid transparent; margin-bottom:-2px; transition:all .15s; }
   .top-tab-btn:hover { color:var(--primary); background:var(--primary-soft); }
   .top-tab-btn.active { color:var(--primary); border-bottom-color:var(--primary); background:var(--primary-soft); }
-  .mains-sub-nav { border-top:none; padding-top:4px; }
-  /* mains content wrapper */
+  .mains-sub-nav { border-top:none; padding-top:4px; display:none; }
+  .mains-sub-nav.active { display:flex; }
+  /* top-level content wrappers — both hidden by default, shown via .active */
   #mains-content { display:none; }
   #mains-content.active { display:block; }
-  #prelims-content { display:block; }
-  #prelims-content.hidden { display:none; }
+  #prelims-content { display:none; }
+  #prelims-content.active { display:block; }
   /* settings-global-btn */
   #settings-global-btn { margin-left:8px; border-radius:8px; }
 </style>
@@ -697,12 +707,12 @@
 
   <!-- TOP-LEVEL TABS -->
   <nav class="nav top-nav">
-    <button class="top-tab-btn active" data-top="prelims">🔵 Preliminary Examination</button>
+    <button class="top-tab-btn active" data-top="prelims">🔵 Preliminary Examination (an objective screening test)</button>
     <button class="top-tab-btn" data-top="mains">✍️ Main Examination</button>
   </nav>
 
   <!-- MAINS SUB-NAV -->
-  <nav class="nav mains-sub-nav" id="mains-sub-nav" style="display:none;">
+  <nav class="nav mains-sub-nav" id="mains-sub-nav">
     <button class="nav-btn active" data-view="evaluate">✍️ Evaluate</button>
     <button class="nav-btn" data-view="daily">🌅 Daily</button>
     <button class="nav-btn" data-view="pyq">📚 PYQs</button>
@@ -1131,8 +1141,18 @@
       <button class="prelims-sub-btn" data-pane="answerkey">🔑 Answer Key</button>
       <button class="prelims-sub-btn" data-pane="phistory">📋 History</button>
       <button class="prelims-sub-btn" data-pane="analytics">📊 Analytics</button>
+      <button class="prelims-sub-btn" data-pane="review">🔍 Review</button>
+      <button class="prelims-sub-btn" data-pane="papers">📄 Papers</button>
       <button class="prelims-sub-btn" data-pane="suggestions">💡 Suggestions</button>
       <button class="prelims-sub-btn" data-pane="resources">📚 Resources</button>
+      <div style="margin-left:auto;display:flex;align-items:center;gap:6px;padding:4px 0;">
+        <select id="p-provider-sel" class="p-select" style="font-size:11px;" title="LLM Provider">
+          <option value="groq">Groq</option>
+          <option value="gemini">Gemini</option>
+          <option value="openrouter">OpenRouter</option>
+        </select>
+        <select id="p-model-sel" class="p-select" style="font-size:11px;max-width:140px;" title="Model"></select>
+      </div>
     </nav>
 
     <!-- OMR ENTRY -->
@@ -1186,9 +1206,12 @@
             <span class="tag-chip tag-T">T=Trick</span>
             <span class="tag-chip tag-G1">G1=FamiliarGuess</span>
             <span class="tag-chip tag-G0">G0=BlindGuess</span>
+            <span class="tag-chip tag-C">C=Confused</span>
+            <span class="tag-chip tag-S">S=Skipped</span>
+            <span class="tag-chip tag-NV">NV=NotVisited</span>
           </div>
         </div>
-        <div id="p-omr-grid" class="omr-grid"></div>
+        <div id="p-omr-grid"></div>
         <div style="padding:12px 0;text-align:center;">
           <button class="p-btn p-btn-primary" id="p-save-omr-bottom">💾 Save Test</button>
         </div>
@@ -1204,6 +1227,16 @@
           <option value="">— choose a test —</option>
         </select>
         <div id="p-ak-info" style="font-size:12px;color:var(--text-muted);margin-bottom:8px;"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
+          <div>
+            <div class="p-label">Question Paper PDF/Link</div>
+            <input type="url" id="p-ak-qpdf" class="p-input" placeholder="https://… or leave blank" />
+          </div>
+          <div>
+            <div class="p-label">Answer Key PDF/Link</div>
+            <input type="url" id="p-ak-akpdf" class="p-input" placeholder="https://… or leave blank" />
+          </div>
+        </div>
         <button class="p-btn p-btn-primary" id="p-ak-load">Load Answer Key Sheet →</button>
       </div>
       <div id="p-ak-container" style="display:none;">
@@ -1259,11 +1292,53 @@
               <option value="10">Last 10</option>
             </select>
           </label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:12px;">
+            🔍
+            <select id="pa-single-test" class="p-select" style="font-size:11px;min-width:130px;">
+              <option value="">Cumulative view</option>
+            </select>
+          </label>
         </div>
       </div>
       <div id="p-analytics-content">
         <div style="color:var(--text-muted);font-size:13px;padding:20px 0;">Add at least one completed test (with answer key) to see analytics.</div>
       </div>
+    </div>
+
+    <!-- REVIEW -->
+    <div class="prelims-pane" id="pane-review">
+      <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;align-items:center;justify-content:space-between;">
+        <div style="display:flex;gap:6px;">
+          <button class="p-tab-inner active" id="rv-gs-btn">GS</button>
+          <button class="p-tab-inner" id="rv-csat-btn">CSAT</button>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <select id="rv-test-sel" class="p-select" style="font-size:11px;min-width:160px;">
+            <option value="">— pick a test —</option>
+          </select>
+          <label style="font-size:12px;display:flex;align-items:center;gap:4px;">
+            <input type="checkbox" id="rv-wrong-only" checked style="width:13px;height:13px;" /> Wrong only
+          </label>
+        </div>
+      </div>
+      <div id="rv-content"><div style="color:var(--text-muted);font-size:13px;padding:20px 0;">Select a scored test above to review questions.</div></div>
+    </div>
+
+    <!-- PAPERS -->
+    <div class="prelims-pane" id="pane-papers">
+      <!-- OMR Sheet Reference -->
+      <details class="p-card" style="margin-bottom:12px;" open>
+        <summary style="cursor:pointer;font-weight:700;font-size:13px;color:var(--primary);user-select:none;">🗒️ Real UPSC OMR Sheet Reference</summary>
+        <div style="margin-top:10px;">
+          <div id="omr-ref-preview"></div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:8px;">
+            GS Paper I: Q1–100 active (Q101–160 inactive) · CSAT Paper II: Q1–80 active (Q81–160 inactive)<br>
+            Real OMR: 4 columns × 40 rows = 160 bubbles · Pink/coral color scheme matches real UPSC exam
+          </div>
+        </div>
+      </details>
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px;">PDF links attached to each test. Add/update them via the Answer Key pane.</div>
+      <div id="papers-list"></div>
     </div>
 
     <!-- SUGGESTIONS -->
@@ -1675,15 +1750,22 @@ let currentTop = 'prelims'; // default: show prelims on load
 
 function switchTop(tab) {
   currentTop = tab;
+  // tab buttons
   document.querySelectorAll('.top-tab-btn').forEach(b => b.classList.toggle('active', b.dataset.top === tab));
-  const isMainsTab = tab === 'mains';
-  document.getElementById('mains-content').style.display = isMainsTab ? '' : 'none';
-  document.getElementById('mains-sub-nav').style.display = isMainsTab ? '' : 'none';
-  document.getElementById('prelims-content').style.display = tab === 'prelims' ? '' : 'none';
-  // hide settings when switching tabs
+  // content wrappers — pure class-based, no inline style
+  const mainsContent   = document.getElementById('mains-content');
+  const prelimsContent = document.getElementById('prelims-content');
+  const mainsSubNav    = document.getElementById('mains-sub-nav');
+  const prelimsView    = document.getElementById('view-prelims');
+  mainsContent.classList.toggle('active', tab === 'mains');
+  prelimsContent.classList.toggle('active', tab === 'prelims');
+  mainsSubNav.classList.toggle('active', tab === 'mains');
+  // view-prelims is a .view (display:none by default) — needs active
+  if (prelimsView) prelimsView.classList.toggle('active', tab === 'prelims');
+  // hide settings
   document.getElementById('view-settings').classList.remove('active');
-  if (isMainsTab) {
-    // show the active mains view
+  if (tab === 'mains') {
+    // ensure correct mains view is shown
     document.querySelectorAll('#mains-content .view').forEach(v => {
       v.classList.toggle('active', v.id === 'view-' + currentMainsView);
     });
@@ -1702,9 +1784,9 @@ document.getElementById('settings-global-btn').addEventListener('click', () => {
   const isOpen = settingsEl.classList.contains('active');
   // hide all views
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-  document.getElementById('mains-content').style.display = 'none';
-  document.getElementById('mains-sub-nav').style.display = 'none';
-  document.getElementById('prelims-content').style.display = 'none';
+  document.getElementById('mains-content').classList.remove('active');
+  document.getElementById('mains-sub-nav').classList.remove('active');
+  document.getElementById('prelims-content').classList.remove('active');
   document.querySelectorAll('.top-tab-btn').forEach(b => b.classList.remove('active'));
   if (isOpen) {
     // toggle off → go back to where we were
@@ -3740,13 +3822,21 @@ $('backupGistBtn').addEventListener('click', async () => {
       body: JSON.stringify({
         description: 'UPSC Evaluator History Backup',
         public: false,
-        files: { 'upsc-history.json': { content: JSON.stringify(history, null, 2) } }
+        files: {
+          'upsc-history.json': { content: JSON.stringify(history, null, 2) },
+          'upsc-prelims-tests.json': { content: localStorage.getItem('upsc_prelims_tests') || '[]' },
+          'upsc-prelims-suggestions.json': { content: localStorage.getItem('upsc_prelims_suggestions') || '{}' },
+          'upsc-prelims-tricks.json': { content: localStorage.getItem('upsc_prelims_tricks') || '[]' },
+          'upsc-prelims-blogs.json': { content: localStorage.getItem('upsc_prelims_blogs') || '[]' },
+          'upsc-prelims-deleted.json': { content: localStorage.getItem('upsc_prelims_deleted') || '[]' },
+        }
       })
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.message || res.status);
     localStorage.setItem(GIST_ID_KEY, data.id);
-    statusEl.innerHTML = `<span style="color:var(--good)">✓ Backed up ${history.length} entries · ${new Date().toLocaleString('en-IN')} · <a href="${data.html_url}" target="_blank">View Gist</a></span>`;
+    const pTests = JSON.parse(localStorage.getItem('upsc_prelims_tests') || '[]');
+    statusEl.innerHTML = `<span style="color:var(--good)">✓ Backed up ${history.length} mains + ${pTests.length} prelims tests · ${new Date().toLocaleString('en-IN')} · <a href="${data.html_url}" target="_blank">View Gist</a></span>`;
   } catch (e) {
     statusEl.innerHTML = `<span style="color:var(--danger)">✗ ${escapeHtml(e.message)}</span>`;
   }
@@ -3774,7 +3864,28 @@ $('restoreGistBtn').addEventListener('click', async () => {
     const fresh = parsed.filter(x => !tsSet.has(x.ts) && !deleted.has(x.ts));
     const merged = [...existing, ...fresh].sort((a, b) => a.ts - b.ts);
     saveHistory(merged);
-    statusEl.innerHTML = `<span style="color:var(--good)">✓ Merged ${fresh.length} new entries. Total: ${merged.length}.</span>`;
+
+    // Restore prelims data (merge by id for tests)
+    let pMerged = 0;
+    const pTestsRaw = data.files?.['upsc-prelims-tests.json']?.content;
+    if (pTestsRaw) {
+      const remoteTests = JSON.parse(pTestsRaw);
+      const localTests = JSON.parse(localStorage.getItem('upsc_prelims_tests') || '[]');
+      const localIds = new Set(localTests.map(t => t.id));
+      const newTests = remoteTests.filter(t => !localIds.has(t.id));
+      pMerged = newTests.length;
+      localStorage.setItem('upsc_prelims_tests', JSON.stringify([...localTests, ...newTests]));
+    }
+    ['upsc-prelims-suggestions.json','upsc-prelims-tricks.json','upsc-prelims-blogs.json','upsc-prelims-deleted.json'].forEach(fname => {
+      const lsKey = fname.replace('upsc-','upsc_').replace(/-/g,'_').replace('.json','').replace('upsc_prelims_','upsc_prelims_');
+      const content = data.files?.[fname]?.content;
+      if (content && !localStorage.getItem(lsKey.replace('upsc_prelims_','upsc_prelims_'))) {
+        // Only restore if key doesn't exist locally
+        const lsKeyFixed = 'upsc_' + fname.replace('upsc-','').replace(/-/g,'_').replace('.json','');
+        if (!localStorage.getItem(lsKeyFixed)) localStorage.setItem(lsKeyFixed, content);
+      }
+    });
+    statusEl.innerHTML = `<span style="color:var(--good)">✓ Merged ${fresh.length} mains + ${pMerged} prelims tests. Total: ${merged.length} mains.</span>`;
     if ($('view-history').classList.contains('active')) renderHistory();
   } catch (e) {
     statusEl.innerHTML = `<span style="color:var(--danger)">✗ ${escapeHtml(e.message)}</span>`;
@@ -3850,6 +3961,52 @@ const TAGS = [
   { id:'S',  label:'S',  title:'Skipped',        desc:'Intentionally skipped/unattempted.',          color:'#9e9e9e' },
   { id:'NV', label:'NV', title:'Not Visited',    desc:'Did not reach this question in time.',        color:'#bdbdbd' },
 ];
+
+// --- Tag helpers (multi-tag: {exam:[], analysis:[], trickRef:''} — backward compat with old string) ---
+// Each question's tag entry: tags[i] = { exam: ['K','T'], analysis: ['G0'], trickRef: 'T3' }
+// Old format: tags[i] = 'K'  (string) — normalized on read
+function normTagEntry(v) {
+  if (!v) return { exam:[], analysis:[], trickRef:'' };
+  if (typeof v === 'string') return { exam:[v], analysis:[], trickRef:'' };
+  return {
+    exam: Array.isArray(v.exam) ? v.exam : [],
+    analysis: Array.isArray(v.analysis) ? v.analysis : [],
+    trickRef: v.trickRef || '',
+  };
+}
+function getExamTags(tags, i)     { return normTagEntry(tags?.[i]).exam; }
+function getAnalysisTags(tags, i) { return normTagEntry(tags?.[i]).analysis; }
+function getAllTags(tags, i)       { const e = normTagEntry(tags?.[i]); return [...e.exam, ...e.analysis]; }
+function getTrickRef(tags, i)     { return normTagEntry(tags?.[i]).trickRef; }
+function setExamTag(tags, i, id, on) {
+  const entry = normTagEntry(tags[i]);
+  if (on) { if (!entry.exam.includes(id)) entry.exam.push(id); }
+  else     { entry.exam = entry.exam.filter(x => x !== id); if (id === 'T') entry.trickRef = ''; }
+  tags[i] = entry;
+}
+function setAnalysisTag(tags, i, id, on) {
+  const entry = normTagEntry(tags[i]);
+  if (on) { if (!entry.analysis.includes(id)) entry.analysis.push(id); }
+  else     { entry.analysis = entry.analysis.filter(x => x !== id); }
+  tags[i] = entry;
+}
+function setTrickRef(tags, i, ref) {
+  const entry = normTagEntry(tags[i]);
+  entry.trickRef = ref;
+  // Ensure T is in exam tags when a trick ref is set
+  if (ref && !entry.exam.includes('T')) entry.exam.push('T');
+  tags[i] = entry;
+}
+function hasAnyTag(tags, i) {
+  const e = normTagEntry(tags?.[i]);
+  return e.exam.length > 0 || e.analysis.length > 0;
+}
+// Returns list of trick options: from tricks sheet + fallback T1-T15
+function getTrickOptions() {
+  const saved = pGetTricks();
+  if (saved.length) return saved.map(t => ({ id: t.id, label: t.id + (t.title ? ' — ' + t.title : '') }));
+  return Array.from({length:15},(_,i)=>({ id:`T${i+1}`, label:`T${i+1}` }));
+}
 
 // --- Taxonomy ---
 const TAXONOMY = {
@@ -4023,79 +4180,172 @@ function setBreakdown(detail, type) {
 // =====================================================================
 // OMR RENDERING
 // =====================================================================
-function renderOMRGrid(container, type, data) {
-  // data: { responses: {}, tags: {} }
-  container.innerHTML = '';
-  const n = type === 'CSAT' ? 80 : 100;
-  const opts = ['A','B','C','D'];
+function makeOMRRow(i, type, data, opts) {
+  const qNum = i + 1;
+  const row = document.createElement('div');
+  row.className = 'omr-row';
+  row.dataset.q = i;
 
-  for (let i = 0; i < n; i++) {
-    const qNum = i + 1;
-    const row = document.createElement('div');
-    row.className = 'omr-row';
-    row.dataset.q = i;
+  const numEl = document.createElement('div');
+  numEl.className = 'omr-qnum';
+  numEl.textContent = qNum;
+  row.appendChild(numEl);
 
-    const numEl = document.createElement('div');
-    numEl.className = 'omr-qnum';
-    numEl.textContent = qNum;
-    row.appendChild(numEl);
+  const bubblesEl = document.createElement('div');
+  bubblesEl.className = 'omr-bubbles';
 
-    const bubblesEl = document.createElement('div');
-    bubblesEl.className = 'omr-bubbles';
-
-    opts.forEach(opt => {
-      const b = document.createElement('button');
-      b.className = 'omr-bubble';
-      b.dataset.q = i;
-      b.dataset.opt = opt;
-      b.textContent = opt;
-      if (data.responses[i] === opt) b.classList.add('selected');
-      b.addEventListener('click', () => {
-        // Toggle selection
-        const cur = data.responses[i];
-        if (cur === opt) {
-          delete data.responses[i];
-          b.classList.remove('selected');
-        } else {
-          // deselect others
-          bubblesEl.querySelectorAll('.omr-bubble').forEach(x => x.classList.remove('selected'));
-          data.responses[i] = opt;
-          b.classList.add('selected');
-        }
-        updateOMRProgress(container, n, data);
-        pSaveDraft({ type, responses: data.responses, tags: data.tags, _partial: true });
-      });
-      bubblesEl.appendChild(b);
+  opts.forEach(opt => {
+    const b = document.createElement('button');
+    b.className = 'omr-bubble';
+    b.dataset.q = i;
+    b.dataset.opt = opt;
+    b.textContent = opt;
+    if (data.responses[i] === opt) b.classList.add('selected');
+    b.addEventListener('click', () => {
+      const cur = data.responses[i];
+      if (cur === opt) {
+        delete data.responses[i];
+        b.classList.remove('selected');
+      } else {
+        bubblesEl.querySelectorAll('.omr-bubble').forEach(x => x.classList.remove('selected'));
+        data.responses[i] = opt;
+        b.classList.add('selected');
+      }
+      const n = type === 'CSAT' ? 80 : 100;
+      updateOMRProgress(row.closest('.omr-sheet') || row.parentNode, n, data);
+      pSaveDraft({ type, responses: data.responses, tags: data.tags, _partial: true });
     });
-    row.appendChild(bubblesEl);
+    bubblesEl.appendChild(b);
+  });
+  row.appendChild(bubblesEl);
 
-    // Tag selector
-    const tagSel = document.createElement('div');
-    tagSel.className = 'omr-tag-sel';
-    TAGS.slice(0,6).forEach(tag => { // K,E1,E2,T,G1,G0 during OMR entry
-      const t = document.createElement('button');
-      t.className = `omr-tag-btn tag-chip tag-${tag.id}`;
-      t.dataset.q = i;
-      t.dataset.tag = tag.id;
-      t.textContent = tag.label;
-      if (data.tags[i] === tag.id) t.classList.add('active-tag');
-      t.addEventListener('click', () => {
-        const cur = data.tags[i];
-        tagSel.querySelectorAll('.omr-tag-btn').forEach(x => x.classList.remove('active-tag'));
-        if (cur === tag.id) { delete data.tags[i]; }
-        else { data.tags[i] = tag.id; t.classList.add('active-tag'); }
-        pSaveDraft({ type, responses: data.responses, tags: data.tags, _partial: true });
-      });
-      tagSel.appendChild(t);
-    });
-    row.appendChild(tagSel);
+  const tagWrap = document.createElement('div');
+  tagWrap.style.cssText = 'display:flex;flex-direction:column;gap:2px;';
 
-    container.appendChild(row);
+  const tagSel = document.createElement('div');
+  tagSel.className = 'omr-tag-sel';
+
+  // Trick ref dropdown — shown/hidden based on T being active
+  const trickPicker = document.createElement('select');
+  trickPicker.className = 'p-select';
+  trickPicker.style.cssText = 'font-size:9px;padding:1px 3px;display:none;max-width:130px;';
+  trickPicker.title = 'Which trick did you apply?';
+  const blankOpt = document.createElement('option');
+  blankOpt.value = ''; blankOpt.textContent = 'Trick #…';
+  trickPicker.appendChild(blankOpt);
+  getTrickOptions().forEach(opt => {
+    const o = document.createElement('option');
+    o.value = opt.id; o.textContent = opt.label;
+    trickPicker.appendChild(o);
+  });
+  trickPicker.value = getTrickRef(data.tags, i);
+  trickPicker.addEventListener('change', () => {
+    setTrickRef(data.tags, i, trickPicker.value);
+    pSaveDraft({ type, responses: data.responses, tags: data.tags, _partial: true });
+  });
+
+  function refreshTrickPicker() {
+    const tActive = getExamTags(data.tags, i).includes('T');
+    trickPicker.style.display = tActive ? '' : 'none';
+    if (!tActive) trickPicker.value = '';
   }
+  refreshTrickPicker();
+
+  TAGS.forEach(tag => {
+    const t = document.createElement('button');
+    t.className = `omr-tag-btn tag-chip tag-${tag.id}`;
+    t.dataset.q = i;
+    t.dataset.tag = tag.id;
+    t.textContent = tag.label;
+    t.title = `${tag.title} — click to toggle (multi-select)`;
+    if (getExamTags(data.tags, i).includes(tag.id)) t.classList.add('active-tag');
+    t.addEventListener('click', () => {
+      const active = getExamTags(data.tags, i).includes(tag.id);
+      setExamTag(data.tags, i, tag.id, !active);
+      t.classList.toggle('active-tag', !active);
+      refreshTrickPicker();
+      const n = type === 'CSAT' ? 80 : 100;
+      updateOMRProgress(row.closest('.omr-sheet') || row.parentNode, n, data);
+      pSaveDraft({ type, responses: data.responses, tags: data.tags, _partial: true });
+    });
+    tagSel.appendChild(t);
+  });
+
+  tagWrap.appendChild(tagSel);
+  tagWrap.appendChild(trickPicker);
+  row.appendChild(tagWrap);
+  return row;
 }
 
-function renderAKGrid(container, type, responses, keys, tags, subjects) {
-  // subjects: { [qIdx]: { subject, theme, subtheme } }
+function renderOMRGrid(container, type, data) {
+  // Real UPSC OMR: 4 columns × 40 rows = 160 total; GS uses Q1-100, CSAT Q1-80
+  container.innerHTML = '';
+  const active = type === 'CSAT' ? 80 : 100;
+  const opts = ['A','B','C','D'];
+  const TOTAL = 160; // full OMR sheet
+
+  const sheet = document.createElement('div');
+  sheet.className = 'omr-sheet';
+
+  const hdr = document.createElement('div');
+  hdr.className = 'omr-sheet-header';
+  hdr.textContent = `UPSC PRELIMINARY EXAMINATION — ${type === 'CSAT' ? 'PAPER II (CSAT)' : 'PAPER I (GS)'} — ANSWER SHEET`;
+  sheet.appendChild(hdr);
+
+  const cols = document.createElement('div');
+  cols.className = 'omr-columns';
+
+  // 4 columns: Q1-40, Q41-80, Q81-120, Q121-160
+  const colDefs = [
+    { start: 1,   end: 40,  label: 'Q 1 – 40' },
+    { start: 41,  end: 80,  label: 'Q 41 – 80' },
+    { start: 81,  end: 120, label: 'Q 81 – 120' },
+    { start: 121, end: 160, label: 'Q 121 – 160' },
+  ];
+
+  colDefs.forEach(col => {
+    const colEl = document.createElement('div');
+    colEl.className = 'omr-col';
+
+    const colHdr = document.createElement('div');
+    colHdr.className = 'omr-col-header';
+    colHdr.textContent = col.label;
+    colEl.appendChild(colHdr);
+
+    for (let qNum = col.start; qNum <= col.end; qNum++) {
+      const i = qNum - 1; // 0-indexed
+      if (qNum > active) {
+        // Inactive row (grayed out)
+        const row = document.createElement('div');
+        row.className = 'omr-row omr-inactive';
+        const numEl = document.createElement('div');
+        numEl.className = 'omr-qnum';
+        numEl.textContent = qNum;
+        row.appendChild(numEl);
+        const bubblesEl = document.createElement('div');
+        bubblesEl.className = 'omr-bubbles';
+        opts.forEach(opt => {
+          const b = document.createElement('div');
+          b.className = 'omr-bubble';
+          b.textContent = opt;
+          b.style.cssText = 'cursor:not-allowed;';
+          bubblesEl.appendChild(b);
+        });
+        row.appendChild(bubblesEl);
+        colEl.appendChild(row);
+      } else {
+        colEl.appendChild(makeOMRRow(i, type, data, opts));
+      }
+    }
+    cols.appendChild(colEl);
+  });
+
+  sheet.appendChild(cols);
+  container.appendChild(sheet);
+}
+
+function renderAKGrid(container, type, responses, keys, tags, subjects, notes) {
+  notes = notes || {};
   container.innerHTML = '';
   const n = type === 'CSAT' ? 80 : 100;
   const opts = ['A','B','C','D'];
@@ -4103,12 +4353,14 @@ function renderAKGrid(container, type, responses, keys, tags, subjects) {
 
   for (let i = 0; i < n; i++) {
     const qNum = i + 1;
-    // wrapper — row + subject row below
     const wrap = document.createElement('div');
-    wrap.style.cssText = 'margin-bottom:2px;';
+    wrap.className = 'ak-question-wrap';
+    wrap.style.cssText = 'margin-bottom:3px;border:1px solid var(--border);border-radius:7px;overflow:hidden;';
 
+    // ── Main row ──
     const row = document.createElement('div');
     row.className = 'omr-row';
+    row.style.cssText = 'padding:4px 6px;background:var(--card-bg);';
 
     const numEl = document.createElement('div');
     numEl.className = 'omr-qnum';
@@ -4138,64 +4390,60 @@ function renderAKGrid(container, type, responses, keys, tags, subjects) {
       bubblesEl.appendChild(b);
     });
     row.appendChild(bubblesEl);
+
+    // Note toggle button
+    const hasNote = notes[i] && (notes[i].wrong || notes[i].concept || notes[i].misc);
+    const noteToggle = document.createElement('button');
+    noteToggle.style.cssText = `margin-left:auto;background:none;border:none;cursor:pointer;font-size:13px;padding:2px 5px;color:${hasNote?'var(--warn)':'var(--text-muted)'};`;
+    noteToggle.title = 'Notes';
+    noteToggle.textContent = hasNote ? '📝' : '📋';
+
+    row.appendChild(noteToggle);
     updateAKRowColor(row, responses[i], keys[i]);
     wrap.appendChild(row);
 
-    // Subject tagging row
-    const subjRow = document.createElement('div');
-    subjRow.style.cssText = 'display:flex;gap:4px;padding:2px 4px 4px 28px;flex-wrap:wrap;';
-    const cur = subjects[i] || {};
+    // ── Expandable detail panel (subject tags + notes + analysis tags) ──
+    const detail = document.createElement('div');
+    detail.style.cssText = 'display:none;padding:6px 8px 8px 28px;background:var(--section-bg);border-top:1px solid var(--border);';
 
-    // Subject dropdown
+    // Subject / Theme / Subtheme row
+    const cur = subjects[i] || {};
+    const subjRow = document.createElement('div');
+    subjRow.style.cssText = 'display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px;';
+
     const subjSel = document.createElement('select');
     subjSel.className = 'p-select';
     subjSel.style.cssText = 'font-size:10px;padding:2px 4px;min-width:90px;';
     subjSel.innerHTML = '<option value="">Subject…</option>' +
       taxSubjects.map(s => `<option value="${s}" ${cur.subject===s?'selected':''}>${s}</option>`).join('');
 
-    // Theme dropdown (populated based on subject)
     const themeSel = document.createElement('select');
     themeSel.className = 'p-select';
     themeSel.style.cssText = 'font-size:10px;padding:2px 4px;min-width:90px;';
 
-    // Subtheme dropdown
-    const subSel = document.createElement('select');
-    subSel.className = 'p-select';
-    subSel.style.cssText = 'font-size:10px;padding:2px 4px;min-width:100px;';
+    const subInput = document.createElement('input');
+    subInput.type = 'text';
+    subInput.placeholder = 'Subtheme…';
+    subInput.value = cur.subtheme || '';
+    subInput.className = 'p-input';
+    subInput.style.cssText = 'font-size:10px;padding:2px 6px;max-width:110px;';
 
     function populateThemes(subj, selTheme) {
       const themes = (TAXONOMY[type]||TAXONOMY.GS)[subj] || [];
       themeSel.innerHTML = '<option value="">Theme…</option>' +
         themes.map(t => `<option value="${t}" ${t===selTheme?'selected':''}>${t}</option>`).join('');
     }
-    function populateSubthemes(theme, selSub) {
-      // subthemes not in taxonomy — free text only; keep dropdown minimal
-      subSel.innerHTML = '<option value="">Subtheme…</option>' +
-        (selSub ? `<option value="${selSub}" selected>${selSub}</option>` : '');
-    }
-
     populateThemes(cur.subject||'', cur.theme||'');
-    populateSubthemes(cur.theme||'', cur.subtheme||'');
 
     subjSel.addEventListener('change', () => {
       subjects[i] = { subject: subjSel.value, theme:'', subtheme:'' };
-      populateThemes(subjSel.value, '');
-      populateSubthemes('', '');
+      populateThemes(subjSel.value, ''); subInput.value='';
     });
     themeSel.addEventListener('change', () => {
       if (!subjects[i]) subjects[i] = { subject: subjSel.value };
-      subjects[i].theme = themeSel.value;
-      subjects[i].subtheme = '';
-      populateSubthemes(themeSel.value, '');
+      subjects[i].theme = themeSel.value; subjects[i].subtheme = '';
+      subInput.value = '';
     });
-
-    // Subtheme: allow typing
-    const subInput = document.createElement('input');
-    subInput.type = 'text';
-    subInput.placeholder = 'Subtheme (optional)';
-    subInput.value = cur.subtheme || '';
-    subInput.className = 'p-input';
-    subInput.style.cssText = 'font-size:10px;padding:2px 6px;max-width:120px;';
     subInput.addEventListener('input', () => {
       if (!subjects[i]) subjects[i] = { subject: subjSel.value, theme: themeSel.value };
       subjects[i].subtheme = subInput.value.trim();
@@ -4204,7 +4452,115 @@ function renderAKGrid(container, type, responses, keys, tags, subjects) {
     subjRow.appendChild(subjSel);
     subjRow.appendChild(themeSel);
     subjRow.appendChild(subInput);
-    wrap.appendChild(subjRow);
+    detail.appendChild(subjRow);
+
+    // ── Exam tags (read-only display) + Analysis tags (editable multi-select) ──
+    const examTags = getExamTags(tags, i);
+    const tagSection = document.createElement('div');
+    tagSection.style.cssText = 'margin-bottom:8px;';
+
+    if (examTags.length) {
+      const examLbl = document.createElement('div');
+      examLbl.style.cssText = 'font-size:10px;font-weight:700;color:var(--text-muted);margin-bottom:3px;';
+      examLbl.textContent = '🖊️ Exam Tags (from OMR entry)';
+      const examChips = document.createElement('div');
+      examChips.style.cssText = 'display:flex;gap:3px;flex-wrap:wrap;margin-bottom:4px;align-items:center;';
+      examTags.forEach(tid => {
+        const chip = document.createElement('span');
+        chip.className = `tag-chip tag-${tid}`;
+        const tdef = TAGS.find(t => t.id === tid);
+        chip.textContent = tdef ? `${tid} — ${tdef.title}` : tid;
+        chip.title = tdef?.desc || '';
+        examChips.appendChild(chip);
+      });
+      // Trick ref picker (shown when T is in exam tags)
+      if (examTags.includes('T')) {
+        const trickSel = document.createElement('select');
+        trickSel.className = 'p-select';
+        trickSel.style.cssText = 'font-size:9px;padding:1px 4px;';
+        trickSel.title = 'Which trick was applied?';
+        const blank = document.createElement('option');
+        blank.value = ''; blank.textContent = 'Trick #…';
+        trickSel.appendChild(blank);
+        getTrickOptions().forEach(opt => {
+          const o = document.createElement('option');
+          o.value = opt.id; o.textContent = opt.label;
+          trickSel.appendChild(o);
+        });
+        trickSel.value = getTrickRef(tags, i);
+        trickSel.addEventListener('change', () => {
+          setTrickRef(tags, i, trickSel.value);
+        });
+        examChips.appendChild(trickSel);
+      }
+      tagSection.appendChild(examLbl);
+      tagSection.appendChild(examChips);
+    }
+
+    const analysisLbl = document.createElement('div');
+    analysisLbl.style.cssText = 'font-size:10px;font-weight:700;color:var(--text-muted);margin-bottom:3px;';
+    analysisLbl.textContent = '🔬 Analysis Tags (add after review — multi-select)';
+    const analysisSel = document.createElement('div');
+    analysisSel.style.cssText = 'display:flex;gap:3px;flex-wrap:wrap;';
+    TAGS.forEach(tag => {
+      const btn = document.createElement('button');
+      btn.className = `omr-tag-btn tag-chip tag-${tag.id}`;
+      btn.textContent = tag.label;
+      btn.title = `${tag.title}: ${tag.desc}`;
+      const curAnalysis = getAnalysisTags(tags, i);
+      if (curAnalysis.includes(tag.id)) btn.classList.add('active-tag');
+      btn.addEventListener('click', () => {
+        const isOn = getAnalysisTags(tags, i).includes(tag.id);
+        setAnalysisTag(tags, i, tag.id, !isOn);
+        btn.classList.toggle('active-tag', !isOn);
+        // update note toggle badge if tags changed
+        const hasN = (notes[i]?.wrong || notes[i]?.concept || notes[i]?.misc) || hasAnyTag(tags, i);
+        noteToggle.textContent = hasN ? '📝' : '📋';
+        noteToggle.style.color = hasN ? 'var(--warn)' : 'var(--text-muted)';
+      });
+      analysisSel.appendChild(btn);
+    });
+    tagSection.appendChild(analysisLbl);
+    tagSection.appendChild(analysisSel);
+    detail.appendChild(tagSection);
+
+    // Notes fields
+    const curNote = notes[i] || {};
+    const noteFields = [
+      { key:'wrong',   label:'❌ What went wrong', placeholder:'e.g. Confused between X and Y…' },
+      { key:'concept', label:'💡 Key concept',      placeholder:'e.g. Article 356 — imposed by President…' },
+      { key:'misc',    label:'📌 Misc / Other',     placeholder:'e.g. Remember for revision…' },
+    ];
+    noteFields.forEach(f => {
+      const lbl = document.createElement('div');
+      lbl.style.cssText = 'font-size:10px;font-weight:700;color:var(--text-muted);margin-bottom:2px;margin-top:4px;';
+      lbl.textContent = f.label;
+      const ta = document.createElement('textarea');
+      ta.placeholder = f.placeholder;
+      ta.value = curNote[f.key] || '';
+      ta.rows = 2;
+      ta.className = 'p-input';
+      ta.style.cssText = 'font-size:11px;resize:vertical;min-height:32px;';
+      ta.addEventListener('input', () => {
+        if (!notes[i]) notes[i] = {};
+        notes[i][f.key] = ta.value.trim();
+        // update toggle icon
+        const hasN = notes[i].wrong || notes[i].concept || notes[i].misc;
+        noteToggle.textContent = hasN ? '📝' : '📋';
+        noteToggle.style.color = hasN ? 'var(--warn)' : 'var(--text-muted)';
+      });
+      detail.appendChild(lbl);
+      detail.appendChild(ta);
+    });
+
+    wrap.appendChild(detail);
+
+    // Toggle open/close
+    noteToggle.addEventListener('click', () => {
+      const open = detail.style.display !== 'none';
+      detail.style.display = open ? 'none' : '';
+    });
+
     container.appendChild(wrap);
   }
 }
@@ -4219,7 +4575,7 @@ function updateAKRowColor(row, ans, key) {
 
 function updateOMRProgress(container, n, data) {
   const answered = Object.keys(data.responses).length;
-  const tagged = Object.keys(data.tags).length;
+  const tagged = Object.keys(data.tags).filter(k => hasAnyTag(data.tags, parseInt(k))).length;
   const prog = document.getElementById('p-omr-progress');
   if (prog) prog.textContent = `${answered}/${n} answered · ${tagged} tagged`;
 }
@@ -4284,8 +4640,20 @@ function renderHistory(filterType) {
 
 function renderTagSummary(tags) {
   const counts = {};
-  Object.values(tags).forEach(t => { counts[t] = (counts[t]||0)+1; });
-  return Object.entries(counts).map(([t,c]) => `<span class="tag-chip tag-${t}">${t}:${c}</span>`).join(' ');
+  Object.keys(tags).forEach(k => {
+    getAllTags(tags, parseInt(k)).forEach(t => { counts[t] = (counts[t]||0)+1; });
+  });
+  // Collect trick refs used
+  const trickRefs = {};
+  Object.keys(tags).forEach(k => {
+    const ref = getTrickRef(tags, parseInt(k));
+    if (ref) trickRefs[ref] = (trickRefs[ref]||0)+1;
+  });
+  const chips = Object.entries(counts).map(([t,c]) => `<span class="tag-chip tag-${t}">${t}:${c}</span>`);
+  Object.entries(trickRefs).forEach(([ref, c]) => {
+    chips.push(`<span class="tag-chip tag-T" style="font-size:9px;">${ref}×${c}</span>`);
+  });
+  return chips.join(' ');
 }
 
 // =====================================================================
@@ -4326,15 +4694,99 @@ function refreshAKSelector() {
 // =====================================================================
 // ANALYTICS
 // =====================================================================
+function populateAnalyticsTestSelector(filterType) {
+  const sel = document.getElementById('pa-single-test');
+  if (!sel) return;
+  const deleted = pGetDeleted();
+  const allTests = pGetTests()
+    .filter(t => !deleted.includes(t.id) && t.type === filterType && t.scored)
+    .sort((a,b) => new Date(b.date) - new Date(a.date));
+  const curVal = sel.value;
+  sel.innerHTML = '<option value="">Cumulative view</option>';
+  allTests.forEach(t => {
+    const o = document.createElement('option');
+    o.value = t.id;
+    o.textContent = `${t.id} — ${t.date}`;
+    sel.appendChild(o);
+  });
+  if (curVal) sel.value = curVal;
+}
+
+function renderSingleTestAnalytics(el, test, filterType) {
+  const { correct, wrong, unattempted, score, detail } = test.scored;
+  const total = filterType === 'CSAT' ? 80 : 100;
+  const attempted = correct + wrong;
+  const accuracy = attempted ? Math.round(correct / attempted * 100) : 0;
+  const maxScore = filterType === 'CSAT' ? 160 : 200;
+
+  // Tag breakdown (exam + analysis combined)
+  const tagCounts = {}, tagCorrect = {};
+  TAGS.forEach(tg => { tagCounts[tg.id] = 0; tagCorrect[tg.id] = 0; });
+  if (test.tags) {
+    Object.keys(test.tags).forEach(qIdx => {
+      getAllTags(test.tags, parseInt(qIdx)).forEach(tag => {
+        tagCounts[tag] = (tagCounts[tag]||0) + 1;
+        if (detail[parseInt(qIdx)] === 'C') tagCorrect[tag] = (tagCorrect[tag]||0) + 1;
+      });
+    });
+  }
+
+  // Subject breakdown for this single test
+  const subjectData = buildSubjectData([test], filterType);
+
+  const accuracy_cls = accuracy >= 80 ? 'good' : accuracy >= 60 ? 'ok' : 'bad';
+
+  el.innerHTML = `
+    <div style="font-size:13px;font-weight:700;color:var(--primary);margin-bottom:10px;">📋 ${test.id} — ${test.name || ''} (${test.date})</div>
+    <div class="analytics-row" style="grid-template-columns:repeat(5,1fr);">
+      <div class="p-card analytics-stat"><div class="stat-val" style="color:var(--good);">${correct}</div><div class="stat-lbl">Correct</div></div>
+      <div class="p-card analytics-stat"><div class="stat-val" style="color:var(--danger);">${wrong}</div><div class="stat-lbl">Wrong</div></div>
+      <div class="p-card analytics-stat"><div class="stat-val">${unattempted}</div><div class="stat-lbl">Skipped</div></div>
+      <div class="p-card analytics-stat"><div class="stat-val">${attempted}/${total}</div><div class="stat-lbl">Attempted</div></div>
+      <div class="p-card analytics-stat"><div class="stat-val ptc-score ${accuracy_cls}">${accuracy}%</div><div class="stat-lbl">Accuracy</div></div>
+    </div>
+    <div class="p-card" style="margin-top:8px;text-align:center;">
+      <div style="font-size:28px;font-weight:800;color:var(--primary);">${score.toFixed(2)}</div>
+      <div style="font-size:12px;color:var(--text-muted);">Score / ${maxScore}</div>
+    </div>
+    <div class="p-card" style="margin-top:8px;">
+      <div class="p-label" style="margin-bottom:8px;">⚡ Attempt Optimum</div>
+      ${renderOptimumChart([test])}
+    </div>
+    <div class="p-card" style="margin-top:8px;">
+      <div class="p-label" style="margin-bottom:8px;">🏷️ Tag Performance</div>
+      ${renderTagAnalytics(tagCounts, tagCorrect)}
+    </div>
+    ${Object.keys(subjectData).length ? `
+    <div class="p-card" style="margin-top:8px;">
+      <div class="p-label" style="margin-bottom:8px;">📚 Subject Accuracy</div>
+      ${renderSubjectRadar(subjectData, filterType)}
+    </div>
+    <div class="p-card" style="margin-top:8px;">
+      <div class="p-label" style="margin-bottom:8px;">🔍 Theme Breakdown</div>
+      ${renderThemeHorizontalBars(subjectData)}
+    </div>` : '<div style="color:var(--text-muted);font-size:12px;margin-top:8px;">No subject tags on this test yet — add them in the Answer Key tab.</div>'}
+  `;
+}
+
 function renderAnalytics(filterType) {
   const el = document.getElementById('p-analytics-content');
   if (!el) return;
+  populateAnalyticsTestSelector(filterType);
   const officialOnly = document.getElementById('pa-official-only')?.checked || false;
   const lastN = parseInt(document.getElementById('pa-last-n')?.value || '0');
+  const singleTestId = document.getElementById('pa-single-test')?.value || '';
   const deleted = pGetDeleted();
   let tests = pGetTests()
     .filter(t => !deleted.includes(t.id) && t.type === filterType && t.scored && (!officialOnly || t.official))
     .sort((a,b) => new Date(a.date) - new Date(b.date));
+
+  // Per-test drill-down mode
+  if (singleTestId) {
+    const singleTest = tests.find(t => t.id === singleTestId);
+    if (singleTest) { renderSingleTestAnalytics(el, singleTest, filterType); return; }
+  }
+
   if (lastN > 0) tests = tests.slice(-lastN);
   if (!tests.length) {
     const hint = officialOnly ? 'No official UPSC tests scored yet. Uncheck the filter to see mock tests.' : 'Add at least one scored test to see analytics.';
@@ -4353,16 +4805,18 @@ function renderAnalytics(filterType) {
     return correct+wrong === 0 ? 0 : Math.round(correct/(correct+wrong)*100);
   });
 
-  // Tag analysis across all tests
+  // Tag analysis across all tests (exam + analysis combined)
   const tagCounts = {}, tagCorrect = {};
   TAGS.forEach(tg => { tagCounts[tg.id] = 0; tagCorrect[tg.id] = 0; });
   tests.forEach(test => {
     if (!test.tags) return;
-    Object.entries(test.tags).forEach(([qIdx, tag]) => {
-      tagCounts[tag] = (tagCounts[tag]||0) + 1;
-      if (test.scored && test.scored.detail[parseInt(qIdx)] === 'C') {
-        tagCorrect[tag] = (tagCorrect[tag]||0) + 1;
-      }
+    Object.keys(test.tags).forEach(qIdx => {
+      getAllTags(test.tags, parseInt(qIdx)).forEach(tag => {
+        tagCounts[tag] = (tagCounts[tag]||0) + 1;
+        if (test.scored && test.scored.detail[parseInt(qIdx)] === 'C') {
+          tagCorrect[tag] = (tagCorrect[tag]||0) + 1;
+        }
+      });
     });
   });
 
@@ -4409,8 +4863,8 @@ function renderAnalytics(filterType) {
     </div>
 
     <div class="p-card" style="margin-top:8px;">
-      <div class="p-label" style="margin-bottom:8px;">⚡ Attempt Optimum (latest test)</div>
-      ${renderOptimumGrid(tests[tests.length-1])}
+      <div class="p-label" style="margin-bottom:8px;">⚡ Attempt Optimum — All Tests</div>
+      ${renderOptimumChart(tests)}
     </div>
 
     <div class="p-card" style="margin-top:8px;">
@@ -4659,35 +5113,70 @@ function renderBarChart(labels, values, maxVal, color, suffix='') {
   return `<div style="overflow-x:auto;">${svg}</div>`;
 }
 
-function renderOptimumGrid(test) {
-  if (!test || !test.scored) return '<div style="color:var(--text-muted);font-size:12px;">No scored test.</div>';
-  const { correct, wrong, unattempted, score, total } = test.scored;
-  const attempted = correct + wrong;
-  const accuracy = attempted ? Math.round(correct/attempted*100) : 0;
-  const optAttempts = Math.round(correct / 0.75); // rough: if accuracy were 75%
+function renderOptimumChart(tests) {
+  // Renders SVG bar chart: per-test Attempted / Correct / Wrong with ideal line
+  if (!tests || !tests.length) return '<div style="color:var(--text-muted);font-size:12px;">No data.</div>';
+  const W = 520, H = 180, PAD = { l:36, r:12, t:16, b:40 };
+  const maxQ = tests[0]?.type === 'CSAT' ? 80 : 100;
+  const cW = Math.max(16, Math.floor((W - PAD.l - PAD.r) / tests.length) - 4);
+  const gW = cW / 3 + 1;
+  const chartH = H - PAD.t - PAD.b;
+  const scale = v => chartH - (v / maxQ) * chartH;
+
+  const bars = tests.map((t, i) => {
+    const { correct, wrong } = t.scored;
+    const attempted = correct + wrong;
+    const x = PAD.l + i * (cW + 4);
+    const bAttempt = `<rect x="${x}" y="${PAD.t + scale(attempted)}" width="${gW}" height="${(attempted/maxQ)*chartH}" fill="#3b82f6" opacity="0.8" rx="1"/>`;
+    const bCorrect = `<rect x="${x + gW + 1}" y="${PAD.t + scale(correct)}" width="${gW}" height="${(correct/maxQ)*chartH}" fill="#22c55e" opacity="0.9" rx="1"/>`;
+    const bWrong   = `<rect x="${x + 2*(gW+1)}" y="${PAD.t + scale(wrong)}" width="${gW}" height="${(wrong/maxQ)*chartH}" fill="#ef4444" opacity="0.85" rx="1"/>`;
+    const lbl = t.id.split('-').pop();
+    const lblEl = `<text x="${x + cW/2}" y="${H - 6}" text-anchor="middle" font-size="8" fill="currentColor" opacity="0.6">${lbl}</text>`;
+    return bAttempt + bCorrect + bWrong + lblEl;
+  }).join('');
+
+  // Ideal line at 75% of maxQ
+  const idealY = PAD.t + scale(Math.round(maxQ * 0.75));
+  const idealLine = `<line x1="${PAD.l}" y1="${idealY}" x2="${W - PAD.r}" y2="${idealY}" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="4,3"/>
+    <text x="${W - PAD.r - 2}" y="${idealY - 3}" text-anchor="end" font-size="8" fill="#f59e0b">75% ideal</text>`;
+
+  // Y axis ticks
+  const ticks = [0, 25, 50, 75, 100].filter(v => v <= maxQ).map(v => {
+    const y = PAD.t + scale(v);
+    return `<line x1="${PAD.l - 4}" y1="${y}" x2="${PAD.l}" y2="${y}" stroke="currentColor" opacity="0.25" stroke-width="1"/>
+      <text x="${PAD.l - 6}" y="${y + 3}" text-anchor="end" font-size="8" fill="currentColor" opacity="0.5">${v}</text>`;
+  }).join('');
+
+  // Legend
+  const legend = `<g font-size="9" fill="currentColor">
+    <rect x="${PAD.l}" y="${H - 14}" width="8" height="6" fill="#3b82f6" rx="1"/><text x="${PAD.l + 10}" y="${H - 8}">Attempted</text>
+    <rect x="${PAD.l + 68}" y="${H - 14}" width="8" height="6" fill="#22c55e" rx="1"/><text x="${PAD.l + 78}" y="${H - 8}">Correct</text>
+    <rect x="${PAD.l + 126}" y="${H - 14}" width="8" height="6" fill="#ef4444" rx="1"/><text x="${PAD.l + 136}" y="${H - 8}">Wrong</text>
+    <line x1="${PAD.l + 172}" y1="${H - 11}" x2="${PAD.l + 180}" y2="${H - 11}" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="3,2"/>
+    <text x="${PAD.l + 182}" y="${H - 8}">75% ideal</text>
+  </g>`;
+
+  const last = tests[tests.length - 1].scored;
+  const lastAttempted = last.correct + last.wrong;
+  const accuracy = lastAttempted ? Math.round(last.correct / lastAttempted * 100) : 0;
+  const optAttempts = Math.round(last.correct / 0.75);
+  const tip = accuracy < 70 ? '⚠️ High wrong rate — attempt fewer.' : accuracy >= 80 ? '✅ Good accuracy — attempt more.' : '📊 Decent accuracy — marginal gains possible.';
+
   return `
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;font-size:12px;">
-      <div class="p-card" style="padding:8px;text-align:center;">
-        <div style="font-size:20px;font-weight:700;color:var(--good);">${correct}</div>
-        <div style="color:var(--text-muted);">Correct</div>
-      </div>
-      <div class="p-card" style="padding:8px;text-align:center;">
-        <div style="font-size:20px;font-weight:700;color:var(--danger);">${wrong}</div>
-        <div style="color:var(--text-muted);">Wrong</div>
-      </div>
-      <div class="p-card" style="padding:8px;text-align:center;">
-        <div style="font-size:20px;font-weight:700;">${attempted}</div>
-        <div style="color:var(--text-muted);">Attempted</div>
-      </div>
-      <div class="p-card" style="padding:8px;text-align:center;">
-        <div style="font-size:20px;font-weight:700;">${accuracy}%</div>
-        <div style="color:var(--text-muted);">Accuracy</div>
-      </div>
-    </div>
-    <div style="margin-top:8px;font-size:12px;color:var(--text-muted);">
-      💡 At 75% accuracy you could attempt ~${optAttempts} questions for same score.
-      ${accuracy < 70 ? '⚠️ High wrong rate — consider attempting fewer.' : accuracy >= 80 ? '✅ Good accuracy — try attempting more.' : '📊 Decent accuracy — small room to improve.'}
-    </div>`;
+    <svg viewBox="0 0 ${W} ${H}" style="width:100%;max-width:${W}px;height:auto;display:block;">
+      ${ticks}
+      <line x1="${PAD.l}" y1="${PAD.t}" x2="${PAD.l}" y2="${PAD.t + chartH}" stroke="currentColor" opacity="0.2" stroke-width="1"/>
+      ${bars}
+      ${idealLine}
+      ${legend}
+    </svg>
+    <div style="font-size:11px;color:var(--text-muted);margin-top:6px;">Latest: ${last.correct} correct / ${last.wrong} wrong / ${lastAttempted} attempted — ${accuracy}% accuracy. ${tip} At 75% accuracy → ~${optAttempts} attempts.</div>`;
+}
+
+function renderOptimumGrid(test) {
+  // Kept for compatibility; calls the chart function with single test
+  if (!test || !test.scored) return '<div style="color:var(--text-muted);font-size:12px;">No scored test.</div>';
+  return renderOptimumChart([test]);
 }
 
 function renderTagAnalytics(tagCounts, tagCorrect) {
@@ -4853,6 +5342,32 @@ function showBlogModal(idx) {
 // =====================================================================
 // INIT & EVENT WIRING
 // =====================================================================
+function syncPrelimsModelSel() {
+  // Mirror main provider/model selects into the prelims bar
+  const mainProvider = document.getElementById('provider');
+  const mainModel    = document.getElementById('model');
+  const pProvider    = document.getElementById('p-provider-sel');
+  const pModel       = document.getElementById('p-model-sel');
+  if (!pProvider || !pModel || !mainProvider || !mainModel) return;
+
+  // Sync provider options & value
+  pProvider.value = mainProvider.value;
+
+  // Sync model options from main select
+  pModel.innerHTML = '';
+  Array.from(mainModel.options).forEach(o => {
+    const opt = document.createElement('option');
+    opt.value = o.value; opt.textContent = o.textContent;
+    if (o.selected) opt.selected = true;
+    pModel.appendChild(opt);
+  });
+  if (!pModel.options.length) {
+    const opt = document.createElement('option');
+    opt.value = ''; opt.textContent = '— select model —';
+    pModel.appendChild(opt);
+  }
+}
+
 function prelimsInit() {
   // Sub-nav switching
   document.querySelectorAll('.prelims-sub-btn').forEach(btn => {
@@ -4868,6 +5383,8 @@ function prelimsInit() {
       if (btn.dataset.pane === 'answerkey') { refreshAKSelector(); }
       if (btn.dataset.pane === 'resources') { renderTricks(); renderTagRef(); renderBlogs(); }
       if (btn.dataset.pane === 'suggestions') { renderSuggestions(currentSugType); }
+      if (btn.dataset.pane === 'papers') { renderPapers(); }
+      if (btn.dataset.pane === 'review') { refreshReviewSelector(); }
     });
   });
 
@@ -4918,6 +5435,7 @@ function prelimsInit() {
   });
   document.getElementById('pa-official-only').addEventListener('change', () => renderAnalytics(currentAnalyticsType));
   document.getElementById('pa-last-n').addEventListener('change', () => renderAnalytics(currentAnalyticsType));
+  document.getElementById('pa-single-test').addEventListener('change', () => renderAnalytics(currentAnalyticsType));
 
   // OMR Start
   document.getElementById('p-start-omr').addEventListener('click', startOMR);
@@ -4949,17 +5467,53 @@ function prelimsInit() {
     document.getElementById('sug-master-view').style.display = 'none';
   });
 
+  // Review pane wiring
+  document.getElementById('rv-gs-btn').addEventListener('click', () => {
+    currentReviewType = 'GS';
+    document.getElementById('rv-gs-btn').classList.add('active');
+    document.getElementById('rv-csat-btn').classList.remove('active');
+    refreshReviewSelector();
+  });
+  document.getElementById('rv-csat-btn').addEventListener('click', () => {
+    currentReviewType = 'CSAT';
+    document.getElementById('rv-csat-btn').classList.add('active');
+    document.getElementById('rv-gs-btn').classList.remove('active');
+    refreshReviewSelector();
+  });
+  document.getElementById('rv-test-sel').addEventListener('change', () => renderReview());
+  document.getElementById('rv-wrong-only').addEventListener('change', () => renderReview());
+
   // Init resources
   renderTricks();
   renderTagRef();
   renderBlogs();
+
+  // Prelims provider/model bar — sync with main selects
+  syncPrelimsModelSel();
+
+  // p-provider-sel changes main provider
+  document.getElementById('p-provider-sel').addEventListener('change', () => {
+    const mainProvider = document.getElementById('provider');
+    if (mainProvider) { mainProvider.value = document.getElementById('p-provider-sel').value; mainProvider.dispatchEvent(new Event('change')); }
+    // rebuild model list after provider change
+    setTimeout(syncPrelimsModelSel, 400);
+  });
+  // p-model-sel changes main model
+  document.getElementById('p-model-sel').addEventListener('change', () => {
+    const mainModel = document.getElementById('model');
+    if (mainModel) mainModel.value = document.getElementById('p-model-sel').value;
+  });
+  // Keep in sync when mains model list refreshes
+  const mainModel = document.getElementById('model');
+  if (mainModel) new MutationObserver(syncPrelimsModelSel).observe(mainModel, { childList: true });
 }
 
 let currentHistoryType = 'GS';
 let currentAnalyticsType = 'GS';
 let currentSugType = 'GS';
+let currentReviewType = 'GS';
 let omrData = { type:'GS', responses:{}, tags:{} };
-let akData = { testId: null, keys: {}, subjects: {} };
+let akData = { testId: null, keys: {}, subjects: {}, notes: {} };
 
 function checkForDraft() {
   const draft = pGetDraft();
@@ -5056,7 +5610,15 @@ function loadAKSheet() {
   const tests = pGetTests();
   const test = tests.find(t => t.id === testId);
   if (!test) { alert('Test not found.'); return; }
-  akData = { testId, keys: test.keys ? { ...test.keys } : {}, subjects: test.subjects ? JSON.parse(JSON.stringify(test.subjects)) : {} };
+  akData = {
+    testId,
+    keys: test.keys ? { ...test.keys } : {},
+    subjects: test.subjects ? JSON.parse(JSON.stringify(test.subjects)) : {},
+    notes: test.notes ? JSON.parse(JSON.stringify(test.notes)) : {}
+  };
+  // pre-fill PDF links if already saved
+  document.getElementById('p-ak-qpdf').value = test.qPdf || '';
+  document.getElementById('p-ak-akpdf').value = test.akPdf || '';
   document.getElementById('p-ak-container').style.display = '';
   document.getElementById('p-ak-title').textContent = `${test.id} — ${test.name} (${test.date})`;
   document.getElementById('p-ak-info').textContent = `${test.type} · ${Object.keys(test.responses).length} answers recorded`;
@@ -5066,7 +5628,8 @@ function loadAKSheet() {
     test.responses,
     akData.keys,
     test.tags,
-    akData.subjects
+    akData.subjects,
+    akData.notes
   );
 }
 
@@ -5083,6 +5646,9 @@ function submitAnswerKey() {
   }
   test.keys = { ...akData.keys };
   test.subjects = JSON.parse(JSON.stringify(akData.subjects));
+  test.notes = JSON.parse(JSON.stringify(akData.notes));
+  test.qPdf = document.getElementById('p-ak-qpdf').value.trim();
+  test.akPdf = document.getElementById('p-ak-akpdf').value.trim();
   test.scored = scoreTest(test.responses, akData.keys, test.type);
   tests[idx] = test;
   pSaveTests(tests);
@@ -5131,9 +5697,11 @@ function buildLLMPrompt(test) {
   const { correct, wrong, unattempted, score, total } = test.scored;
   const accuracy = correct+wrong ? Math.round(correct/(correct+wrong)*100) : 0;
 
-  // Tag breakdown
+  // Tag breakdown (exam + analysis)
   const tagBreakdown = {};
-  if (test.tags) Object.values(test.tags).forEach(t => tagBreakdown[t]=(tagBreakdown[t]||0)+1);
+  if (test.tags) Object.keys(test.tags).forEach(k => {
+    getAllTags(test.tags, parseInt(k)).forEach(t => tagBreakdown[t]=(tagBreakdown[t]||0)+1);
+  });
 
   // Subject accuracy
   const subjectLines = [];
@@ -5154,8 +5722,12 @@ function buildLLMPrompt(test) {
     test.scored.detail.forEach((res, i) => {
       if (res === 'W') {
         const s = test.subjects[i];
-        const tag = test.tags?.[i] || '—';
-        wrongQs.push(`  Q${i+1}: ${s ? `${s.subject||'?'} › ${s.theme||'?'} › ${s.subtheme||'?'}` : 'Subject not tagged'} [Tag: ${tag}]`);
+        const examT = getExamTags(test.tags, i);
+        const tRef = getTrickRef(test.tags, i);
+        const examStr = examT.map(t => (t === 'T' && tRef) ? `T(${tRef})` : t).join(',') || '—';
+        const analysisT = getAnalysisTags(test.tags, i).join(',');
+        const tagStr = analysisT ? `Exam:${examStr} / Analysis:${analysisT}` : `Exam:${examStr}`;
+        wrongQs.push(`  Q${i+1}: ${s ? `${s.subject||'?'} › ${s.theme||'?'} › ${s.subtheme||'?'}` : 'Subject not tagged'} [${tagStr}]`);
       }
     });
   }
@@ -5487,6 +6059,315 @@ function generateMasterSummary() {
 
   document.getElementById('sug-master-view').style.display = '';
   document.getElementById('sug-master-view').scrollIntoView({ behavior:'smooth' });
+}
+
+// =====================================================================
+// PAPERS PANE
+// =====================================================================
+function renderOMRRefPreview() {
+  // Renders an SVG mini-diagram showing the real UPSC OMR sheet layout
+  const el = document.getElementById('omr-ref-preview');
+  if (!el || el.dataset.rendered) return;
+  el.dataset.rendered = '1';
+  const W = 560, H = 260;
+  const cols = [
+    { label:'Q 1–40', x:10, active:40 },
+    { label:'Q 41–80', x:148, active:40 },
+    { label:'Q 81–120', x:286, active:20 }, // GS: 81-100 active
+    { label:'Q 121–160', x:424, active:0 }, // GS: all inactive
+  ];
+  const COL_W = 132, HDR_H = 16, ROW_H = 5.5, ROWS = 40;
+  let svgRows = '';
+  cols.forEach(col => {
+    svgRows += `<rect x="${col.x}" y="32" width="${COL_W}" height="${HDR_H}" fill="#c2185b" rx="2"/>
+      <text x="${col.x + COL_W/2}" y="43" text-anchor="middle" font-size="7" fill="#fff" font-weight="bold">${col.label}</text>`;
+    for (let r = 0; r < ROWS; r++) {
+      const y = 32 + HDR_H + r * ROW_H;
+      const isActive = r < col.active;
+      const bg = isActive ? '#fff' : '#f8d7e3';
+      const opacity = isActive ? '1' : '0.4';
+      svgRows += `<rect x="${col.x}" y="${y}" width="${COL_W}" height="${ROW_H - 0.4}" fill="${bg}" opacity="${opacity}"/>`;
+      // Bubbles A B C D
+      ['A','B','C','D'].forEach((opt, oi) => {
+        const bx = col.x + 18 + oi * 26;
+        const by = y + ROW_H/2;
+        svgRows += `<circle cx="${bx}" cy="${by}" r="${ROW_H/2 - 0.3}" fill="${isActive ? 'none' : '#e8a0b4'}" stroke="${isActive ? '#e8a0b4' : '#d4608a'}" stroke-width="0.6" opacity="${opacity}"/>`;
+        svgRows += `<text x="${bx}" y="${by + 1.5}" text-anchor="middle" font-size="2.5" fill="${isActive ? '#880e4f' : '#c2185b'}" opacity="${opacity}">${opt}</text>`;
+      });
+    }
+  });
+  // Legend
+  const legend = `
+    <rect x="10" y="${H - 22}" width="10" height="8" fill="#c2185b" rx="1"/>
+    <text x="24" y="${H - 15}" font-size="8" fill="currentColor">Active (GS: 1-100 / CSAT: 1-80)</text>
+    <rect x="180" y="${H - 22}" width="10" height="8" fill="#f8d7e3" rx="1" stroke="#e8a0b4" stroke-width="0.5"/>
+    <text x="194" y="${H - 15}" font-size="8" fill="currentColor">Inactive (grayed in entry)</text>
+    <rect x="360" y="${H - 22}" width="10" height="8" fill="#c2185b" opacity="0.15" rx="1" stroke="#c2185b" stroke-width="0.5"/>
+    <text x="374" y="${H - 15}" font-size="8" fill="currentColor">4 cols × 40 rows = 160 Qs</text>`;
+  // Title
+  const title = `<rect x="0" y="0" width="${W}" height="28" fill="#880e4f" rx="4"/>
+    <text x="${W/2}" y="18" text-anchor="middle" font-size="10" fill="#fff" font-weight="bold">UPSC PRELIMINARY EXAMINATION — ANSWER SHEET (OMR)</text>`;
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;max-width:${W}px;height:auto;display:block;border:1px solid #e8a0b4;border-radius:6px;background:#fff5f5;">
+    ${title}${svgRows}${legend}
+  </svg>`;
+}
+
+function renderPapers() {
+  renderOMRRefPreview();
+  const el = document.getElementById('papers-list');
+  if (!el) return;
+  const deleted = pGetDeleted();
+  const tests = pGetTests().filter(t => !deleted.includes(t.id))
+    .sort((a,b) => new Date(b.date) - new Date(a.date));
+  if (!tests.length) {
+    el.innerHTML = '<div style="color:var(--text-muted);font-size:13px;padding:20px 0;">No tests yet.</div>';
+    return;
+  }
+  el.innerHTML = tests.map(t => {
+    const qLink = t.qPdf ? `<a href="${t.qPdf}" target="_blank" class="p-btn p-btn-ghost" style="font-size:11px;padding:4px 10px;">📄 Question Paper</a>` : `<span style="font-size:11px;color:var(--text-muted);">No question PDF</span>`;
+    const aLink = t.akPdf ? `<a href="${t.akPdf}" target="_blank" class="p-btn p-btn-ghost" style="font-size:11px;padding:4px 10px;">🔑 Answer Key PDF</a>` : `<span style="font-size:11px;color:var(--text-muted);">No answer key PDF</span>`;
+    return `<div class="p-card" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+      <div>
+        <div style="font-size:11px;font-weight:700;color:var(--text-muted);">${t.id}${t.official?' 🏛️':''} · ${t.date}</div>
+        <div style="font-size:13px;font-weight:600;">${t.name}</div>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+        ${qLink}
+        ${aLink}
+        <button class="p-btn p-btn-ghost" data-edit-pdf="${t.id}" style="font-size:11px;padding:4px 10px;">✏️ Edit Links</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  el.querySelectorAll('[data-edit-pdf]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const testId = btn.dataset.editPdf;
+      const tests2 = pGetTests();
+      const idx = tests2.findIndex(t => t.id === testId);
+      if (idx < 0) return;
+      const t = tests2[idx];
+      const qPdf = prompt('Question Paper PDF/URL:', t.qPdf || '');
+      if (qPdf === null) return;
+      const akPdf = prompt('Answer Key PDF/URL:', t.akPdf || '');
+      if (akPdf === null) return;
+      tests2[idx].qPdf = qPdf.trim();
+      tests2[idx].akPdf = akPdf.trim();
+      pSaveTests(tests2);
+      renderPapers();
+    });
+  });
+}
+
+// =====================================================================
+// REVIEW PANE — per-question notes post-scoring
+// =====================================================================
+function refreshReviewSelector() {
+  const sel = document.getElementById('rv-test-sel');
+  if (!sel) return;
+  const deleted = pGetDeleted();
+  const tests = pGetTests().filter(t => !deleted.includes(t.id) && t.type === currentReviewType && t.scored)
+    .sort((a,b) => new Date(b.date) - new Date(a.date));
+  sel.innerHTML = '<option value="">— pick a test —</option>' +
+    tests.map(t => `<option value="${t.id}">${t.id} — ${t.name} (${t.scored.score}/${t.scored.total})</option>`).join('');
+  document.getElementById('rv-content').innerHTML = '<div style="color:var(--text-muted);font-size:13px;padding:20px 0;">Select a scored test above.</div>';
+}
+
+function renderReview() {
+  const testId = document.getElementById('rv-test-sel').value;
+  const wrongOnly = document.getElementById('rv-wrong-only').checked;
+  const el = document.getElementById('rv-content');
+  if (!testId) { el.innerHTML = '<div style="color:var(--text-muted);font-size:13px;padding:20px 0;">Select a test.</div>'; return; }
+
+  const tests = pGetTests();
+  const test = tests.find(t => t.id === testId);
+  if (!test || !test.scored) { el.innerHTML = '<div style="color:var(--text-muted);">Test not scored yet.</div>'; return; }
+
+  const notes = test.notes ? JSON.parse(JSON.stringify(test.notes)) : {};
+  const subjects = test.subjects || {};
+  const n = test.type === 'CSAT' ? 80 : 100;
+
+  // Build question list
+  const qList = [];
+  for (let i = 0; i < n; i++) {
+    const res = test.scored.detail[i]; // C W U
+    if (wrongOnly && res !== 'W') continue;
+    qList.push({ i, res });
+  }
+
+  if (!qList.length) {
+    el.innerHTML = `<div style="color:var(--good);font-weight:600;padding:20px 0;">🎉 No wrong answers${wrongOnly?' — uncheck "Wrong only" to see all':''}</div>`;
+    return;
+  }
+
+  el.innerHTML = `<div style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">${qList.length} question${qList.length>1?'s':''} · click 📋 to expand notes</div>`;
+
+  const taxSubjects = Object.keys(TAXONOMY[test.type] || TAXONOMY.GS);
+
+  qList.forEach(({ i, res }) => {
+    const wrap = document.createElement('div');
+    wrap.className = 'ak-question-wrap';
+    wrap.style.cssText = `margin-bottom:4px;border:1px solid ${res==='W'?'var(--danger)':res==='C'?'var(--good)':'var(--border)'};border-radius:7px;overflow:hidden;`;
+
+    const curNote = notes[i] || {};
+    const curSubj = subjects[i] || {};
+    const hasNote = curNote.wrong || curNote.concept || curNote.misc;
+    const examTagsRv  = getExamTags(test.tags, i);
+    const analysisTagsRv = getAnalysisTags(test.tags, i);
+    const trickRefRv = getTrickRef(test.tags, i);
+    const yourAns = test.responses[i] || '—';
+    const correctAns = test.keys?.[i] || '?';
+    const resIcon = res === 'W' ? '❌' : res === 'C' ? '✅' : '⬜';
+    const tagChips = [
+      ...examTagsRv.map(t => {
+        const label = (t === 'T' && trickRefRv) ? `T:${trickRefRv}` : t;
+        return `<span class="tag-chip tag-${t}" style="font-size:9px;" title="Exam tag">${label}</span>`;
+      }),
+      ...analysisTagsRv.map(t => `<span class="tag-chip tag-${t}" style="font-size:9px;outline:2px solid #888;" title="Analysis tag">${t}★</span>`),
+    ].join('');
+
+    // Header row
+    const header = document.createElement('div');
+    header.style.cssText = 'display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--card-bg);cursor:pointer;flex-wrap:wrap;';
+    header.innerHTML = `
+      <span style="font-weight:700;font-size:12px;min-width:32px;">Q${i+1}</span>
+      <span style="font-size:13px;">${resIcon}</span>
+      <span style="font-size:11px;color:var(--text-muted);">You: <b>${yourAns}</b> → Ans: <b style="color:${res==='W'?'var(--danger)':'var(--good)'}">${correctAns}</b></span>
+      ${tagChips}
+      ${curSubj.subject ? `<span style="font-size:10px;color:var(--text-muted);">${curSubj.subject}${curSubj.theme?' › '+curSubj.theme:''}</span>` : ''}
+      <button style="margin-left:auto;background:none;border:none;cursor:pointer;font-size:13px;color:${hasNote?'var(--warn)':'var(--text-muted)'};">${hasNote?'📝':'📋'}</button>
+    `;
+
+    // Detail panel
+    const detail = document.createElement('div');
+    detail.style.cssText = 'display:none;padding:8px 10px 10px;background:var(--section-bg);border-top:1px solid var(--border);';
+
+    // Subject row
+    const subjRow = document.createElement('div');
+    subjRow.style.cssText = 'display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px;';
+    const subjSel = document.createElement('select');
+    subjSel.className = 'p-select'; subjSel.style.cssText = 'font-size:10px;padding:2px 4px;min-width:90px;';
+    subjSel.innerHTML = '<option value="">Subject…</option>' + taxSubjects.map(s=>`<option value="${s}" ${curSubj.subject===s?'selected':''}>${s}</option>`).join('');
+    const themeSel = document.createElement('select');
+    themeSel.className = 'p-select'; themeSel.style.cssText = 'font-size:10px;padding:2px 4px;min-width:90px;';
+    const subInput = document.createElement('input');
+    subInput.type='text'; subInput.placeholder='Subtheme…'; subInput.value=curSubj.subtheme||'';
+    subInput.className='p-input'; subInput.style.cssText='font-size:10px;padding:2px 6px;max-width:110px;';
+    function popThemes(subj, sel) {
+      const th=(TAXONOMY[test.type]||TAXONOMY.GS)[subj]||[];
+      themeSel.innerHTML='<option value="">Theme…</option>'+th.map(t=>`<option value="${t}" ${t===sel?'selected':''}>${t}</option>`).join('');
+    }
+    popThemes(curSubj.subject||'', curSubj.theme||'');
+    function saveSubj() {
+      const tests2=pGetTests(); const idx2=tests2.findIndex(t=>t.id===testId);
+      if(idx2<0)return; if(!tests2[idx2].subjects)tests2[idx2].subjects={};
+      tests2[idx2].subjects[i]={subject:subjSel.value,theme:themeSel.value,subtheme:subInput.value.trim()};
+      pSaveTests(tests2);
+    }
+    subjSel.addEventListener('change',()=>{popThemes(subjSel.value,'');saveSubj();});
+    themeSel.addEventListener('change',saveSubj);
+    subInput.addEventListener('input',saveSubj);
+    subjRow.append(subjSel,themeSel,subInput);
+    detail.appendChild(subjRow);
+
+    // Analysis tags (editable in review pane)
+    const rvTagSection = document.createElement('div');
+    rvTagSection.style.cssText = 'margin-bottom:8px;';
+    if (examTagsRv.length) {
+      const el2 = document.createElement('div');
+      el2.style.cssText = 'font-size:10px;font-weight:700;color:var(--text-muted);margin-bottom:3px;';
+      el2.textContent = '🖊️ Exam Tags';
+      const chips = document.createElement('div');
+      chips.style.cssText = 'display:flex;gap:3px;flex-wrap:wrap;margin-bottom:4px;align-items:center;';
+      examTagsRv.forEach(tid => {
+        const tdef = TAGS.find(t => t.id === tid);
+        chips.innerHTML += `<span class="tag-chip tag-${tid}" title="${tdef?.desc||''}">${tid} — ${tdef?.title||tid}</span>`;
+      });
+      // Trick ref picker
+      if (examTagsRv.includes('T')) {
+        const trickSel = document.createElement('select');
+        trickSel.className = 'p-select';
+        trickSel.style.cssText = 'font-size:9px;padding:1px 4px;';
+        trickSel.title = 'Which trick was applied?';
+        const blank = document.createElement('option');
+        blank.value = ''; blank.textContent = 'Trick #…';
+        trickSel.appendChild(blank);
+        getTrickOptions().forEach(opt => {
+          const o = document.createElement('option');
+          o.value = opt.id; o.textContent = opt.label;
+          trickSel.appendChild(o);
+        });
+        trickSel.value = trickRefRv;
+        trickSel.addEventListener('change', () => {
+          const tests2 = pGetTests();
+          const idx2 = tests2.findIndex(t => t.id === testId);
+          if (idx2 < 0) return;
+          if (!tests2[idx2].tags) tests2[idx2].tags = {};
+          setTrickRef(tests2[idx2].tags, i, trickSel.value);
+          pSaveTests(tests2);
+        });
+        chips.appendChild(trickSel);
+      }
+      rvTagSection.append(el2, chips);
+    }
+    const rvAnalysisLbl = document.createElement('div');
+    rvAnalysisLbl.style.cssText = 'font-size:10px;font-weight:700;color:var(--text-muted);margin-bottom:3px;';
+    rvAnalysisLbl.textContent = '🔬 Analysis Tags (multi-select, saved instantly)';
+    const rvAnalysisSel = document.createElement('div');
+    rvAnalysisSel.style.cssText = 'display:flex;gap:3px;flex-wrap:wrap;margin-bottom:6px;';
+    TAGS.forEach(tag => {
+      const btn = document.createElement('button');
+      btn.className = `omr-tag-btn tag-chip tag-${tag.id}`;
+      btn.textContent = tag.label;
+      btn.title = `${tag.title}: ${tag.desc}`;
+      if (analysisTagsRv.includes(tag.id)) btn.classList.add('active-tag');
+      btn.addEventListener('click', () => {
+        const tests2 = pGetTests();
+        const idx2 = tests2.findIndex(t => t.id === testId);
+        if (idx2 < 0) return;
+        if (!tests2[idx2].tags) tests2[idx2].tags = {};
+        const isOn = getAnalysisTags(tests2[idx2].tags, i).includes(tag.id);
+        setAnalysisTag(tests2[idx2].tags, i, tag.id, !isOn);
+        btn.classList.toggle('active-tag', !isOn);
+        pSaveTests(tests2);
+      });
+      rvAnalysisSel.appendChild(btn);
+    });
+    rvTagSection.append(rvAnalysisLbl, rvAnalysisSel);
+    detail.appendChild(rvTagSection);
+
+    // Note fields
+    const noteFields = [
+      { key:'wrong',   label:'❌ What went wrong', placeholder:'e.g. Confused between X and Y…' },
+      { key:'concept', label:'💡 Key concept',      placeholder:'e.g. Article 356 — imposed by President…' },
+      { key:'misc',    label:'📌 Misc / Other',     placeholder:'e.g. Remember for revision…' },
+    ];
+    noteFields.forEach(f => {
+      const lbl = document.createElement('div');
+      lbl.style.cssText = 'font-size:10px;font-weight:700;color:var(--text-muted);margin-bottom:2px;margin-top:6px;';
+      lbl.textContent = f.label;
+      const ta = document.createElement('textarea');
+      ta.placeholder=f.placeholder; ta.value=curNote[f.key]||''; ta.rows=2; ta.className='p-input';
+      ta.style.cssText='font-size:11px;resize:vertical;min-height:32px;width:100%;';
+      ta.addEventListener('input', () => {
+        const tests2=pGetTests(); const idx2=tests2.findIndex(t=>t.id===testId);
+        if(idx2<0)return; if(!tests2[idx2].notes)tests2[idx2].notes={};
+        if(!tests2[idx2].notes[i])tests2[idx2].notes[i]={};
+        tests2[idx2].notes[i][f.key]=ta.value.trim();
+        pSaveTests(tests2);
+        const hasN=tests2[idx2].notes[i].wrong||tests2[idx2].notes[i].concept||tests2[idx2].notes[i].misc;
+        const noteBtn=header.querySelector('button');
+        if(noteBtn){noteBtn.textContent=hasN?'📝':'📋';noteBtn.style.color=hasN?'var(--warn)':'var(--text-muted)';}
+      });
+      detail.appendChild(lbl);
+      detail.appendChild(ta);
+    });
+
+    // Toggle
+    header.addEventListener('click', () => { detail.style.display = detail.style.display==='none'?'':'none'; });
+    wrap.appendChild(header);
+    wrap.appendChild(detail);
+    el.appendChild(wrap);
+  });
 }
 
 // Wire up after DOM ready
