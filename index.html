@@ -5480,55 +5480,117 @@ function renderSetHeatmap(tests, type) {
 // =====================================================================
 // RESOURCES RENDERING (with CRUD)
 // =====================================================================
+function trickEditForm(idx, t, onSave, onCancel) {
+  // Returns a DOM element: inline edit form for a trick
+  const wrap = document.createElement('div');
+  wrap.style.cssText = 'display:flex;flex-direction:column;gap:6px;padding:8px 0 4px;';
+  const row1 = document.createElement('div');
+  row1.style.cssText = 'display:flex;gap:6px;';
+  const idIn = document.createElement('input');
+  idIn.className = 'p-input'; idIn.placeholder = 'ID e.g. T16'; idIn.value = t.id || '';
+  idIn.style.cssText = 'width:80px;font-size:12px;font-weight:700;';
+  const titleIn = document.createElement('input');
+  titleIn.className = 'p-input'; titleIn.placeholder = 'Title'; titleIn.value = t.title || '';
+  titleIn.style.cssText = 'flex:1;font-size:12px;';
+  row1.append(idIn, titleIn);
+  const contentIn = document.createElement('textarea');
+  contentIn.className = 'p-input'; contentIn.placeholder = 'Content / explanation…'; contentIn.value = t.content || '';
+  contentIn.rows = 3; contentIn.style.cssText = 'font-size:12px;resize:vertical;';
+  const btnRow = document.createElement('div');
+  btnRow.style.cssText = 'display:flex;gap:6px;justify-content:flex-end;';
+  const saveBtn = document.createElement('button');
+  saveBtn.className = 'p-btn p-btn-primary'; saveBtn.style.cssText = 'font-size:11px;padding:4px 12px;';
+  saveBtn.textContent = idx !== null ? 'Save' : 'Add Trick';
+  const cancelBtn = document.createElement('button');
+  cancelBtn.className = 'p-btn p-btn-ghost'; cancelBtn.style.cssText = 'font-size:11px;padding:4px 10px;';
+  cancelBtn.textContent = 'Cancel';
+  btnRow.append(saveBtn, cancelBtn);
+  wrap.append(row1, contentIn, btnRow);
+  saveBtn.addEventListener('click', () => {
+    const id = idIn.value.trim(); const title = titleIn.value.trim(); const content = contentIn.value.trim();
+    if (!id || !title) { idIn.style.borderColor = !id ? 'var(--danger)' : ''; titleIn.style.borderColor = !title ? 'var(--danger)' : ''; return; }
+    onSave({ id, title, content });
+  });
+  cancelBtn.addEventListener('click', onCancel);
+  setTimeout(() => idIn.focus(), 50);
+  return wrap;
+}
+
 function renderTricks() {
   const el = document.getElementById('res-tricks');
   if (!el) return;
+  el.innerHTML = '';
+
+  // Add-new area at top (collapsed by default)
+  let addFormVisible = false;
+  const addBar = document.createElement('div');
+  addBar.style.cssText = 'display:flex;justify-content:flex-end;margin-bottom:8px;';
+  const addBtn = document.createElement('button');
+  addBtn.className = 'p-btn p-btn-primary';
+  addBtn.style.cssText = 'font-size:11px;padding:5px 12px;';
+  addBtn.textContent = '+ Add Trick';
+  addBar.appendChild(addBtn);
+  el.appendChild(addBar);
+
+  const newFormWrap = document.createElement('div');
+  newFormWrap.style.cssText = 'display:none;border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:10px;background:var(--section-bg);';
+  el.appendChild(newFormWrap);
+
+  addBtn.addEventListener('click', () => {
+    if (addFormVisible) return;
+    addFormVisible = true;
+    addBtn.disabled = true;
+    const tricks = pGetTricks();
+    const form = trickEditForm(null, { id: `T${tricks.length + 1}`, title: '', content: '' },
+      (data) => { const t2 = pGetTricks(); t2.push(data); pSaveTricks(t2); renderTricks(); },
+      () => { newFormWrap.style.display = 'none'; newFormWrap.innerHTML = ''; addBtn.disabled = false; addFormVisible = false; }
+    );
+    newFormWrap.innerHTML = '';
+    newFormWrap.appendChild(form);
+    newFormWrap.style.display = '';
+  });
+
+  // Existing tricks
   const tricks = pGetTricks();
-  el.innerHTML = `
-    <div style="display:flex;justify-content:flex-end;margin-bottom:8px;">
-      <button class="p-btn p-btn-primary" id="res-add-trick" style="font-size:11px;padding:5px 12px;">+ Add Trick</button>
-    </div>
-    ${tricks.map((t,i) => `
-    <div class="trick-card" style="position:relative;">
+  tricks.forEach((t, i) => {
+    const card = document.createElement('div');
+    card.className = 'trick-card';
+    card.style.position = 'relative';
+
+    const viewMode = document.createElement('div');
+    viewMode.innerHTML = `
       <div style="display:flex;justify-content:space-between;align-items:flex-start;">
         <div class="trick-id">${t.id}</div>
         <div style="display:flex;gap:4px;">
-          <button class="p-btn p-btn-ghost" data-edit-trick="${i}" style="font-size:10px;padding:2px 7px;">✏️</button>
-          <button class="p-btn p-btn-ghost" data-del-trick="${i}" style="font-size:10px;padding:2px 7px;color:var(--danger);">✕</button>
+          <button class="p-btn p-btn-ghost" style="font-size:10px;padding:2px 7px;">✏️ Edit</button>
+          <button class="p-btn p-btn-ghost" style="font-size:10px;padding:2px 7px;color:var(--danger);">✕</button>
         </div>
       </div>
       <div class="trick-title">${t.title}</div>
-      <div class="trick-content">${t.content}</div>
-    </div>`).join('')}
-  `;
-  el.querySelector('#res-add-trick').addEventListener('click', () => showTrickModal(null));
-  el.querySelectorAll('[data-edit-trick]').forEach(btn =>
-    btn.addEventListener('click', () => showTrickModal(parseInt(btn.dataset.editTrick))));
-  el.querySelectorAll('[data-del-trick]').forEach(btn =>
-    btn.addEventListener('click', () => {
-      const tricks2 = pGetTricks();
-      const t = tricks2[parseInt(btn.dataset.delTrick)];
-      if (confirm(`Delete trick "${t.id}: ${t.title.slice(0,40)}"?`)) {
-        tricks2.splice(parseInt(btn.dataset.delTrick), 1);
-        pSaveTricks(tricks2);
-        renderTricks();
-      }
-    }));
-}
+      <div class="trick-content">${t.content}</div>`;
 
-function showTrickModal(idx) {
-  const tricks = pGetTricks();
-  const t = idx !== null ? tricks[idx] : { id: `T${tricks.length+1}`, title:'', content:'' };
-  const id = prompt('Trick ID (e.g. T16):', t.id);
-  if (!id) return;
-  const title = prompt('Title:', t.title);
-  if (title === null) return;
-  const content = prompt('Content (tip/explanation):', t.content);
-  if (content === null) return;
-  if (idx !== null) { tricks[idx] = { id, title, content }; }
-  else { tricks.push({ id, title, content }); }
-  pSaveTricks(tricks);
-  renderTricks();
+    const editWrap = document.createElement('div');
+    editWrap.style.display = 'none';
+
+    viewMode.querySelector('.p-btn-ghost').addEventListener('click', () => {
+      viewMode.style.display = 'none';
+      editWrap.innerHTML = '';
+      const form = trickEditForm(i, t,
+        (data) => { const t2 = pGetTricks(); t2[i] = data; pSaveTricks(t2); renderTricks(); },
+        () => { editWrap.style.display = 'none'; viewMode.style.display = ''; }
+      );
+      editWrap.appendChild(form);
+      editWrap.style.display = '';
+    });
+    viewMode.querySelectorAll('.p-btn-ghost')[1].addEventListener('click', () => {
+      if (!confirm(`Delete trick "${t.id}: ${t.title.slice(0, 40)}"?`)) return;
+      const t2 = pGetTricks(); t2.splice(i, 1); pSaveTricks(t2); renderTricks();
+    });
+
+    card.appendChild(viewMode);
+    card.appendChild(editWrap);
+    el.appendChild(card);
+  });
 }
 
 function renderTagRef() {
@@ -5621,60 +5683,117 @@ function renderTagRef() {
   });
 }
 
+function blogEditForm(idx, b, onSave, onCancel) {
+  const wrap = document.createElement('div');
+  wrap.style.cssText = 'display:flex;flex-direction:column;gap:6px;padding:8px 0 4px;';
+  const row1 = document.createElement('div');
+  row1.style.cssText = 'display:flex;gap:6px;';
+  const titleIn = document.createElement('input');
+  titleIn.className = 'p-input'; titleIn.placeholder = 'Title'; titleIn.value = b.title || '';
+  titleIn.style.cssText = 'flex:1;font-size:12px;';
+  row1.appendChild(titleIn);
+  const row2 = document.createElement('div');
+  row2.style.cssText = 'display:flex;gap:6px;';
+  const sourceIn = document.createElement('input');
+  sourceIn.className = 'p-input'; sourceIn.placeholder = 'Source (e.g. r/UPSC)'; sourceIn.value = b.source || '';
+  sourceIn.style.cssText = 'flex:1;font-size:12px;';
+  const dateIn = document.createElement('input');
+  dateIn.className = 'p-input'; dateIn.type = 'month'; dateIn.value = b.date || new Date().toISOString().slice(0,7);
+  dateIn.style.cssText = 'width:130px;font-size:12px;';
+  row2.append(sourceIn, dateIn);
+  const contentIn = document.createElement('textarea');
+  contentIn.className = 'p-input'; contentIn.placeholder = 'Content / notes…'; contentIn.value = b.content || '';
+  contentIn.rows = 4; contentIn.style.cssText = 'font-size:12px;resize:vertical;';
+  const btnRow = document.createElement('div');
+  btnRow.style.cssText = 'display:flex;gap:6px;justify-content:flex-end;';
+  const saveBtn = document.createElement('button');
+  saveBtn.className = 'p-btn p-btn-primary'; saveBtn.style.cssText = 'font-size:11px;padding:4px 12px;';
+  saveBtn.textContent = idx !== null ? 'Save' : 'Add Entry';
+  const cancelBtn = document.createElement('button');
+  cancelBtn.className = 'p-btn p-btn-ghost'; cancelBtn.style.cssText = 'font-size:11px;padding:4px 10px;';
+  cancelBtn.textContent = 'Cancel';
+  btnRow.append(saveBtn, cancelBtn);
+  wrap.append(row1, row2, contentIn, btnRow);
+  saveBtn.addEventListener('click', () => {
+    const title = titleIn.value.trim();
+    if (!title) { titleIn.style.borderColor = 'var(--danger)'; return; }
+    onSave({ id: b.id || `b${Date.now()}`, title, source: sourceIn.value.trim(), date: dateIn.value, content: contentIn.value.trim() });
+  });
+  cancelBtn.addEventListener('click', onCancel);
+  setTimeout(() => titleIn.focus(), 50);
+  return wrap;
+}
+
 function renderBlogs() {
   const el = document.getElementById('res-blogs');
   if (!el) return;
+  el.innerHTML = '';
+
+  let addFormVisible = false;
+  const addBar = document.createElement('div');
+  addBar.style.cssText = 'display:flex;justify-content:flex-end;margin-bottom:8px;';
+  const addBtn = document.createElement('button');
+  addBtn.className = 'p-btn p-btn-primary';
+  addBtn.style.cssText = 'font-size:11px;padding:5px 12px;';
+  addBtn.textContent = '+ Add Entry';
+  addBar.appendChild(addBtn);
+  el.appendChild(addBar);
+
+  const newFormWrap = document.createElement('div');
+  newFormWrap.style.cssText = 'display:none;border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:10px;background:var(--section-bg);';
+  el.appendChild(newFormWrap);
+
+  addBtn.addEventListener('click', () => {
+    if (addFormVisible) return;
+    addFormVisible = true; addBtn.disabled = true;
+    const form = blogEditForm(null, {},
+      (data) => { const b2 = pGetBlogs(); b2.push(data); pSaveBlogs(b2); renderBlogs(); },
+      () => { newFormWrap.style.display = 'none'; newFormWrap.innerHTML = ''; addBtn.disabled = false; addFormVisible = false; }
+    );
+    newFormWrap.innerHTML = ''; newFormWrap.appendChild(form); newFormWrap.style.display = '';
+  });
+
   const blogs = pGetBlogs();
-  el.innerHTML = `
-    <div style="display:flex;justify-content:flex-end;margin-bottom:8px;">
-      <button class="p-btn p-btn-primary" id="res-add-blog" style="font-size:11px;padding:5px 12px;">+ Add Blog</button>
-    </div>
-    ${blogs.map((b,i) => `
-    <div class="blog-card" style="position:relative;">
+  blogs.forEach((b, i) => {
+    const card = document.createElement('div');
+    card.className = 'blog-card'; card.style.position = 'relative';
+
+    const viewMode = document.createElement('div');
+    viewMode.innerHTML = `
       <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:8px 12px 0;">
-        <div class="blog-meta" style="padding:0;">${b.source} · ${b.date}</div>
+        <div class="blog-meta" style="padding:0;">${b.source || '—'} · ${b.date || ''}</div>
         <div style="display:flex;gap:4px;">
-          <button class="p-btn p-btn-ghost" data-edit-blog="${i}" style="font-size:10px;padding:2px 7px;">✏️</button>
-          <button class="p-btn p-btn-ghost" data-del-blog="${i}" style="font-size:10px;padding:2px 7px;color:var(--danger);">✕</button>
+          <button class="p-btn p-btn-ghost edit-btn" style="font-size:10px;padding:2px 7px;">✏️ Edit</button>
+          <button class="p-btn p-btn-ghost del-btn" style="font-size:10px;padding:2px 7px;color:var(--danger);">✕</button>
         </div>
       </div>
       <div class="blog-title">${b.title}</div>
       <details style="padding:0 12px 10px;">
         <summary style="font-size:11px;cursor:pointer;color:var(--text-muted);">Read more</summary>
-        <div class="blog-content" style="padding:6px 0 0;">${b.content}</div>
-      </details>
-    </div>`).join('')}
-  `;
-  el.querySelector('#res-add-blog').addEventListener('click', () => showBlogModal(null));
-  el.querySelectorAll('[data-edit-blog]').forEach(btn =>
-    btn.addEventListener('click', () => showBlogModal(parseInt(btn.dataset.editBlog))));
-  el.querySelectorAll('[data-del-blog]').forEach(btn =>
-    btn.addEventListener('click', () => {
-      const blogs2 = pGetBlogs();
-      if (confirm(`Delete blog "${blogs2[parseInt(btn.dataset.delBlog)].title.slice(0,40)}"?`)) {
-        blogs2.splice(parseInt(btn.dataset.delBlog), 1);
-        pSaveBlogs(blogs2);
-        renderBlogs();
-      }
-    }));
-}
+        <div class="blog-content" style="padding:6px 0 0;">${b.content || ''}</div>
+      </details>`;
 
-function showBlogModal(idx) {
-  const blogs = pGetBlogs();
-  const b = idx !== null ? blogs[idx] : { id:`b${Date.now()}`, title:'', source:'', date:new Date().toISOString().slice(0,7), content:'' };
-  const title = prompt('Blog title:', b.title);
-  if (!title) return;
-  const source = prompt('Source (e.g. r/UPSC):', b.source);
-  if (source === null) return;
-  const date = prompt('Date (YYYY-MM):', b.date);
-  if (date === null) return;
-  const content = prompt('Content:', b.content);
-  if (content === null) return;
-  const updated = { ...b, title, source, date, content };
-  if (idx !== null) { blogs[idx] = updated; }
-  else { blogs.push(updated); }
-  pSaveBlogs(blogs);
-  renderBlogs();
+    const editWrap = document.createElement('div');
+    editWrap.style.cssText = 'padding:8px 12px;display:none;';
+
+    viewMode.querySelector('.edit-btn').addEventListener('click', () => {
+      viewMode.style.display = 'none';
+      editWrap.innerHTML = '';
+      const form = blogEditForm(i, b,
+        (data) => { const b2 = pGetBlogs(); b2[i] = data; pSaveBlogs(b2); renderBlogs(); },
+        () => { editWrap.style.display = 'none'; viewMode.style.display = ''; }
+      );
+      editWrap.appendChild(form); editWrap.style.display = '';
+    });
+    viewMode.querySelector('.del-btn').addEventListener('click', () => {
+      if (!confirm(`Delete "${b.title.slice(0, 40)}"?`)) return;
+      const b2 = pGetBlogs(); b2.splice(i, 1); pSaveBlogs(b2); renderBlogs();
+    });
+
+    card.appendChild(viewMode);
+    card.appendChild(editWrap);
+    el.appendChild(card);
+  });
 }
 
 // =====================================================================
