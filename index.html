@@ -643,6 +643,19 @@
   .omr-note-ta.open { display:block; }
   .qstar { background:none; border:none; cursor:pointer; font-size:18px; padding:0 1px; color:var(--text-muted); transition:color .15s; line-height:1; }
   .qstar.on { color:#f59e0b; }
+  .qnote-editor {
+    min-height:38px; padding:6px 8px; border:1px solid var(--border); border-radius:6px;
+    background:var(--input-bg); color:var(--text); font-size:12px; line-height:1.6;
+    outline:none; cursor:text; transition:border-color .15s; overflow-wrap:break-word;
+  }
+  .qnote-editor:focus { border-color:var(--primary); }
+  .qnote-editor:empty:before { content:attr(data-placeholder); color:var(--text-muted); pointer-events:none; }
+  .qfmt-btn {
+    background:var(--card-bg); border:1px solid var(--border); border-radius:4px;
+    cursor:pointer; font-size:12px; padding:2px 7px; color:var(--text);
+    transition:background .12s;
+  }
+  .qfmt-btn:hover { background:var(--primary-soft); border-color:var(--primary); }
   .q-bm-icon { font-size:12px; opacity:.35; transition:opacity .15s; cursor:pointer; }
   .q-bm-icon.on { opacity:1; }
   .q-imp-dots { display:flex; gap:2px; }
@@ -1521,18 +1534,32 @@
         <span id="qNoteStarLabel" style="font-size:11px;color:var(--text-muted);"></span>
       </div>
     </div>
-    <!-- Note fields -->
+    <!-- Shared formatting toolbar -->
+    <div id="qNoteToolbar" style="display:flex;gap:3px;margin-bottom:8px;flex-wrap:wrap;align-items:center;background:var(--section-bg);border:1px solid var(--border);border-radius:6px;padding:4px 6px;">
+      <button class="qfmt-btn" data-cmd="bold"        title="Bold (Ctrl+B)"            style="font-weight:700;">B</button>
+      <button class="qfmt-btn" data-cmd="italic"      title="Italic (Ctrl+I)"          style="font-style:italic;">I</button>
+      <button class="qfmt-btn" data-cmd="underline"   title="Underline (Ctrl+U)"       style="text-decoration:underline;">U</button>
+      <span style="width:1px;background:var(--border);height:16px;margin:0 2px;"></span>
+      <button class="qfmt-btn" data-cmd="hilite-yellow" title="Highlight yellow"       style="background:#fef08a;color:#000;">H</button>
+      <button class="qfmt-btn" data-cmd="hilite-green"  title="Highlight green"        style="background:#bbf7d0;color:#000;">H</button>
+      <button class="qfmt-btn" data-cmd="hilite-red"    title="Highlight red"          style="background:#fecaca;color:#000;">H</button>
+      <span style="width:1px;background:var(--border);height:16px;margin:0 2px;"></span>
+      <button class="qfmt-btn" data-cmd="insertUnorderedList" title="Bullet list">• list</button>
+      <button class="qfmt-btn" data-cmd="removeFormat"        title="Clear formatting" style="font-size:10px;color:var(--text-muted);">✕ fmt</button>
+      <span style="margin-left:auto;font-size:10px;color:var(--text-muted);">click a field below, then format</span>
+    </div>
+    <!-- Note fields — contenteditable, auto-height -->
     <div style="margin-bottom:10px;">
       <div style="font-size:11px;font-weight:700;color:var(--text-muted);margin-bottom:3px;">❌ What went wrong</div>
-      <textarea id="qNoteWrong" class="p-input" rows="2" style="font-size:12px;resize:vertical;min-height:36px;width:100%;" placeholder="e.g. Confused between X and Y…"></textarea>
+      <div id="qNoteWrong" class="qnote-editor" data-placeholder="e.g. Confused between X and Y…"></div>
     </div>
     <div style="margin-bottom:10px;">
       <div style="font-size:11px;font-weight:700;color:var(--text-muted);margin-bottom:3px;">💡 Key concept</div>
-      <textarea id="qNoteConc" class="p-input" rows="2" style="font-size:12px;resize:vertical;min-height:36px;width:100%;" placeholder="e.g. Article 356 — imposed by President…"></textarea>
+      <div id="qNoteConc" class="qnote-editor" data-placeholder="e.g. Article 356 — imposed by President…"></div>
     </div>
     <div style="margin-bottom:10px;">
       <div style="font-size:11px;font-weight:700;color:var(--text-muted);margin-bottom:3px;">📌 Misc / Other</div>
-      <textarea id="qNoteMisc" class="p-input" rows="2" style="font-size:12px;resize:vertical;min-height:36px;width:100%;" placeholder="e.g. Remember for revision…"></textarea>
+      <div id="qNoteMisc" class="qnote-editor" data-placeholder="e.g. Remember for revision…"></div>
     </div>
     <div class="btn-row" style="margin-top:4px;justify-content:flex-end;">
       <button class="p-btn p-btn-primary" id="qNoteSave">Save &amp; Close</button>
@@ -4491,9 +4518,9 @@ function renderOMRGrid(container, type, data) {
 
     // Notes
     const note = ctx.notes[ctx.qIdx] || {};
-    document.getElementById('qNoteWrong').value = note.wrong || '';
-    document.getElementById('qNoteConc').value  = note.concept || '';
-    document.getElementById('qNoteMisc').value  = note.misc || '';
+    document.getElementById('qNoteWrong').innerHTML = note.wrong || '';
+    document.getElementById('qNoteConc').innerHTML  = note.concept || '';
+    document.getElementById('qNoteMisc').innerHTML  = note.misc || '';
 
     // Bookmark
     const bm = ctx.bookmarks[ctx.qIdx] || false;
@@ -4507,7 +4534,7 @@ function renderOMRGrid(container, type, data) {
     renderStars(imp);
 
     document.getElementById('qNoteModal').classList.add('show');
-    document.getElementById('qNoteWrong').focus();
+    setTimeout(() => document.getElementById('qNoteWrong').focus(), 80);
   }
 
   function renderStars(val) {
@@ -4521,9 +4548,9 @@ function renderOMRGrid(container, type, data) {
   function closeAndSave() {
     if (!_ctx) { document.getElementById('qNoteModal').classList.remove('show'); return; }
     const note = _ctx.notes[_ctx.qIdx] || {};
-    note.wrong   = document.getElementById('qNoteWrong').value.trim();
-    note.concept = document.getElementById('qNoteConc').value.trim();
-    note.misc    = document.getElementById('qNoteMisc').value.trim();
+    note.wrong   = document.getElementById('qNoteWrong').innerHTML.trim();
+    note.concept = document.getElementById('qNoteConc').innerHTML.trim();
+    note.misc    = document.getElementById('qNoteMisc').innerHTML.trim();
     if (note.wrong || note.concept || note.misc) _ctx.notes[_ctx.qIdx] = note;
     else delete _ctx.notes[_ctx.qIdx];
 
@@ -4571,6 +4598,27 @@ function renderOMRGrid(container, type, data) {
     const v = parseInt(btn.dataset.v);
     const cur = document.querySelectorAll('.qstar.on').length;
     renderStars(cur === v ? 0 : v); // click same → clear
+  });
+
+  // Make editors contenteditable
+  ['qNoteWrong','qNoteConc','qNoteMisc'].forEach(id => {
+    const el = document.getElementById(id);
+    el.contentEditable = 'true';
+    el.spellcheck = true;
+  });
+
+  // Toolbar buttons
+  document.getElementById('qNoteToolbar').addEventListener('mousedown', e => {
+    const btn = e.target.closest('.qfmt-btn');
+    if (!btn) return;
+    e.preventDefault(); // keep focus in editor
+    const cmd = btn.dataset.cmd;
+    if (cmd.startsWith('hilite-')) {
+      const colors = { 'hilite-yellow': '#fef08a', 'hilite-green': '#bbf7d0', 'hilite-red': '#fecaca' };
+      document.execCommand('hiliteColor', false, colors[cmd]);
+    } else {
+      document.execCommand(cmd, false, null);
+    }
   });
 
   // Expose globally
