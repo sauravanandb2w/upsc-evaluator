@@ -559,13 +559,114 @@
   @media print {
     .nav, .header-right, .btn-row, #status, #errorBox,
     .selfscore-box, .timer-area, .abhyas-hint, .footer,
-    #view-daily, #view-pyq, #view-compare, #view-history, #view-practice, #view-settings,
+    #view-daily, #view-pyq, #view-compare, #view-history, #view-practice, #view-settings, #view-prelims,
     #directiveBanner, #selfScoreResult { display: none !important; }
     body { background: #fff !important; padding: 0; color: #000; }
     .card { box-shadow: none !important; border: 1px solid #ccc; page-break-inside: avoid; }
     .score-block { background: #1e3a8a !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     ul li { background: #f9fafb !important; }
   }
+
+  /* ===== PRELIMS ===== */
+  #view-prelims { padding: 0; }
+  .prelims-sub-nav { display:flex; gap:6px; padding:12px 16px 0; flex-wrap:wrap; border-bottom:1px solid var(--border); background:var(--card-bg); position:sticky; top:52px; z-index:9; }
+  .prelims-sub-btn { padding:6px 14px; border-radius:20px; border:1px solid var(--border); background:none; cursor:pointer; font-size:13px; color:var(--text-soft); transition:all .15s; }
+  .prelims-sub-btn.active { background:var(--primary); color:#fff; border-color:var(--primary); }
+  .prelims-pane { display:none; padding:16px; }
+  .prelims-pane.active { display:block; }
+  .p-card { background:var(--card-bg); border:1px solid var(--border); border-radius:10px; padding:14px; margin-bottom:12px; }
+  .p-label { font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:.5px; margin-bottom:5px; }
+  .omr-grid { display:grid; grid-template-columns:1fr 1fr; gap:2px 8px; margin-top:10px; }
+  .omr-row { display:flex; align-items:center; gap:5px; padding:3px 4px; border-radius:5px; font-size:12px; }
+  .omr-row:hover { background:var(--bg-hover); }
+  .omr-qnum { width:28px; color:var(--text-muted); font-size:11px; flex-shrink:0; }
+  .omr-bubble { width:26px; height:26px; border-radius:50%; border:2px solid var(--border); background:none; cursor:pointer; font-size:11px; font-weight:700; color:var(--text-soft); transition:all .12s; flex-shrink:0; }
+  .omr-bubble:hover { border-color:var(--primary); color:var(--primary); }
+  .omr-bubble.selected { background:var(--primary); border-color:var(--primary); color:#fff; }
+  .omr-bubble.correct { background:#22c55e; border-color:#22c55e; color:#fff; }
+  .omr-bubble.wrong { background:#ef4444; border-color:#ef4444; color:#fff; }
+  .omr-bubble.missed { background:#f59e0b; border-color:#f59e0b; color:#fff; }
+  .omr-tag-sel { display:flex; gap:2px; flex-wrap:wrap; max-width:160px; }
+  .omr-tag-btn { padding:1px 4px; border-radius:3px; cursor:pointer; font-size:9px; font-weight:700; border:1px solid transparent; opacity:.55; transition:all .1s; }
+  .omr-tag-btn:hover { opacity:.9; }
+  .omr-tag-btn.active-tag { opacity:1; box-shadow:0 0 0 2px var(--primary); }
+  .tag-chip { display:inline-block; padding:1px 7px; border-radius:10px; font-size:10px; font-weight:700; margin:1px; }
+  .tag-K  { background:#dcfce7; color:#166534; }
+  .tag-E1 { background:#dbeafe; color:#1e40af; }
+  .tag-E2 { background:#e0e7ff; color:#3730a3; }
+  .tag-T  { background:#fef9c3; color:#854d0e; }
+  .tag-G1 { background:#fde68a; color:#92400e; }
+  .tag-G0 { background:#fee2e2; color:#991b1b; }
+  .tag-C  { background:#fce7f3; color:#9d174d; }
+  .tag-S  { background:#f3e8ff; color:#6b21a8; }
+  .tag-NV { background:#f1f5f9; color:#475569; }
+  .score-pill { display:inline-flex; align-items:center; gap:4px; padding:3px 10px; border-radius:12px; font-size:12px; font-weight:600; }
+  .score-pill.good { background:#dcfce7; color:#166534; }
+  .score-pill.bad  { background:#fee2e2; color:#991b1b; }
+  .score-pill.mid  { background:#fef9c3; color:#854d0e; }
+  .prelims-test-card { background:var(--card-bg); border:1px solid var(--border); border-radius:10px; padding:12px 14px; margin-bottom:8px; cursor:pointer; transition:border-color .15s; }
+  .prelims-test-card:hover { border-color:var(--primary); }
+  .prelims-test-card .ptc-header { display:flex; justify-content:space-between; align-items:flex-start; }
+  .ptc-id { font-size:10px; color:var(--text-muted); font-weight:700; }
+  .ptc-name { font-size:14px; font-weight:600; margin:2px 0; }
+  .ptc-date { font-size:11px; color:var(--text-muted); }
+  .ptc-badge { padding:3px 9px; border-radius:10px; font-size:11px; font-weight:600; }
+  .ptc-badge.pending { background:#fef9c3; color:#854d0e; }
+  .ptc-badge.scored  { background:#dcfce7; color:#166534; }
+  .set-grid { display:grid; grid-template-columns:repeat(10,1fr); gap:3px; margin-top:6px; }
+  .set-cell { height:24px; border-radius:3px; display:flex; align-items:center; justify-content:center; font-size:9px; font-weight:700; color:#fff; }
+  .trick-card { background:var(--section-bg); border:1px solid var(--border); border-radius:8px; padding:10px 12px; margin-bottom:8px; }
+  .trick-id { font-size:11px; font-weight:800; color:var(--primary); margin-bottom:3px; }
+  .trick-title { font-size:13px; font-weight:600; margin-bottom:4px; }
+  .trick-desc { font-size:12px; color:var(--text-soft); line-height:1.5; }
+  .blog-card { background:var(--section-bg); border:1px solid var(--border); border-radius:8px; overflow:hidden; margin-bottom:8px; }
+  .blog-header { padding:10px 12px; cursor:pointer; display:flex; justify-content:space-between; align-items:center; }
+  .blog-title { font-size:13px; font-weight:600; }
+  .blog-body { padding:0 12px 12px; font-size:12px; line-height:1.6; color:var(--text-soft); display:none; }
+  .blog-body.open { display:block; }
+  .p-btn { padding:8px 18px; border-radius:8px; border:none; cursor:pointer; font-size:13px; font-weight:600; transition:opacity .15s; }
+  .p-btn-primary { background:var(--primary); color:#fff; }
+  .p-btn-ghost { background:var(--primary-soft); color:var(--primary); border:1px solid var(--border); }
+  .p-btn:hover { opacity:.85; }
+  .p-input { width:100%; padding:8px 10px; border:1px solid var(--border); border-radius:7px; background:var(--input-bg); color:var(--text); font-size:13px; }
+  .p-select { padding:6px 8px; border:1px solid var(--border); border-radius:7px; background:var(--input-bg); color:var(--text); font-size:12px; }
+  .omr-note-ta { width:100%; font-size:11px; padding:3px 6px; border:1px solid var(--border); border-radius:4px; background:var(--input-bg); color:var(--text); resize:vertical; min-height:28px; display:none; }
+  .omr-note-ta.open { display:block; }
+  .p-tabs-inner { display:flex; gap:4px; margin-bottom:10px; }
+  .p-tab-inner { padding:4px 12px; border-radius:14px; font-size:12px; border:1px solid var(--border); cursor:pointer; background:none; color:var(--text-soft); }
+  .p-tab-inner.active { background:var(--accent); color:#fff; border-color:var(--accent); }
+  .analytics-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px; }
+  @media(max-width:640px){ .analytics-row { grid-template-columns:1fr; } .omr-grid { grid-template-columns:1fr; } }
+  .chart-wrap { background:var(--card-bg); border:1px solid var(--border); border-radius:10px; padding:12px; }
+  .chart-title { font-size:12px; font-weight:700; color:var(--text-muted); margin-bottom:8px; text-transform:uppercase; letter-spacing:.4px; }
+  /* analytics stat cards */
+  .analytics-stat { text-align:center; padding:12px 8px !important; }
+  .stat-val { font-size:24px; font-weight:800; color:var(--primary); }
+  .stat-lbl { font-size:11px; color:var(--text-muted); margin-top:2px; }
+  /* ptc score badges */
+  .ptc-score { font-size:18px; font-weight:800; }
+  .ptc-score.good { color:var(--good); }
+  .ptc-score.ok { color:var(--warn); }
+  .ptc-score.bad { color:var(--danger); }
+  .ptc-score.pending { color:var(--text-muted); font-size:12px; }
+  .ptc-stats { font-size:11px; color:var(--text-muted); }
+  /* set heatmap colors */
+  .set-great { background:#4caf50; }
+  .set-good  { background:#8bc34a; }
+  .set-ok    { background:#ff9800; }
+  .set-bad   { background:#f44336; }
+  /* answer key row colors */
+  .ak-correct    { background:rgba(76,175,80,.08); }
+  .ak-wrong      { background:rgba(244,67,54,.08); }
+  .ak-unattempted{ background:transparent; }
+  /* resource pane */
+  .res-pane { padding-top:8px; }
+  .trick-content { font-size:12px; color:var(--text-soft); line-height:1.6; white-space:pre-line; }
+  .blog-meta { font-size:10px; color:var(--text-muted); padding:8px 12px 0; }
+  .blog-title { font-size:13px; font-weight:600; padding:2px 12px 6px; }
+  .blog-content { font-size:12px; color:var(--text-soft); line-height:1.6; padding:0 12px 12px; white-space:pre-line; }
+  /* p-label */
+  .p-label { font-size:11px; font-weight:700; color:var(--text-muted); margin-bottom:4px; text-transform:uppercase; letter-spacing:.4px; }
 </style>
 </head>
 <body>
@@ -587,6 +688,7 @@
     <button class="nav-btn" data-view="compare">🔄 Compare</button>
     <button class="nav-btn" data-view="history">📊 History</button>
     <button class="nav-btn" data-view="practice">🖊️ Practice Log</button>
+    <button class="nav-btn" data-view="prelims">🔵 Prelims</button>
     <button class="nav-btn" data-view="settings">⚙️ Settings</button>
   </nav>
 
@@ -1109,6 +1211,139 @@
         No backend, no analytics. PYQ data fetched from your <a href="https://github.com/sauravanandb2w/upsc-mains-pyq" target="_blank">upsc-mains-pyq</a> repo.
         Source: <a href="https://github.com/sauravanandb2w/upsc-evaluator" target="_blank">upsc-evaluator</a>.
       </p>
+    </div>
+  </section>
+
+  <!-- ===== PRELIMS SECTION ===== -->
+  <section class="view" id="view-prelims">
+    <nav class="prelims-sub-nav">
+      <button class="prelims-sub-btn active" data-pane="omr">📝 OMR Entry</button>
+      <button class="prelims-sub-btn" data-pane="answerkey">🔑 Answer Key</button>
+      <button class="prelims-sub-btn" data-pane="phistory">📋 History</button>
+      <button class="prelims-sub-btn" data-pane="analytics">📊 Analytics</button>
+      <button class="prelims-sub-btn" data-pane="resources">📚 Resources</button>
+    </nav>
+
+    <!-- OMR ENTRY -->
+    <div class="prelims-pane active" id="pane-omr">
+      <div class="p-card">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+          <div>
+            <div class="p-label">Paper Type</div>
+            <select id="p-type" class="p-select" style="width:100%;">
+              <option value="GS">GS Paper 1 (100 questions)</option>
+              <option value="CSAT">CSAT Paper 2 (80 questions)</option>
+            </select>
+          </div>
+          <div>
+            <div class="p-label">Test Date</div>
+            <input type="date" id="p-date" class="p-input" />
+          </div>
+          <div style="grid-column:1/-1;">
+            <div class="p-label">Test Name</div>
+            <input type="text" id="p-name" class="p-input" placeholder="e.g. Vision IAS Mock 3" />
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <button class="p-btn p-btn-primary" id="p-start-omr">Load OMR Sheet →</button>
+          <button class="p-btn p-btn-ghost" id="p-resume-omr" style="display:none;">Resume Draft</button>
+          <span id="p-draft-info" style="font-size:11px;color:var(--text-muted);"></span>
+        </div>
+      </div>
+
+      <div id="p-omr-container" style="display:none;">
+        <div class="p-card" style="padding:10px 12px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+            <div>
+              <strong id="p-omr-title" style="font-size:14px;"></strong>
+              <span id="p-omr-progress" style="font-size:12px;color:var(--text-muted);margin-left:8px;"></span>
+            </div>
+            <div style="display:flex;gap:6px;">
+              <button class="p-btn p-btn-ghost" id="p-clear-omr" style="font-size:11px;padding:5px 10px;">Clear All</button>
+              <button class="p-btn p-btn-primary" id="p-save-omr">💾 Save Test</button>
+            </div>
+          </div>
+          <!-- Tag legend -->
+          <div style="margin-top:8px;display:flex;gap:4px;flex-wrap:wrap;font-size:10px;">
+            <span class="tag-chip tag-K">K=Known</span>
+            <span class="tag-chip tag-E1">E1=Elim1</span>
+            <span class="tag-chip tag-E2">E2=Elim2</span>
+            <span class="tag-chip tag-T">T=Trick</span>
+            <span class="tag-chip tag-G1">G1=FamiliarGuess</span>
+            <span class="tag-chip tag-G0">G0=BlindGuess</span>
+          </div>
+        </div>
+        <div id="p-omr-grid" class="omr-grid"></div>
+        <div style="padding:12px 0;text-align:center;">
+          <button class="p-btn p-btn-primary" id="p-save-omr-bottom">💾 Save Test</button>
+        </div>
+      </div>
+      <div id="p-save-msg" style="display:none;padding:12px;background:var(--good-soft);color:var(--good);border-radius:8px;margin-top:8px;font-weight:600;"></div>
+    </div>
+
+    <!-- ANSWER KEY -->
+    <div class="prelims-pane" id="pane-answerkey">
+      <div class="p-card">
+        <div class="p-label">Select Test to Add Answer Key</div>
+        <select id="p-ak-test-sel" class="p-input" style="margin-bottom:10px;">
+          <option value="">— choose a test —</option>
+        </select>
+        <div id="p-ak-info" style="font-size:12px;color:var(--text-muted);margin-bottom:8px;"></div>
+        <button class="p-btn p-btn-primary" id="p-ak-load">Load Answer Key Sheet →</button>
+      </div>
+      <div id="p-ak-container" style="display:none;">
+        <div class="p-card" style="padding:10px 12px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+            <strong id="p-ak-title" style="font-size:14px;"></strong>
+            <div style="display:flex;gap:6px;">
+              <button class="p-btn p-btn-primary" id="p-ak-submit">✅ Submit Answer Key & Score</button>
+            </div>
+          </div>
+          <div style="margin-top:6px;font-size:11px;color:var(--text-muted);">
+            🟢 Correct &nbsp; 🔴 Wrong &nbsp; 🟡 Missed &nbsp; ⬜ Unattempted
+          </div>
+        </div>
+        <div id="p-ak-grid"></div>
+        <div class="p-card" style="margin-top:8px;">
+          <button class="p-btn p-btn-primary" id="p-ak-submit-bottom">✅ Submit Answer Key & Score</button>
+        </div>
+      </div>
+      <div id="p-ak-result" style="display:none;" class="p-card"></div>
+    </div>
+
+    <!-- HISTORY -->
+    <div class="prelims-pane" id="pane-phistory">
+      <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;align-items:center;justify-content:space-between;">
+        <div style="display:flex;gap:6px;">
+          <button class="p-tab-inner active" id="ph-gs-btn">GS Paper 1</button>
+          <button class="p-tab-inner" id="ph-csat-btn">CSAT Paper 2</button>
+        </div>
+        <span id="ph-count" style="font-size:12px;color:var(--text-muted);"></span>
+      </div>
+      <div id="p-history-list"></div>
+    </div>
+
+    <!-- ANALYTICS -->
+    <div class="prelims-pane" id="pane-analytics">
+      <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;">
+        <button class="p-tab-inner active" id="pa-gs-btn">GS</button>
+        <button class="p-tab-inner" id="pa-csat-btn">CSAT</button>
+      </div>
+      <div id="p-analytics-content">
+        <div style="color:var(--text-muted);font-size:13px;padding:20px 0;">Add at least one completed test (with answer key) to see analytics.</div>
+      </div>
+    </div>
+
+    <!-- RESOURCES -->
+    <div class="prelims-pane" id="pane-resources">
+      <div class="p-tabs-inner">
+        <button class="p-tab-inner active" data-res="tricks">🎯 Tricks Sheet</button>
+        <button class="p-tab-inner" data-res="tags">🏷️ Tag Reference</button>
+        <button class="p-tab-inner" data-res="blogs">📰 Blogs</button>
+      </div>
+      <div id="res-tricks" class="res-pane"></div>
+      <div id="res-tags" class="res-pane" style="display:none;"></div>
+      <div id="res-blogs" class="res-pane" style="display:none;"></div>
     </div>
   </section>
 
@@ -3477,6 +3712,925 @@ init();
     if (e.target.closest('.hm-cell')) tip.style.opacity = 0;
   });
 })();
+
+// =====================================================================
+// PRELIMS MODULE
+// =====================================================================
+(function() {
+'use strict';
+
+// --- Storage Keys ---
+const P_TESTS_KEY   = 'upsc_prelims_tests';
+const P_DRAFT_KEY   = 'upsc_prelims_draft';
+const P_TRICKS_KEY  = 'upsc_prelims_tricks';
+const P_BLOGS_KEY   = 'upsc_prelims_blogs';
+const P_DELETED_KEY = 'upsc_prelims_deleted';
+
+// --- Scoring ---
+const SCORE_CORRECT   = 2;
+const SCORE_WRONG     = -2/3;
+const SCORE_UNATTEMPTED = 0;
+const CSAT_QUALIFYING_PCT = 33;
+
+// --- Tags ---
+const TAGS = [
+  { id:'K',  label:'K',  title:'Known',         desc:'Directly knew the answer from memory.',       color:'#4caf50' },
+  { id:'E1', label:'E1', title:'Eliminate 1',    desc:'Eliminated 1 option and picked correctly.',   color:'#8bc34a' },
+  { id:'E2', label:'E2', title:'Eliminate 2',    desc:'Eliminated 2 options, 50-50 guess.',          color:'#cddc39' },
+  { id:'T',  label:'T',  title:'Trick Applied',  desc:'Used a specific trick (reference T1-T15).',   color:'#ff9800' },
+  { id:'G1', label:'G1', title:'Familiar Guess', desc:'Unfamiliar but made an educated guess.',      color:'#9c27b0' },
+  { id:'G0', label:'G0', title:'Blind Guess',    desc:'Completely random guess.',                    color:'#f44336' },
+  { id:'C',  label:'C',  title:'Confused',       desc:'Was confused between options, guessed.',      color:'#607d8b' },
+  { id:'S',  label:'S',  title:'Skipped',        desc:'Intentionally skipped/unattempted.',          color:'#9e9e9e' },
+  { id:'NV', label:'NV', title:'Not Visited',    desc:'Did not reach this question in time.',        color:'#bdbdbd' },
+];
+
+// --- Taxonomy ---
+const TAXONOMY = {
+  GS: {
+    'History': ['Ancient','Medieval','Modern','Freedom Struggle','Art & Culture','World History'],
+    'Geography': ['Physical','Indian Geography','World Geography','Environment & Ecology','Maps'],
+    'Polity': ['Constitution','Parliament','Executive','Judiciary','Local Govt','Rights','IR'],
+    'Economy': ['Basics','Banking','Inflation','Govt Schemes','Budget','Trade','Agriculture'],
+    'Environment': ['Ecology','Biodiversity','Climate Change','Conventions','Pollution'],
+    'S&T': ['Science','Technology','Space','Defence','Health','Biotechnology','IT'],
+    'Current Affairs': ['National','International','Awards','Sports','Books/Persons'],
+  },
+  CSAT: {
+    'Reading Comprehension': ['Main Idea','Inference','Tone','Vocabulary'],
+    'Mental Ability': ['Analogy','Coding-Decoding','Series','Direction','Ranking'],
+    'Quantitative': ['Number System','Percentage','Ratio','Time-Speed','Geometry','Data Interp'],
+    'Logical Reasoning': ['Syllogism','Assumption','Argument','Conclusion'],
+    'Decision Making': ['Admin Situations','Ethical Scenarios'],
+  }
+};
+
+// --- Default Tricks ---
+const DEFAULT_TRICKS = [
+  { id:'T1',  title:'Statement-Based: "All of the above" / "None of the above"',
+    content:'If two statements are correct and one option says "only 1 and 2", that\'s often right. "All of the above" is correct ~40% when at least 2 are clearly true. If you can\'t disprove any, lean toward "all".' },
+  { id:'T2',  title:'Extreme Language Elimination',
+    content:'"Always", "never", "only", "must", "completely" are red flags — these are usually wrong in MCQs. Options with "generally", "usually", "often", "can" are safer.' },
+  { id:'T3',  title:'Odd One Out (Classification)',
+    content:'3 options share a category, 1 is the outlier. The outlier is usually the answer. E.g., 3 rivers in one basin + 1 from another → answer is the outlier.' },
+  { id:'T4',  title:'Negative Question ("Which is NOT correct?")',
+    content:'Slow down! Mark each statement T/F first on paper margin. The answer is the one you marked F. Don\'t get tricked by double negatives.' },
+  { id:'T5',  title:'Assertion-Reason Pattern',
+    content:'Check A and R independently first. If both true, then check if R is the correct explanation of A. Often both are true but R does NOT explain A — option (b).' },
+  { id:'T6',  title:'Chronological Ordering',
+    content:'If you know the first and last events, you can often eliminate 2-3 options. Focus on pinning the earliest or latest event in the list.' },
+  { id:'T7',  title:'Geographical Approximation',
+    content:'For "which lies between X and Y latitudes" — India is 8°N to 37°N, Tropic of Cancer at 23.5°N. A state north of Tropic of Cancer can\'t be in a tropical zone option.' },
+  { id:'T8',  title:'Constitutional Article Ranges',
+    content:'Fundamental Rights: 12-35, DPSP: 36-51, Fundamental Duties: 51A, Emergency: 352-360, Finance: 265-291. If option says "Article 100" for FR, eliminate it.' },
+  { id:'T9',  title:'Match the Following: Start with Certainties',
+    content:'Find 1 pair you\'re 100% sure of. This eliminates 2-3 options immediately. Then apply same logic to remaining pairs.' },
+  { id:'T10', title:'Two Statements: If one is definitely wrong',
+    content:'If Statement 1 is clearly false, eliminate all options containing "Statement 1 is correct". Often reduces to 1-2 options.' },
+  { id:'T11', title:'Economy Schemes: Ministry Matching',
+    content:'PM schemes are often Central Sector (100% Union funded). State schemes need state list subjects. Health→MoHFW, Agriculture→MoA, Skill→MoSDE. Wrong ministry = wrong answer.' },
+  { id:'T12', title:'Environmental Conventions: Rio vs Ramsar vs CITES',
+    content:'Ramsar=Wetlands, CITES=Wildlife Trade, CBD=Biodiversity (Rio 1992), UNFCCC=Climate (Rio 1992), Basel=Hazardous Waste, Stockholm=POPs.' },
+  { id:'T13', title:'Speed Elimination: 2-option convergence',
+    content:'If you can reduce to 2 options and one uses absolute language (T2), pick the other. If one contradicts a basic fact you know, eliminate it. Don\'t overthink 50-50 — pick and move.' },
+  { id:'T14', title:'Buddhist/Jain Terms Often Confused',
+    content:'Nirvana=Buddhism(liberation), Moksha=Hinduism/Jainism. Tripitaka=Buddhist scripture, Angas=Jain. Stupa=Buddhist, Tirthankara=Jain. Don\'t mix.' },
+  { id:'T15', title:'Time Management: The 80% Rule',
+    content:'Target 80 questions in 90 min (GS). Skip after 45 seconds if unsure — come back. In final 20 min, attempt all E1/E2 skips. Never leave K-type unattempted.' },
+];
+
+// --- Default Blogs ---
+const DEFAULT_BLOGS = [
+  { id:'b1', title:'How I cracked Prelims in 3rd attempt: The 80% accuracy strategy',
+    source:'r/UPSC', date:'2024-08',
+    content:`My score jumps came from brutal self-analysis, not more studying. After each mock:
+1. Calculated "Attempt Quality" = Correct/(Correct+Wrong). If below 70%, I was over-attempting.
+2. Found my "sweet spot" was ~75 attempts with 78% accuracy = ~120 marks (cutoff was 98).
+3. Key insight: Wrong answers don't just lose marks (-0.67), they COST you the correct attempt you could have made elsewhere.
+Strategy that worked: Mark every Q during exam with K/E1/E2/G. At end, submit only K and E1. Touch E2 only if time remains and you're 10+ marks below your comfort zone.` },
+  { id:'b2', title:'Subject-wise time allocation that got me 118 in Prelims',
+    source:'r/UPSC', date:'2024-06',
+    content:`GS Paper 1 breakdown (120 min, 100 Qs):
+- Current Affairs (25 Qs): 18 min — mostly memory, fast
+- History (20 Qs): 22 min — careful reading needed
+- Polity (20 Qs): 20 min — statement-heavy
+- Geography (15 Qs): 15 min
+- Economy (12 Qs): 15 min
+- Env/S&T (8 Qs): 10 min
+Rule: If I'm over time in History, I take from CA (since CA either you know or you don't). Never take from Polity — statement Qs need time.` },
+  { id:'b3', title:'CSAT: How to qualify without studying much',
+    source:'r/UPSC', date:'2024-03',
+    content:`CSAT is qualifying (33% = ~26.67 marks). You need ~27/80*2 = 27 marks out of 160 total = 13-14 correct.
+My strategy: Attempt only Reading Comprehension (usually 16-20 Qs) and easy Mental Ability. Skip all Quant if weak.
+RC alone: 15 correct * 2 = 30 marks. You've cleared CSAT. Don't waste GS prep time on CSAT math.
+Caution: If your Eng is weak, you need different strategy — attempt all Mental Ability + basic Quant.
+Timing: Do CSAT in 100 min, keep 20 min buffer to re-check RC answers.` },
+  { id:'b4', title:'The "Tricks Sheet" system that improved my score by 12 marks',
+    source:'r/UPSC', date:'2024-10',
+    content:`After 2 failed attempts, I analyzed 300+ wrong answers. Pattern:
+- 28% were wrong because of "extreme language" I should have caught (T2)
+- 19% were wrong Assertion-Reason where both were true but I didn't check explanation link (T5)
+- 16% were negative questions where I forgot to flip (T4)
+These 3 tricks alone = 63% of fixable errors.
+Implementation: During exam, I mentally check T2/T4/T5 on every uncertain question. Takes 3 sec each.
+Built a running "trick performance" tracker — T2 saves me 4-5 marks per test now.` },
+];
+
+// --- Storage helpers ---
+function pGetTests() {
+  try { return JSON.parse(localStorage.getItem(P_TESTS_KEY)) || []; } catch { return []; }
+}
+function pSaveTests(arr) { localStorage.setItem(P_TESTS_KEY, JSON.stringify(arr)); }
+
+function pGetDraft() {
+  try { return JSON.parse(localStorage.getItem(P_DRAFT_KEY)); } catch { return null; }
+}
+function pSaveDraft(d) { localStorage.setItem(P_DRAFT_KEY, JSON.stringify(d)); }
+function pClearDraft() { localStorage.removeItem(P_DRAFT_KEY); }
+
+function pGetTricks() {
+  try {
+    const t = JSON.parse(localStorage.getItem(P_TRICKS_KEY));
+    return (t && t.length) ? t : DEFAULT_TRICKS;
+  } catch { return DEFAULT_TRICKS; }
+}
+function pSaveTricks(arr) { localStorage.setItem(P_TRICKS_KEY, JSON.stringify(arr)); }
+
+function pGetBlogs() {
+  try {
+    const b = JSON.parse(localStorage.getItem(P_BLOGS_KEY));
+    return (b && b.length) ? b : DEFAULT_BLOGS;
+  } catch { return DEFAULT_BLOGS; }
+}
+function pSaveBlogs(arr) { localStorage.setItem(P_BLOGS_KEY, JSON.stringify(arr)); }
+
+function pGetDeleted() {
+  try { return JSON.parse(localStorage.getItem(P_DELETED_KEY)) || []; } catch { return []; }
+}
+function pMarkDeleted(id) {
+  const d = pGetDeleted();
+  if (!d.includes(id)) { d.push(id); localStorage.setItem(P_DELETED_KEY, JSON.stringify(d)); }
+}
+
+// --- ID generation ---
+function pGenId(type) {
+  const tests = pGetTests();
+  const year = new Date().getFullYear();
+  const sameType = tests.filter(t => t.type === type && t.id.startsWith(type + '-' + year));
+  const seq = String(sameType.length + 1).padStart(3, '0');
+  return `${type}-${year}-${seq}`;
+}
+
+// --- Scoring engine ---
+function scoreTest(responses, keys, type) {
+  let correct = 0, wrong = 0, unattempted = 0, notVisited = 0;
+  const n = type === 'CSAT' ? 80 : 100;
+  const detail = [];
+  for (let i = 0; i < n; i++) {
+    const ans = responses[i] || '';
+    const key = keys[i] || '';
+    if (!ans || ans === '' || ans === 'S') { unattempted++; detail.push('U'); }
+    else if (key === '') { unattempted++; detail.push('U'); }
+    else if (ans === key) { correct++; detail.push('C'); }
+    else { wrong++; detail.push('W'); }
+  }
+  const score = correct * SCORE_CORRECT + wrong * SCORE_WRONG;
+  const total = type === 'CSAT' ? 160 : 200;
+  return { correct, wrong, unattempted, score: Math.round(score * 100) / 100, total, detail };
+}
+
+// --- 5-set breakdown ---
+function setBreakdown(detail, type) {
+  const setSize = 5;
+  const n = detail.length;
+  const sets = [];
+  for (let s = 0; s < n; s += setSize) {
+    const chunk = detail.slice(s, s + setSize);
+    const c = chunk.filter(x => x === 'C').length;
+    const w = chunk.filter(x => x === 'W').length;
+    const u = chunk.filter(x => x === 'U').length;
+    sets.push({ from: s+1, to: Math.min(s+setSize, n), c, w, u });
+  }
+  return sets;
+}
+
+// =====================================================================
+// OMR RENDERING
+// =====================================================================
+function renderOMRGrid(container, type, data) {
+  // data: { responses: {}, tags: {} }
+  container.innerHTML = '';
+  const n = type === 'CSAT' ? 80 : 100;
+  const opts = ['A','B','C','D'];
+
+  for (let i = 0; i < n; i++) {
+    const qNum = i + 1;
+    const row = document.createElement('div');
+    row.className = 'omr-row';
+    row.dataset.q = i;
+
+    const numEl = document.createElement('div');
+    numEl.className = 'omr-qnum';
+    numEl.textContent = qNum;
+    row.appendChild(numEl);
+
+    const bubblesEl = document.createElement('div');
+    bubblesEl.className = 'omr-bubbles';
+
+    opts.forEach(opt => {
+      const b = document.createElement('button');
+      b.className = 'omr-bubble';
+      b.dataset.q = i;
+      b.dataset.opt = opt;
+      b.textContent = opt;
+      if (data.responses[i] === opt) b.classList.add('selected');
+      b.addEventListener('click', () => {
+        // Toggle selection
+        const cur = data.responses[i];
+        if (cur === opt) {
+          delete data.responses[i];
+          b.classList.remove('selected');
+        } else {
+          // deselect others
+          bubblesEl.querySelectorAll('.omr-bubble').forEach(x => x.classList.remove('selected'));
+          data.responses[i] = opt;
+          b.classList.add('selected');
+        }
+        updateOMRProgress(container, n, data);
+        pSaveDraft({ type, responses: data.responses, tags: data.tags, _partial: true });
+      });
+      bubblesEl.appendChild(b);
+    });
+    row.appendChild(bubblesEl);
+
+    // Tag selector
+    const tagSel = document.createElement('div');
+    tagSel.className = 'omr-tag-sel';
+    TAGS.slice(0,6).forEach(tag => { // K,E1,E2,T,G1,G0 during OMR entry
+      const t = document.createElement('button');
+      t.className = `omr-tag-btn tag-chip tag-${tag.id}`;
+      t.dataset.q = i;
+      t.dataset.tag = tag.id;
+      t.textContent = tag.label;
+      if (data.tags[i] === tag.id) t.classList.add('active-tag');
+      t.addEventListener('click', () => {
+        const cur = data.tags[i];
+        tagSel.querySelectorAll('.omr-tag-btn').forEach(x => x.classList.remove('active-tag'));
+        if (cur === tag.id) { delete data.tags[i]; }
+        else { data.tags[i] = tag.id; t.classList.add('active-tag'); }
+        pSaveDraft({ type, responses: data.responses, tags: data.tags, _partial: true });
+      });
+      tagSel.appendChild(t);
+    });
+    row.appendChild(tagSel);
+
+    container.appendChild(row);
+  }
+}
+
+function renderAKGrid(container, type, responses, keys, tags) {
+  container.innerHTML = '';
+  const n = type === 'CSAT' ? 80 : 100;
+  const opts = ['A','B','C','D'];
+
+  for (let i = 0; i < n; i++) {
+    const qNum = i + 1;
+    const row = document.createElement('div');
+    row.className = 'omr-row';
+
+    const numEl = document.createElement('div');
+    numEl.className = 'omr-qnum';
+    numEl.textContent = qNum;
+    row.appendChild(numEl);
+
+    // Show student answer (read-only with result colouring)
+    const studentAns = document.createElement('div');
+    studentAns.className = 'omr-student-ans';
+    studentAns.textContent = responses[i] ? `You: ${responses[i]}` : 'Skipped';
+    studentAns.style.cssText = 'font-size:10px;color:var(--text-muted);min-width:52px;';
+    row.appendChild(studentAns);
+
+    // Key bubbles
+    const bubblesEl = document.createElement('div');
+    bubblesEl.className = 'omr-bubbles';
+    opts.forEach(opt => {
+      const b = document.createElement('button');
+      b.className = 'omr-bubble';
+      b.dataset.q = i;
+      b.dataset.opt = opt;
+      b.textContent = opt;
+      if (keys[i] === opt) b.classList.add('selected');
+      b.addEventListener('click', () => {
+        const cur = keys[i];
+        if (cur === opt) { delete keys[i]; b.classList.remove('selected'); }
+        else {
+          bubblesEl.querySelectorAll('.omr-bubble').forEach(x => x.classList.remove('selected'));
+          keys[i] = opt;
+          b.classList.add('selected');
+        }
+        // update colouring
+        updateAKRowColor(row, responses[i], keys[i]);
+      });
+      bubblesEl.appendChild(b);
+    });
+    row.appendChild(bubblesEl);
+
+    updateAKRowColor(row, responses[i], keys[i]);
+    container.appendChild(row);
+  }
+}
+
+function updateAKRowColor(row, ans, key) {
+  row.classList.remove('ak-correct','ak-wrong','ak-unattempted');
+  if (!ans || ans === 'S') row.classList.add('ak-unattempted');
+  else if (!key) row.classList.add('ak-unattempted');
+  else if (ans === key) row.classList.add('ak-correct');
+  else row.classList.add('ak-wrong');
+}
+
+function updateOMRProgress(container, n, data) {
+  const answered = Object.keys(data.responses).length;
+  const tagged = Object.keys(data.tags).length;
+  const prog = document.getElementById('p-omr-progress');
+  if (prog) prog.textContent = `${answered}/${n} answered · ${tagged} tagged`;
+}
+
+// =====================================================================
+// HISTORY RENDERING
+// =====================================================================
+function renderHistory(filterType) {
+  const list = document.getElementById('p-history-list');
+  if (!list) return;
+  const deleted = pGetDeleted();
+  const tests = pGetTests().filter(t => !deleted.includes(t.id) && t.type === filterType);
+  document.getElementById('ph-count').textContent = `${tests.length} test${tests.length===1?'':'s'}`;
+  if (!tests.length) {
+    list.innerHTML = `<div style="color:var(--text-muted);font-size:13px;padding:20px 0;">No ${filterType} tests yet. Add a test via OMR Entry.</div>`;
+    return;
+  }
+  list.innerHTML = '';
+  const sorted = [...tests].sort((a,b) => new Date(b.date) - new Date(a.date));
+  sorted.forEach(t => {
+    const card = document.createElement('div');
+    card.className = 'prelims-test-card';
+    const scored = t.scored;
+    const scoreHTML = scored
+      ? `<div class="ptc-score ${scored.score >= 100 ? 'good' : scored.score >= 80 ? 'ok' : 'bad'}">${scored.score}/${scored.total}</div>
+         <div class="ptc-stats">✅${scored.correct} ❌${scored.wrong} ⬜${scored.unattempted}</div>`
+      : `<div class="ptc-score pending">Pending Key</div>`;
+
+    const sets = scored ? setBreakdown(scored.detail, t.type) : [];
+    const setHTML = sets.length ? `<div class="set-grid">${sets.map(s =>
+      `<div class="set-cell ${s.c>=4?'set-great':s.c>=3?'set-good':s.c>=2?'set-ok':'set-bad'}" title="Q${s.from}-${s.to}: ${s.c}✅ ${s.w}❌ ${s.u}⬜">${s.c}/5</div>`
+    ).join('')}</div>` : '';
+
+    card.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+        <div>
+          <div class="ptc-id">${t.id}</div>
+          <div class="ptc-name">${t.name}</div>
+          <div class="ptc-date">${t.date}</div>
+        </div>
+        <div style="text-align:right;">
+          ${scoreHTML}
+          <button class="p-btn p-btn-ghost" style="font-size:10px;padding:3px 7px;margin-top:4px;" data-delete-prelims="${t.id}">✕ Delete</button>
+        </div>
+      </div>
+      ${setHTML}
+      ${t.tags && Object.keys(t.tags).length ? `<div style="margin-top:6px;">${renderTagSummary(t.tags)}</div>` : ''}
+    `;
+    list.appendChild(card);
+  });
+  // delete handlers
+  list.querySelectorAll('[data-delete-prelims]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (confirm('Delete this test from history?')) {
+        pMarkDeleted(btn.dataset.deletePrelims);
+        renderHistory(filterType);
+        renderAnalytics(filterType);
+      }
+    });
+  });
+}
+
+function renderTagSummary(tags) {
+  const counts = {};
+  Object.values(tags).forEach(t => { counts[t] = (counts[t]||0)+1; });
+  return Object.entries(counts).map(([t,c]) => `<span class="tag-chip tag-${t}">${t}:${c}</span>`).join(' ');
+}
+
+// =====================================================================
+// ANSWER KEY SELECTOR
+// =====================================================================
+function refreshAKSelector() {
+  const sel = document.getElementById('p-ak-test-sel');
+  if (!sel) return;
+  const deleted = pGetDeleted();
+  const tests = pGetTests().filter(t => !deleted.includes(t.id));
+  sel.innerHTML = '<option value="">— choose a test —</option>';
+  const pending = tests.filter(t => !t.scored);
+  const done = tests.filter(t => t.scored);
+  if (pending.length) {
+    const og = document.createElement('optgroup');
+    og.label = 'Pending Answer Key';
+    pending.forEach(t => {
+      const o = document.createElement('option');
+      o.value = t.id;
+      o.textContent = `${t.id} — ${t.name} (${t.date})`;
+      og.appendChild(o);
+    });
+    sel.appendChild(og);
+  }
+  if (done.length) {
+    const og = document.createElement('optgroup');
+    og.label = 'Already Scored (re-enter to update)';
+    done.forEach(t => {
+      const o = document.createElement('option');
+      o.value = t.id;
+      o.textContent = `${t.id} — ${t.name} ✅ ${t.scored.score}`;
+      og.appendChild(o);
+    });
+    sel.appendChild(og);
+  }
+}
+
+// =====================================================================
+// ANALYTICS
+// =====================================================================
+function renderAnalytics(filterType) {
+  const el = document.getElementById('p-analytics-content');
+  if (!el) return;
+  const deleted = pGetDeleted();
+  const tests = pGetTests()
+    .filter(t => !deleted.includes(t.id) && t.type === filterType && t.scored)
+    .sort((a,b) => new Date(a.date) - new Date(b.date));
+  if (!tests.length) {
+    el.innerHTML = `<div style="color:var(--text-muted);font-size:13px;padding:20px 0;">Add at least one scored test to see analytics.</div>`;
+    return;
+  }
+
+  // Score trend
+  const scores = tests.map(t => t.scored.score);
+  const maxScore = filterType === 'CSAT' ? 160 : 200;
+  const avgScore = Math.round(scores.reduce((a,b)=>a+b,0)/scores.length * 10) / 10;
+
+  // Accuracy trend
+  const accuracies = tests.map(t => {
+    const {correct,wrong} = t.scored;
+    return correct+wrong === 0 ? 0 : Math.round(correct/(correct+wrong)*100);
+  });
+
+  // Tag analysis across all tests
+  const tagCounts = {}, tagCorrect = {};
+  TAGS.forEach(tg => { tagCounts[tg.id] = 0; tagCorrect[tg.id] = 0; });
+  tests.forEach(test => {
+    if (!test.tags) return;
+    Object.entries(test.tags).forEach(([qIdx, tag]) => {
+      tagCounts[tag] = (tagCounts[tag]||0) + 1;
+      if (test.scored && test.scored.detail[parseInt(qIdx)] === 'C') {
+        tagCorrect[tag] = (tagCorrect[tag]||0) + 1;
+      }
+    });
+  });
+
+  // Attempt optimum chart data
+  const optData = tests.map(t => ({
+    id: t.id,
+    attempted: t.scored.correct + t.scored.wrong,
+    correct: t.scored.correct,
+    wrong: t.scored.wrong,
+    score: t.scored.score,
+  }));
+
+  el.innerHTML = `
+    <div class="analytics-row">
+      <div class="p-card analytics-stat">
+        <div class="stat-val">${tests.length}</div>
+        <div class="stat-lbl">Tests Taken</div>
+      </div>
+      <div class="p-card analytics-stat">
+        <div class="stat-val">${avgScore}</div>
+        <div class="stat-lbl">Avg Score</div>
+      </div>
+      <div class="p-card analytics-stat">
+        <div class="stat-val">${scores[scores.length-1]}</div>
+        <div class="stat-lbl">Latest Score</div>
+      </div>
+      <div class="p-card analytics-stat">
+        <div class="stat-val">${Math.max(...scores)}</div>
+        <div class="stat-lbl">Best Score</div>
+      </div>
+    </div>
+
+    <div class="p-card" style="margin-top:8px;">
+      <div class="p-label" style="margin-bottom:8px;">📈 Score Trend</div>
+      <div class="chart-wrap">${renderBarChart(tests.map(t=>t.id), scores, maxScore, '#4caf50')}</div>
+    </div>
+
+    <div class="p-card" style="margin-top:8px;">
+      <div class="p-label" style="margin-bottom:8px;">🎯 Attempt Quality (Accuracy %)</div>
+      <div class="chart-wrap">${renderBarChart(tests.map(t=>t.id), accuracies, 100, '#2196f3', '%')}</div>
+    </div>
+
+    <div class="p-card" style="margin-top:8px;">
+      <div class="p-label" style="margin-bottom:8px;">⚡ Attempt Optimum (latest test)</div>
+      ${renderOptimumGrid(tests[tests.length-1])}
+    </div>
+
+    <div class="p-card" style="margin-top:8px;">
+      <div class="p-label" style="margin-bottom:8px;">🏷️ Tag Performance</div>
+      ${renderTagAnalytics(tagCounts, tagCorrect)}
+    </div>
+
+    <div class="p-card" style="margin-top:8px;">
+      <div class="p-label" style="margin-bottom:8px;">🟦 5-Question Set Heatmap (all tests)</div>
+      ${renderSetHeatmap(tests, filterType)}
+    </div>
+  `;
+}
+
+function renderBarChart(labels, values, maxVal, color, suffix='') {
+  if (!values.length) return '<div style="color:var(--text-muted);font-size:12px;">No data</div>';
+  const w = Math.max(400, labels.length * 60);
+  const h = 140;
+  const pad = 30;
+  const barW = Math.min(40, (w - pad*2) / labels.length - 4);
+
+  let svg = `<svg viewBox="0 0 ${w} ${h}" style="width:100%;height:${h}px;">`;
+  svg += `<line x1="${pad}" y1="${h-20}" x2="${w-pad}" y2="${h-20}" stroke="var(--border)" stroke-width="1"/>`;
+
+  labels.forEach((lbl, i) => {
+    const x = pad + i * ((w - pad*2) / labels.length) + ((w-pad*2)/labels.length - barW)/2;
+    const pct = Math.max(0, Math.min(1, values[i] / maxVal));
+    const bh = pct * (h - 40);
+    const y = h - 20 - bh;
+    svg += `<rect x="${x}" y="${y}" width="${barW}" height="${bh}" fill="${color}" rx="2" opacity="0.85"/>`;
+    svg += `<text x="${x+barW/2}" y="${h-5}" text-anchor="middle" font-size="8" fill="var(--text-muted)">${lbl.split('-').pop()}</text>`;
+    svg += `<text x="${x+barW/2}" y="${Math.max(y-2,8)}" text-anchor="middle" font-size="9" fill="var(--text-muted)">${values[i]}${suffix}</text>`;
+  });
+  svg += `</svg>`;
+  return `<div style="overflow-x:auto;">${svg}</div>`;
+}
+
+function renderOptimumGrid(test) {
+  if (!test || !test.scored) return '<div style="color:var(--text-muted);font-size:12px;">No scored test.</div>';
+  const { correct, wrong, unattempted, score, total } = test.scored;
+  const attempted = correct + wrong;
+  const accuracy = attempted ? Math.round(correct/attempted*100) : 0;
+  const optAttempts = Math.round(correct / 0.75); // rough: if accuracy were 75%
+  return `
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;font-size:12px;">
+      <div class="p-card" style="padding:8px;text-align:center;">
+        <div style="font-size:20px;font-weight:700;color:var(--good);">${correct}</div>
+        <div style="color:var(--text-muted);">Correct</div>
+      </div>
+      <div class="p-card" style="padding:8px;text-align:center;">
+        <div style="font-size:20px;font-weight:700;color:var(--danger);">${wrong}</div>
+        <div style="color:var(--text-muted);">Wrong</div>
+      </div>
+      <div class="p-card" style="padding:8px;text-align:center;">
+        <div style="font-size:20px;font-weight:700;">${attempted}</div>
+        <div style="color:var(--text-muted);">Attempted</div>
+      </div>
+      <div class="p-card" style="padding:8px;text-align:center;">
+        <div style="font-size:20px;font-weight:700;">${accuracy}%</div>
+        <div style="color:var(--text-muted);">Accuracy</div>
+      </div>
+    </div>
+    <div style="margin-top:8px;font-size:12px;color:var(--text-muted);">
+      💡 At 75% accuracy you could attempt ~${optAttempts} questions for same score.
+      ${accuracy < 70 ? '⚠️ High wrong rate — consider attempting fewer.' : accuracy >= 80 ? '✅ Good accuracy — try attempting more.' : '📊 Decent accuracy — small room to improve.'}
+    </div>`;
+}
+
+function renderTagAnalytics(tagCounts, tagCorrect) {
+  const rows = TAGS.filter(t => tagCounts[t.id] > 0).map(t => {
+    const total = tagCounts[t.id];
+    const corr = tagCorrect[t.id] || 0;
+    const acc = total ? Math.round(corr/total*100) : 0;
+    const bar = `<div style="background:var(--border);border-radius:4px;height:6px;flex:1;"><div style="width:${acc}%;background:#4caf50;height:100%;border-radius:4px;"></div></div>`;
+    return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+      <span class="tag-chip tag-${t.id}" style="width:32px;text-align:center;">${t.id}</span>
+      <span style="font-size:11px;color:var(--text-muted);min-width:28px;">${total}×</span>
+      ${bar}
+      <span style="font-size:11px;min-width:36px;">${acc}%</span>
+    </div>`;
+  });
+  return rows.length ? rows.join('') : '<div style="color:var(--text-muted);font-size:12px;">No tagged questions yet.</div>';
+}
+
+function renderSetHeatmap(tests, type) {
+  const n = type === 'CSAT' ? 80 : 100;
+  const nSets = n / 5;
+  // Accumulate set performance across tests
+  const setTotals = Array(nSets).fill(0);
+  const setCorrect = Array(nSets).fill(0);
+  tests.forEach(test => {
+    if (!test.scored) return;
+    const sets = setBreakdown(test.scored.detail, type);
+    sets.forEach((s,i) => { setTotals[i]++; setCorrect[i] += s.c; });
+  });
+  const cells = setTotals.map((total, i) => {
+    if (!total) return `<div class="set-cell" title="Q${i*5+1}-${i*5+5}: no data">-</div>`;
+    const avg = setCorrect[i] / total;
+    const cls = avg >= 4 ? 'set-great' : avg >= 3 ? 'set-good' : avg >= 2 ? 'set-ok' : 'set-bad';
+    return `<div class="set-cell ${cls}" title="Q${i*5+1}-${i*5+5}: avg ${(avg).toFixed(1)}/5">${avg.toFixed(1)}</div>`;
+  });
+  return `<div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">Average correct per 5-question set across all tests:</div>
+    <div class="set-grid">${cells.join('')}</div>`;
+}
+
+// =====================================================================
+// RESOURCES RENDERING
+// =====================================================================
+function renderTricks() {
+  const el = document.getElementById('res-tricks');
+  if (!el) return;
+  const tricks = pGetTricks();
+  el.innerHTML = tricks.map(t => `
+    <div class="trick-card">
+      <div class="trick-id">${t.id}</div>
+      <div class="trick-title">${t.title}</div>
+      <div class="trick-content">${t.content}</div>
+    </div>`).join('');
+}
+
+function renderTagRef() {
+  const el = document.getElementById('res-tags');
+  if (!el) return;
+  el.innerHTML = `<div style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">Use these tags on each question during OMR entry to track your confidence and strategy.</div>` +
+    TAGS.map(t => `<div class="trick-card" style="display:flex;gap:10px;align-items:flex-start;">
+      <span class="tag-chip tag-${t.id}" style="min-width:32px;text-align:center;font-size:13px;">${t.label}</span>
+      <div>
+        <div style="font-weight:600;font-size:13px;">${t.title}</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">${t.desc}</div>
+      </div>
+    </div>`).join('');
+}
+
+function renderBlogs() {
+  const el = document.getElementById('res-blogs');
+  if (!el) return;
+  const blogs = pGetBlogs();
+  el.innerHTML = blogs.map(b => `
+    <div class="blog-card">
+      <div class="blog-meta">${b.source} · ${b.date}</div>
+      <div class="blog-title">${b.title}</div>
+      <div class="blog-content">${b.content}</div>
+    </div>`).join('');
+}
+
+// =====================================================================
+// INIT & EVENT WIRING
+// =====================================================================
+function prelimsInit() {
+  // Sub-nav switching
+  document.querySelectorAll('.prelims-sub-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.prelims-sub-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.prelims-pane').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      const pane = document.getElementById('pane-' + btn.dataset.pane);
+      if (pane) pane.classList.add('active');
+      // Lazy render
+      if (btn.dataset.pane === 'phistory') { renderHistory(currentHistoryType); }
+      if (btn.dataset.pane === 'analytics') { renderAnalytics(currentAnalyticsType); }
+      if (btn.dataset.pane === 'answerkey') { refreshAKSelector(); }
+      if (btn.dataset.pane === 'resources') { renderTricks(); renderTagRef(); renderBlogs(); }
+    });
+  });
+
+  // Resources inner tabs
+  document.querySelectorAll('[data-res]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('[data-res]').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.res-pane').forEach(p => p.style.display='none');
+      btn.classList.add('active');
+      const el = document.getElementById('res-' + btn.dataset.res);
+      if (el) el.style.display = '';
+    });
+  });
+
+  // Set today's date default
+  const dateInput = document.getElementById('p-date');
+  if (dateInput && !dateInput.value) dateInput.value = new Date().toISOString().slice(0,10);
+
+  // Check for draft
+  checkForDraft();
+
+  // History type toggle
+  document.getElementById('ph-gs-btn').addEventListener('click', () => {
+    currentHistoryType = 'GS';
+    document.getElementById('ph-gs-btn').classList.add('active');
+    document.getElementById('ph-csat-btn').classList.remove('active');
+    renderHistory('GS');
+  });
+  document.getElementById('ph-csat-btn').addEventListener('click', () => {
+    currentHistoryType = 'CSAT';
+    document.getElementById('ph-csat-btn').classList.add('active');
+    document.getElementById('ph-gs-btn').classList.remove('active');
+    renderHistory('CSAT');
+  });
+
+  // Analytics type toggle
+  document.getElementById('pa-gs-btn').addEventListener('click', () => {
+    currentAnalyticsType = 'GS';
+    document.getElementById('pa-gs-btn').classList.add('active');
+    document.getElementById('pa-csat-btn').classList.remove('active');
+    renderAnalytics('GS');
+  });
+  document.getElementById('pa-csat-btn').addEventListener('click', () => {
+    currentAnalyticsType = 'CSAT';
+    document.getElementById('pa-csat-btn').classList.add('active');
+    document.getElementById('pa-gs-btn').classList.remove('active');
+    renderAnalytics('CSAT');
+  });
+
+  // OMR Start
+  document.getElementById('p-start-omr').addEventListener('click', startOMR);
+  document.getElementById('p-resume-omr').addEventListener('click', resumeOMR);
+  document.getElementById('p-save-omr').addEventListener('click', saveOMR);
+  document.getElementById('p-save-omr-bottom').addEventListener('click', saveOMR);
+  document.getElementById('p-clear-omr').addEventListener('click', clearOMR);
+
+  // Answer Key
+  document.getElementById('p-ak-load').addEventListener('click', loadAKSheet);
+  document.getElementById('p-ak-submit').addEventListener('click', submitAnswerKey);
+  document.getElementById('p-ak-submit-bottom').addEventListener('click', submitAnswerKey);
+
+  // Init resources
+  renderTricks();
+  renderTagRef();
+  renderBlogs();
+}
+
+let currentHistoryType = 'GS';
+let currentAnalyticsType = 'GS';
+let omrData = { type:'GS', responses:{}, tags:{} };
+let akData = { testId: null, keys: {} };
+
+function checkForDraft() {
+  const draft = pGetDraft();
+  const resumeBtn = document.getElementById('p-resume-omr');
+  const draftInfo = document.getElementById('p-draft-info');
+  if (draft && draft._partial) {
+    const answered = Object.keys(draft.responses||{}).length;
+    resumeBtn.style.display = 'inline-block';
+    draftInfo.textContent = `Draft: ${draft.type} · ${answered} answered`;
+  } else {
+    resumeBtn.style.display = 'none';
+    draftInfo.textContent = '';
+  }
+}
+
+function startOMR() {
+  const type = document.getElementById('p-type').value;
+  const date = document.getElementById('p-date').value;
+  const name = document.getElementById('p-name').value.trim() || 'Untitled Test';
+  if (!date) { alert('Please select a test date.'); return; }
+  omrData = { type, date, name, responses:{}, tags:{} };
+  showOMRContainer(type, name);
+  pSaveDraft({ ...omrData, _partial: true });
+}
+
+function resumeOMR() {
+  const draft = pGetDraft();
+  if (!draft) return;
+  omrData = { type: draft.type, responses: draft.responses||{}, tags: draft.tags||{} };
+  const nameInput = document.getElementById('p-name');
+  const typeInput = document.getElementById('p-type');
+  if (draft.name) { nameInput.value = draft.name; omrData.name = draft.name; }
+  if (draft.type) typeInput.value = draft.type;
+  showOMRContainer(draft.type, draft.name || 'Resumed Draft');
+}
+
+function showOMRContainer(type, name) {
+  document.getElementById('p-omr-container').style.display = '';
+  document.getElementById('p-omr-title').textContent = `${type} — ${name}`;
+  const n = type === 'CSAT' ? 80 : 100;
+  document.getElementById('p-omr-progress').textContent = `${Object.keys(omrData.responses).length}/${n} answered`;
+  const grid = document.getElementById('p-omr-grid');
+  renderOMRGrid(grid, type, omrData);
+}
+
+function clearOMR() {
+  if (!confirm('Clear all answers and tags for this sheet?')) return;
+  omrData.responses = {};
+  omrData.tags = {};
+  showOMRContainer(omrData.type, omrData.name);
+  pSaveDraft({ ...omrData, _partial: true });
+}
+
+function saveOMR() {
+  const type = omrData.type;
+  const date = document.getElementById('p-date').value;
+  const name = document.getElementById('p-name').value.trim() || 'Untitled Test';
+  if (!date) { alert('Select a date first.'); return; }
+  const n = type === 'CSAT' ? 80 : 100;
+  // Validate at least 1 answer
+  if (!Object.keys(omrData.responses).length) {
+    alert('Please fill in at least some answers before saving.'); return;
+  }
+  const id = pGenId(type);
+  const testObj = {
+    id, type, date, name,
+    responses: { ...omrData.responses },
+    tags: { ...omrData.tags },
+    savedAt: Date.now(),
+    scored: null,
+  };
+  const tests = pGetTests();
+  tests.push(testObj);
+  pSaveTests(tests);
+  pClearDraft();
+  omrData = { type, responses:{}, tags:{} };
+  // Reset UI
+  document.getElementById('p-omr-container').style.display = 'none';
+  document.getElementById('p-name').value = '';
+  document.getElementById('p-date').value = new Date().toISOString().slice(0,10);
+  checkForDraft();
+  const msg = document.getElementById('p-save-msg');
+  msg.textContent = `✅ Test "${id}" saved! Go to Answer Key tab to enter the key.`;
+  msg.style.display = '';
+  setTimeout(() => msg.style.display = 'none', 4000);
+}
+
+function loadAKSheet() {
+  const sel = document.getElementById('p-ak-test-sel');
+  const testId = sel.value;
+  if (!testId) { alert('Please select a test.'); return; }
+  const tests = pGetTests();
+  const test = tests.find(t => t.id === testId);
+  if (!test) { alert('Test not found.'); return; }
+  akData = { testId, keys: test.keys ? { ...test.keys } : {} };
+  document.getElementById('p-ak-container').style.display = '';
+  document.getElementById('p-ak-title').textContent = `${test.id} — ${test.name} (${test.date})`;
+  document.getElementById('p-ak-info').textContent = `${test.type} · ${Object.keys(test.responses).length} answers recorded`;
+  renderAKGrid(
+    document.getElementById('p-ak-grid'),
+    test.type,
+    test.responses,
+    akData.keys,
+    test.tags
+  );
+}
+
+function submitAnswerKey() {
+  if (!akData.testId) { alert('Load a test first.'); return; }
+  const tests = pGetTests();
+  const idx = tests.findIndex(t => t.id === akData.testId);
+  if (idx < 0) { alert('Test not found.'); return; }
+  const test = tests[idx];
+  const n = test.type === 'CSAT' ? 80 : 100;
+  const answeredKeys = Object.keys(akData.keys).length;
+  if (answeredKeys < n * 0.5) {
+    if (!confirm(`Only ${answeredKeys}/${n} keys entered. Submit anyway?`)) return;
+  }
+  test.keys = { ...akData.keys };
+  test.scored = scoreTest(test.responses, akData.keys, test.type);
+  tests[idx] = test;
+  pSaveTests(tests);
+
+  // Show result
+  const { correct, wrong, unattempted, score, total } = test.scored;
+  const accuracy = correct+wrong ? Math.round(correct/(correct+wrong)*100) : 0;
+  let csatMsg = '';
+  if (test.type === 'CSAT') {
+    const pct = (score / total) * 100;
+    csatMsg = pct >= CSAT_QUALIFYING_PCT
+      ? `<span style="color:var(--good);">✅ CSAT Qualifying (${pct.toFixed(1)}% ≥ 33%)</span>`
+      : `<span style="color:var(--danger);">⚠️ Below qualifying (${pct.toFixed(1)}% < 33%)</span>`;
+  }
+  const result = document.getElementById('p-ak-result');
+  result.style.display = '';
+  result.innerHTML = `
+    <div style="font-size:20px;font-weight:700;color:${score>=100?'var(--good)':score>=80?'var(--warn)':'var(--danger)'};">${score} / ${total}</div>
+    <div style="margin-top:6px;font-size:13px;">✅ ${correct} correct &nbsp; ❌ ${wrong} wrong &nbsp; ⬜ ${unattempted} unattempted</div>
+    <div style="font-size:12px;color:var(--text-muted);">Accuracy: ${accuracy}%</div>
+    ${csatMsg ? `<div style="margin-top:4px;">${csatMsg}</div>` : ''}
+    <div style="margin-top:8px;">${renderTagSummary(test.tags||{})}</div>
+    <div style="margin-top:8px;">
+      <div style="font-size:12px;font-weight:600;margin-bottom:4px;">5-question sets:</div>
+      <div class="set-grid">${setBreakdown(test.scored.detail, test.type).map(s =>
+        `<div class="set-cell ${s.c>=4?'set-great':s.c>=3?'set-good':s.c>=2?'set-ok':'set-bad'}"
+          title="Q${s.from}-${s.to}: ${s.c}✅ ${s.w}❌ ${s.u}⬜">${s.c}/5</div>`
+      ).join('')}</div>
+    </div>
+  `;
+  document.getElementById('p-ak-container').style.display = 'none';
+}
+
+// Wire up after DOM ready
+document.addEventListener('DOMContentLoaded', () => {
+  // Small delay to let main app init first
+  setTimeout(prelimsInit, 100);
+});
+// Also wire if already loaded
+if (document.readyState !== 'loading') {
+  setTimeout(prelimsInit, 200);
+}
+
+})(); // end PRELIMS MODULE
 </script>
 </body>
 </html>
