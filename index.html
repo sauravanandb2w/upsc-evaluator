@@ -1249,12 +1249,26 @@
         <div id="p-ak-info" style="font-size:12px;color:var(--text-muted);margin-bottom:8px;"></div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
           <div>
-            <div class="p-label">Question Paper PDF/Link</div>
-            <input type="url" id="p-ak-qpdf" class="p-input" placeholder="https://… or leave blank" />
+            <div class="p-label">Question Paper PDF</div>
+            <div style="display:flex;gap:4px;align-items:center;">
+              <input type="text" id="p-ak-qpdf" class="p-input" style="flex:1;font-size:11px;" placeholder="Paste URL or upload →" />
+              <label class="p-btn p-btn-ghost" style="font-size:11px;padding:4px 8px;cursor:pointer;white-space:nowrap;" title="Upload PDF from computer">
+                📁 Upload
+                <input type="file" accept="application/pdf" style="display:none;" id="p-ak-qpdf-file" />
+              </label>
+            </div>
+            <div id="p-ak-qpdf-name" style="font-size:10px;color:var(--text-muted);margin-top:2px;"></div>
           </div>
           <div>
-            <div class="p-label">Answer Key PDF/Link</div>
-            <input type="url" id="p-ak-akpdf" class="p-input" placeholder="https://… or leave blank" />
+            <div class="p-label">Answer Key PDF</div>
+            <div style="display:flex;gap:4px;align-items:center;">
+              <input type="text" id="p-ak-akpdf" class="p-input" style="flex:1;font-size:11px;" placeholder="Paste URL or upload →" />
+              <label class="p-btn p-btn-ghost" style="font-size:11px;padding:4px 8px;cursor:pointer;white-space:nowrap;" title="Upload PDF from computer">
+                📁 Upload
+                <input type="file" accept="application/pdf" style="display:none;" id="p-ak-akpdf-file" />
+              </label>
+            </div>
+            <div id="p-ak-akpdf-name" style="font-size:10px;color:var(--text-muted);margin-top:2px;"></div>
           </div>
         </div>
         <button class="p-btn p-btn-primary" id="p-ak-load">Load Answer Key Sheet →</button>
@@ -5954,6 +5968,24 @@ function prelimsInit() {
   document.getElementById('p-ak-submit').addEventListener('click', submitAnswerKey);
   document.getElementById('p-ak-submit-bottom').addEventListener('click', submitAnswerKey);
 
+  // PDF file upload handlers for Answer Key pane
+  function wirePdfUpload(fileInputId, urlInputId, nameDisplayId) {
+    document.getElementById(fileInputId).addEventListener('change', function() {
+      const file = this.files[0];
+      if (!file) return;
+      const nameEl = document.getElementById(nameDisplayId);
+      nameEl.textContent = '⏳ Reading ' + file.name + '…';
+      const reader = new FileReader();
+      reader.onload = e => {
+        document.getElementById(urlInputId).value = e.target.result; // data URL
+        nameEl.textContent = '✅ ' + file.name + ' (' + (file.size/1024).toFixed(0) + ' KB)';
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+  wirePdfUpload('p-ak-qpdf-file',  'p-ak-qpdf',  'p-ak-qpdf-name');
+  wirePdfUpload('p-ak-akpdf-file', 'p-ak-akpdf', 'p-ak-akpdf-name');
+
   // Suggestions
   document.getElementById('sug-gs-btn').addEventListener('click', () => {
     currentSugType = 'GS';
@@ -6126,8 +6158,16 @@ function loadAKSheet() {
     importance: test.importance ? JSON.parse(JSON.stringify(test.importance))   : {},
   };
   // pre-fill PDF links if already saved
-  document.getElementById('p-ak-qpdf').value = test.qPdf || '';
+  document.getElementById('p-ak-qpdf').value  = test.qPdf  || '';
   document.getElementById('p-ak-akpdf').value = test.akPdf || '';
+  // Show filename hint if it's a data URL (uploaded file)
+  function pdfHint(val, nameId) {
+    const el = document.getElementById(nameId);
+    if (!el) return;
+    el.textContent = val && val.startsWith('data:') ? '📎 Uploaded PDF (stored locally)' : val ? '🔗 URL saved' : '';
+  }
+  pdfHint(test.qPdf,  'p-ak-qpdf-name');
+  pdfHint(test.akPdf, 'p-ak-akpdf-name');
   document.getElementById('p-ak-container').style.display = '';
   document.getElementById('p-ak-title').textContent = `${test.id} — ${test.name} (${test.date})`;
   document.getElementById('p-ak-info').textContent = `${test.type} · ${Object.keys(test.responses).length} answers recorded`;
@@ -6636,6 +6676,7 @@ function renderPapers() {
   renderOMRRefPreview();
   const el = document.getElementById('papers-list');
   if (!el) return;
+  el.innerHTML = '';
   const deleted = pGetDeleted();
   const tests = pGetTests().filter(t => !deleted.includes(t.id))
     .sort((a,b) => new Date(b.date) - new Date(a.date));
@@ -6643,38 +6684,117 @@ function renderPapers() {
     el.innerHTML = '<div style="color:var(--text-muted);font-size:13px;padding:20px 0;">No tests yet.</div>';
     return;
   }
-  el.innerHTML = tests.map(t => {
-    const qLink = t.qPdf ? `<a href="${t.qPdf}" target="_blank" class="p-btn p-btn-ghost" style="font-size:11px;padding:4px 10px;">📄 Question Paper</a>` : `<span style="font-size:11px;color:var(--text-muted);">No question PDF</span>`;
-    const aLink = t.akPdf ? `<a href="${t.akPdf}" target="_blank" class="p-btn p-btn-ghost" style="font-size:11px;padding:4px 10px;">🔑 Answer Key PDF</a>` : `<span style="font-size:11px;color:var(--text-muted);">No answer key PDF</span>`;
-    return `<div class="p-card" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
-      <div>
-        <div style="font-size:11px;font-weight:700;color:var(--text-muted);">${t.id}${t.official?' 🏛️':''} · ${t.date}</div>
-        <div style="font-size:13px;font-weight:600;">${t.name}</div>
-      </div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
-        ${qLink}
-        ${aLink}
-        <button class="p-btn p-btn-ghost" data-edit-pdf="${t.id}" style="font-size:11px;padding:4px 10px;">✏️ Edit Links</button>
-      </div>
-    </div>`;
-  }).join('');
 
-  el.querySelectorAll('[data-edit-pdf]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const testId = btn.dataset.editPdf;
+  tests.forEach(t => {
+    const card = document.createElement('div');
+    card.className = 'p-card';
+    card.style.cssText = 'margin-bottom:8px;';
+
+    // ── View row ──
+    const viewRow = document.createElement('div');
+    viewRow.style.cssText = 'display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;';
+
+    const info = document.createElement('div');
+    info.innerHTML = `<div style="font-size:11px;font-weight:700;color:var(--text-muted);">${t.id}${t.official?' 🏛️':''} · ${t.date}</div>
+      <div style="font-size:13px;font-weight:600;">${t.name}</div>`;
+
+    const btnGroup = document.createElement('div');
+    btnGroup.style.cssText = 'display:flex;gap:6px;flex-wrap:wrap;align-items:center;';
+
+    function pdfBtn(val, label, icon) {
+      if (val) {
+        const a = document.createElement('a');
+        a.href = val; a.target = '_blank';
+        a.className = 'p-btn p-btn-ghost';
+        a.style.cssText = 'font-size:11px;padding:4px 10px;text-decoration:none;';
+        a.textContent = icon + ' ' + label;
+        return a;
+      } else {
+        const sp = document.createElement('span');
+        sp.style.cssText = 'font-size:11px;color:var(--text-muted);';
+        sp.textContent = 'No ' + label;
+        return sp;
+      }
+    }
+    btnGroup.appendChild(pdfBtn(t.qPdf,  'Question Paper', '📄'));
+    btnGroup.appendChild(pdfBtn(t.akPdf, 'Answer Key', '🔑'));
+
+    const editBtn = document.createElement('button');
+    editBtn.className = 'p-btn p-btn-ghost';
+    editBtn.style.cssText = 'font-size:11px;padding:4px 10px;';
+    editBtn.textContent = '✏️ Attach PDFs';
+    btnGroup.appendChild(editBtn);
+
+    viewRow.appendChild(info);
+    viewRow.appendChild(btnGroup);
+    card.appendChild(viewRow);
+
+    // ── Inline edit form (hidden by default) ──
+    const editWrap = document.createElement('div');
+    editWrap.style.cssText = 'display:none;margin-top:10px;border-top:1px solid var(--border);padding-top:10px;';
+
+    function makePdfField(label, currentVal, urlId, fileId, nameId) {
+      const row = document.createElement('div');
+      row.style.cssText = 'margin-bottom:8px;';
+      row.innerHTML = `<div class="p-label" style="margin-bottom:3px;">${label}</div>
+        <div style="display:flex;gap:4px;align-items:center;">
+          <input type="text" id="${urlId}" class="p-input" style="flex:1;font-size:11px;" placeholder="Paste URL or upload →" value="${currentVal && !currentVal.startsWith('data:') ? currentVal : ''}" />
+          <label class="p-btn p-btn-ghost" style="font-size:11px;padding:4px 8px;cursor:pointer;white-space:nowrap;">
+            📁 Upload<input type="file" id="${fileId}" accept="application/pdf" style="display:none;" />
+          </label>
+        </div>
+        <div id="${nameId}" style="font-size:10px;color:var(--text-muted);margin-top:2px;">${currentVal && currentVal.startsWith('data:') ? '📎 Uploaded PDF (stored locally)' : currentVal ? '🔗 URL saved' : ''}</div>`;
+      return row;
+    }
+
+    const uid = t.id.replace(/[^a-z0-9]/gi, '_');
+    editWrap.appendChild(makePdfField('📄 Question Paper PDF', t.qPdf||'', `pf-q-${uid}`, `pf-qf-${uid}`, `pf-qn-${uid}`));
+    editWrap.appendChild(makePdfField('🔑 Answer Key PDF',     t.akPdf||'', `pf-a-${uid}`, `pf-af-${uid}`, `pf-an-${uid}`));
+
+    const saveBtnRow = document.createElement('div');
+    saveBtnRow.style.cssText = 'display:flex;gap:6px;justify-content:flex-end;';
+    const saveBtn = document.createElement('button');
+    saveBtn.className = 'p-btn p-btn-primary'; saveBtn.style.cssText = 'font-size:11px;padding:4px 12px;';
+    saveBtn.textContent = 'Save';
+    const cancelBtn = document.createElement('button');
+    cancelBtn.className = 'p-btn p-btn-ghost'; cancelBtn.style.cssText = 'font-size:11px;padding:4px 10px;';
+    cancelBtn.textContent = 'Cancel';
+    saveBtnRow.append(saveBtn, cancelBtn);
+    editWrap.appendChild(saveBtnRow);
+    card.appendChild(editWrap);
+
+    // Wire file uploads for this card
+    let pendingQ = t.qPdf || '', pendingA = t.akPdf || '';
+    function wireUpload(fileId, nameId, onDone) {
+      const fi = editWrap.querySelector(`#${fileId}`);
+      if (!fi) return;
+      fi.addEventListener('change', function() {
+        const file = this.files[0]; if (!file) return;
+        const nameEl = editWrap.querySelector(`#${nameId}`);
+        nameEl.textContent = '⏳ Reading ' + file.name + '…';
+        const reader = new FileReader();
+        reader.onload = e => { onDone(e.target.result); nameEl.textContent = '✅ ' + file.name + ' (' + (file.size/1024).toFixed(0) + ' KB)'; };
+        reader.readAsDataURL(file);
+      });
+    }
+    wireUpload(`pf-qf-${uid}`, `pf-qn-${uid}`, val => { pendingQ = val; editWrap.querySelector(`#pf-q-${uid}`).value = ''; });
+    wireUpload(`pf-af-${uid}`, `pf-an-${uid}`, val => { pendingA = val; editWrap.querySelector(`#pf-a-${uid}`).value = ''; });
+
+    editBtn.addEventListener('click', () => { editWrap.style.display = editWrap.style.display === 'none' ? '' : 'none'; });
+    cancelBtn.addEventListener('click', () => { editWrap.style.display = 'none'; });
+    saveBtn.addEventListener('click', () => {
+      const urlQ = editWrap.querySelector(`#pf-q-${uid}`).value.trim();
+      const urlA = editWrap.querySelector(`#pf-a-${uid}`).value.trim();
+      const finalQ = urlQ || pendingQ;
+      const finalA = urlA || pendingA;
       const tests2 = pGetTests();
-      const idx = tests2.findIndex(t => t.id === testId);
-      if (idx < 0) return;
-      const t = tests2[idx];
-      const qPdf = prompt('Question Paper PDF/URL:', t.qPdf || '');
-      if (qPdf === null) return;
-      const akPdf = prompt('Answer Key PDF/URL:', t.akPdf || '');
-      if (akPdf === null) return;
-      tests2[idx].qPdf = qPdf.trim();
-      tests2[idx].akPdf = akPdf.trim();
-      pSaveTests(tests2);
+      const idx2 = tests2.findIndex(x => x.id === t.id);
+      if (idx2 >= 0) { tests2[idx2].qPdf = finalQ; tests2[idx2].akPdf = finalA; pSaveTests(tests2); }
+      editWrap.style.display = 'none';
       renderPapers();
     });
+
+    el.appendChild(card);
   });
 }
 
