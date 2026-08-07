@@ -641,6 +641,13 @@
   .p-select { padding:6px 8px; border:1px solid var(--border); border-radius:7px; background:var(--input-bg); color:var(--text); font-size:12px; }
   .omr-note-ta { width:100%; font-size:11px; padding:3px 6px; border:1px solid var(--border); border-radius:4px; background:var(--input-bg); color:var(--text); resize:vertical; min-height:28px; display:none; }
   .omr-note-ta.open { display:block; }
+  .qstar { background:none; border:none; cursor:pointer; font-size:18px; padding:0 1px; color:var(--text-muted); transition:color .15s; line-height:1; }
+  .qstar.on { color:#f59e0b; }
+  .q-bm-icon { font-size:12px; opacity:.35; transition:opacity .15s; cursor:pointer; }
+  .q-bm-icon.on { opacity:1; }
+  .q-imp-dots { display:flex; gap:2px; }
+  .q-imp-dot { width:7px; height:7px; border-radius:50%; background:var(--border); }
+  .q-imp-dot.on { background:#f59e0b; }
   .p-tabs-inner { display:flex; gap:4px; margin-bottom:10px; }
   .p-tab-inner { padding:4px 12px; border-radius:14px; font-size:12px; border:1px solid var(--border); cursor:pointer; background:none; color:var(--text-soft); }
   .p-tab-inner.active { background:var(--accent); color:#fff; border-color:var(--accent); }
@@ -1319,6 +1326,12 @@
           <label style="font-size:12px;display:flex;align-items:center;gap:4px;">
             <input type="checkbox" id="rv-wrong-only" checked style="width:13px;height:13px;" /> Wrong only
           </label>
+          <label style="font-size:12px;display:flex;align-items:center;gap:4px;">
+            <input type="checkbox" id="rv-bm-only" style="width:13px;height:13px;" /> 🔖 Bookmarked only
+          </label>
+          <label style="font-size:12px;display:flex;align-items:center;gap:4px;">
+            <input type="checkbox" id="rv-imp-only" style="width:13px;height:13px;" /> ★ Important only (≥3)
+          </label>
         </div>
       </div>
       <div id="rv-content"><div style="color:var(--text-muted);font-size:13px;padding:20px 0;">Select a scored test above to review questions.</div></div>
@@ -1486,6 +1499,47 @@
 </div>
 
 <!-- REWRITE MODAL -->
+<!-- ── Question Note / Bookmark / Importance Modal ── -->
+<div class="modal-bg" id="qNoteModal">
+  <div class="modal" style="max-width:480px;">
+    <div class="modal-head">
+      <h2 id="qNoteModalTitle">Q1 — Notes</h2>
+      <button class="modal-close" id="closeQNote">×</button>
+    </div>
+    <!-- Bookmark + Importance row -->
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px;flex-wrap:wrap;">
+      <button id="qNoteBookmarkBtn" style="font-size:22px;background:none;border:none;cursor:pointer;padding:0;" title="Toggle bookmark">🔖</button>
+      <div style="display:flex;align-items:center;gap:6px;">
+        <span style="font-size:12px;color:var(--text-muted);">Importance:</span>
+        <div id="qNoteStars" style="display:flex;gap:2px;">
+          <button class="qstar" data-v="1">☆</button>
+          <button class="qstar" data-v="2">☆</button>
+          <button class="qstar" data-v="3">☆</button>
+          <button class="qstar" data-v="4">☆</button>
+          <button class="qstar" data-v="5">☆</button>
+        </div>
+        <span id="qNoteStarLabel" style="font-size:11px;color:var(--text-muted);"></span>
+      </div>
+    </div>
+    <!-- Note fields -->
+    <div style="margin-bottom:10px;">
+      <div style="font-size:11px;font-weight:700;color:var(--text-muted);margin-bottom:3px;">❌ What went wrong</div>
+      <textarea id="qNoteWrong" class="p-input" rows="2" style="font-size:12px;resize:vertical;min-height:36px;width:100%;" placeholder="e.g. Confused between X and Y…"></textarea>
+    </div>
+    <div style="margin-bottom:10px;">
+      <div style="font-size:11px;font-weight:700;color:var(--text-muted);margin-bottom:3px;">💡 Key concept</div>
+      <textarea id="qNoteConc" class="p-input" rows="2" style="font-size:12px;resize:vertical;min-height:36px;width:100%;" placeholder="e.g. Article 356 — imposed by President…"></textarea>
+    </div>
+    <div style="margin-bottom:10px;">
+      <div style="font-size:11px;font-weight:700;color:var(--text-muted);margin-bottom:3px;">📌 Misc / Other</div>
+      <textarea id="qNoteMisc" class="p-input" rows="2" style="font-size:12px;resize:vertical;min-height:36px;width:100%;" placeholder="e.g. Remember for revision…"></textarea>
+    </div>
+    <div class="btn-row" style="margin-top:4px;justify-content:flex-end;">
+      <button class="p-btn p-btn-primary" id="qNoteSave">Save &amp; Close</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-bg" id="rewriteModal">
   <div class="modal">
     <div class="modal-head">
@@ -4177,6 +4231,71 @@ function scoreTest(responses, keys, type) {
 }
 
 // --- 5-set breakdown ---
+// Returns HTML for per-test 5-Q block analysis with expandable drill-down
+function renderSetBlocks(test, type) {
+  const n = type === 'CSAT' ? 80 : 100;
+  const detail = test.scored.detail; // array of 'C'/'W'/'U'
+  const sets = setBreakdown(detail, type);
+
+  const rows = sets.map((s, si) => {
+    const cls = s.c >= 4 ? 'set-great' : s.c >= 3 ? 'set-good' : s.c >= 2 ? 'set-ok' : 'set-bad';
+    const score = (s.c * 2 - s.w * 0.66).toFixed(2);
+    const scoreColor = parseFloat(score) >= 6 ? 'var(--good)' : parseFloat(score) >= 3 ? 'var(--warn)' : 'var(--danger)';
+
+    // Per-question detail rows inside each block
+    const qRows = [];
+    for (let qi = s.from - 1; qi < s.to; qi++) {
+      const res = detail[qi];
+      const icon = res === 'C' ? '✅' : res === 'W' ? '❌' : '⬜';
+      const yourAns    = test.responses?.[qi] || '—';
+      const correctAns = test.keys?.[qi] || '?';
+      const examT  = getExamTags(test.tags, qi);
+      const analysisT = getAnalysisTags(test.tags, qi);
+      const trickR = getTrickRef(test.tags, qi);
+      const tagStr = [...examT.map(t => {
+        const lbl = (t === 'T' && trickR) ? `T:${trickR}` : t;
+        return `<span class="tag-chip tag-${t}" style="font-size:8px;padding:1px 4px;">${lbl}</span>`;
+      }), ...analysisT.map(t => `<span class="tag-chip tag-${t}" style="font-size:8px;padding:1px 4px;outline:1px solid #888;">${t}</span>`)].join('');
+      const subj = test.subjects?.[qi]?.subject || '';
+      const hasNote = test.notes?.[qi] && (test.notes[qi].wrong || test.notes[qi].concept || test.notes[qi].misc);
+      const bm  = test.bookmarks?.[qi]  ? '🔖' : '';
+      const imp = test.importance?.[qi] ? `<span style="color:#f59e0b;font-size:9px;">${'★'.repeat(test.importance[qi])}</span>` : '';
+      qRows.push(`<div style="display:flex;align-items:center;gap:6px;padding:3px 6px;border-bottom:1px solid var(--border);flex-wrap:wrap;">
+        <span style="font-weight:700;font-size:11px;min-width:28px;color:var(--text-muted);">Q${qi+1}</span>
+        <span style="font-size:13px;">${icon}</span>
+        <span style="font-size:10px;color:var(--text-muted);">You:<b>${yourAns}</b> Ans:<b style="color:${res==='W'?'var(--danger)':res==='C'?'var(--good)':'var(--text-muted)'}">${correctAns}</b></span>
+        ${tagStr}
+        ${subj ? `<span style="font-size:9px;color:var(--text-muted);">${subj}</span>` : ''}
+        ${imp}${bm}
+        ${hasNote ? '<span style="font-size:10px;color:var(--warn);" title="Has notes">📝</span>' : ''}
+      </div>`);
+    }
+
+    return `<details style="border:1px solid var(--border);border-radius:6px;margin-bottom:4px;overflow:hidden;">
+      <summary style="display:flex;align-items:center;gap:8px;padding:6px 10px;cursor:pointer;background:var(--card-bg);list-style:none;user-select:none;">
+        <span class="set-cell ${cls}" style="min-width:44px;height:20px;font-size:10px;border-radius:4px;">Q${s.from}–${s.to}</span>
+        <span style="font-size:12px;font-weight:700;">${s.c}/5 correct</span>
+        <span style="font-size:11px;color:var(--text-muted);">✅${s.c} ❌${s.w} ⬜${s.u}</span>
+        <span style="font-size:11px;font-weight:700;color:${scoreColor};margin-left:auto;">+${score} pts</span>
+        <span style="font-size:10px;color:var(--text-muted);margin-left:4px;">▾</span>
+      </summary>
+      <div style="background:var(--section-bg);">${qRows.join('')}</div>
+    </details>`;
+  });
+
+  // Summary heatmap row at top
+  const heatmap = sets.map(s => {
+    const cls = s.c >= 4 ? 'set-great' : s.c >= 3 ? 'set-good' : s.c >= 2 ? 'set-ok' : 'set-bad';
+    return `<div class="set-cell ${cls}" title="Q${s.from}–${s.to}: ${s.c}/5">${s.c}</div>`;
+  }).join('');
+
+  return `<div style="margin-bottom:8px;">
+    <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">Heatmap — click a block below to expand question detail:</div>
+    <div class="set-grid" style="margin-bottom:10px;">${heatmap}</div>
+  </div>
+  ${rows.join('')}`;
+}
+
 function setBreakdown(detail, type) {
   const setSize = 5;
   const n = detail.length;
@@ -4358,8 +4477,126 @@ function renderOMRGrid(container, type, data) {
   container.appendChild(sheet);
 }
 
-function renderAKGrid(container, type, responses, keys, tags, subjects, notes) {
+// =====================================================================
+// QUESTION NOTE / BOOKMARK / IMPORTANCE POPUP
+// =====================================================================
+(function setupQNoteModal() {
+  let _ctx = null; // { testId, qIdx, notes, bookmarks, importance, onSave }
+
+  const STAR_LABELS = ['', 'Low', 'Below Average', 'Average', 'Important', '★ Must Revise'];
+
+  function openQNoteModal(ctx) {
+    _ctx = ctx;
+    document.getElementById('qNoteModalTitle').textContent = `Q${ctx.qIdx + 1} — Notes`;
+
+    // Notes
+    const note = ctx.notes[ctx.qIdx] || {};
+    document.getElementById('qNoteWrong').value = note.wrong || '';
+    document.getElementById('qNoteConc').value  = note.concept || '';
+    document.getElementById('qNoteMisc').value  = note.misc || '';
+
+    // Bookmark
+    const bm = ctx.bookmarks[ctx.qIdx] || false;
+    const bmBtn = document.getElementById('qNoteBookmarkBtn');
+    bmBtn.textContent = bm ? '🔖' : '🏳️';
+    bmBtn.title = bm ? 'Bookmarked — click to remove' : 'Click to bookmark';
+    bmBtn.dataset.bm = bm ? '1' : '0';
+
+    // Stars
+    const imp = ctx.importance[ctx.qIdx] || 0;
+    renderStars(imp);
+
+    document.getElementById('qNoteModal').classList.add('show');
+    document.getElementById('qNoteWrong').focus();
+  }
+
+  function renderStars(val) {
+    document.querySelectorAll('.qstar').forEach(btn => {
+      btn.classList.toggle('on', parseInt(btn.dataset.v) <= val);
+      btn.textContent = parseInt(btn.dataset.v) <= val ? '★' : '☆';
+    });
+    document.getElementById('qNoteStarLabel').textContent = STAR_LABELS[val] || '';
+  }
+
+  function closeAndSave() {
+    if (!_ctx) { document.getElementById('qNoteModal').classList.remove('show'); return; }
+    const note = _ctx.notes[_ctx.qIdx] || {};
+    note.wrong   = document.getElementById('qNoteWrong').value.trim();
+    note.concept = document.getElementById('qNoteConc').value.trim();
+    note.misc    = document.getElementById('qNoteMisc').value.trim();
+    if (note.wrong || note.concept || note.misc) _ctx.notes[_ctx.qIdx] = note;
+    else delete _ctx.notes[_ctx.qIdx];
+
+    const bmBtn = document.getElementById('qNoteBookmarkBtn');
+    _ctx.bookmarks[_ctx.qIdx] = bmBtn.dataset.bm === '1';
+
+    const imp = document.querySelectorAll('.qstar.on').length;
+    if (imp > 0) _ctx.importance[_ctx.qIdx] = imp;
+    else delete _ctx.importance[_ctx.qIdx];
+
+    if (_ctx.testId) {
+      const tests2 = pGetTests();
+      const idx2 = tests2.findIndex(t => t.id === _ctx.testId);
+      if (idx2 >= 0) {
+        tests2[idx2].notes      = _ctx.notes;
+        tests2[idx2].bookmarks  = _ctx.bookmarks;
+        tests2[idx2].importance = _ctx.importance;
+        pSaveTests(tests2);
+      }
+    }
+    if (_ctx.onSave) _ctx.onSave(_ctx.qIdx);
+    document.getElementById('qNoteModal').classList.remove('show');
+    _ctx = null;
+  }
+
+  document.getElementById('qNoteSave').addEventListener('click', closeAndSave);
+  document.getElementById('closeQNote').addEventListener('click', closeAndSave);
+  document.getElementById('qNoteModal').addEventListener('click', e => {
+    if (e.target.id === 'qNoteModal') closeAndSave();
+  });
+
+  // Bookmark toggle
+  document.getElementById('qNoteBookmarkBtn').addEventListener('click', () => {
+    const btn = document.getElementById('qNoteBookmarkBtn');
+    const newVal = btn.dataset.bm !== '1';
+    btn.dataset.bm = newVal ? '1' : '0';
+    btn.textContent = newVal ? '🔖' : '🏳️';
+    btn.title = newVal ? 'Bookmarked — click to remove' : 'Click to bookmark';
+  });
+
+  // Star clicks
+  document.getElementById('qNoteStars').addEventListener('click', e => {
+    const btn = e.target.closest('.qstar');
+    if (!btn) return;
+    const v = parseInt(btn.dataset.v);
+    const cur = document.querySelectorAll('.qstar.on').length;
+    renderStars(cur === v ? 0 : v); // click same → clear
+  });
+
+  // Expose globally
+  window.openQNoteModal = openQNoteModal;
+})();
+
+// Helper: build the bookmark + importance mini-display for a row
+function qRowMeta(bookmarks, importance, qIdx) {
+  const bm = bookmarks[qIdx];
+  const imp = importance[qIdx] || 0;
+  const stars = imp > 0 ? '★'.repeat(imp) + '☆'.repeat(5 - imp) : '';
+  const bmEl = document.createElement('span');
+  bmEl.className = 'q-bm-icon' + (bm ? ' on' : '');
+  bmEl.textContent = '🔖';
+  bmEl.title = bm ? 'Bookmarked' : 'Not bookmarked';
+  const impEl = document.createElement('span');
+  impEl.style.cssText = 'font-size:11px;color:#f59e0b;letter-spacing:-1px;';
+  impEl.title = imp ? `Importance: ${imp}/5` : '';
+  impEl.textContent = stars;
+  return { bmEl, impEl };
+}
+
+function renderAKGrid(container, type, responses, keys, tags, subjects, notes, bookmarks, importance) {
   notes = notes || {};
+  bookmarks = bookmarks || {};
+  importance = importance || {};
   container.innerHTML = '';
   const n = type === 'CSAT' ? 80 : 100;
   const opts = ['A','B','C','D'];
@@ -4405,14 +4642,25 @@ function renderAKGrid(container, type, responses, keys, tags, subjects, notes) {
     });
     row.appendChild(bubblesEl);
 
-    // Note toggle button
+    // Bookmark + importance + note button (right side of row)
+    const metaWrap = document.createElement('div');
+    metaWrap.style.cssText = 'margin-left:auto;display:flex;align-items:center;gap:5px;';
+
+    const { bmEl, impEl } = qRowMeta(bookmarks, importance, i);
+    bmEl.id = `ak-bm-${i}`;
+    impEl.id = `ak-imp-${i}`;
+    metaWrap.appendChild(impEl);
+    metaWrap.appendChild(bmEl);
+
     const hasNote = notes[i] && (notes[i].wrong || notes[i].concept || notes[i].misc);
     const noteToggle = document.createElement('button');
-    noteToggle.style.cssText = `margin-left:auto;background:none;border:none;cursor:pointer;font-size:13px;padding:2px 5px;color:${hasNote?'var(--warn)':'var(--text-muted)'};`;
-    noteToggle.title = 'Notes';
+    noteToggle.style.cssText = `background:none;border:none;cursor:pointer;font-size:13px;padding:2px 5px;color:${hasNote?'var(--warn)':'var(--text-muted)'};`;
+    noteToggle.title = 'Notes / Bookmark / Importance';
+    noteToggle.id = `ak-note-btn-${i}`;
     noteToggle.textContent = hasNote ? '📝' : '📋';
 
-    row.appendChild(noteToggle);
+    metaWrap.appendChild(noteToggle);
+    row.appendChild(metaWrap);
     updateAKRowColor(row, responses[i], keys[i]);
     wrap.appendChild(row);
 
@@ -4538,41 +4786,35 @@ function renderAKGrid(container, type, responses, keys, tags, subjects, notes) {
     tagSection.appendChild(analysisSel);
     detail.appendChild(tagSection);
 
-    // Notes fields
-    const curNote = notes[i] || {};
-    const noteFields = [
-      { key:'wrong',   label:'❌ What went wrong', placeholder:'e.g. Confused between X and Y…' },
-      { key:'concept', label:'💡 Key concept',      placeholder:'e.g. Article 356 — imposed by President…' },
-      { key:'misc',    label:'📌 Misc / Other',     placeholder:'e.g. Remember for revision…' },
-    ];
-    noteFields.forEach(f => {
-      const lbl = document.createElement('div');
-      lbl.style.cssText = 'font-size:10px;font-weight:700;color:var(--text-muted);margin-bottom:2px;margin-top:4px;';
-      lbl.textContent = f.label;
-      const ta = document.createElement('textarea');
-      ta.placeholder = f.placeholder;
-      ta.value = curNote[f.key] || '';
-      ta.rows = 2;
-      ta.className = 'p-input';
-      ta.style.cssText = 'font-size:11px;resize:vertical;min-height:32px;';
-      ta.addEventListener('input', () => {
-        if (!notes[i]) notes[i] = {};
-        notes[i][f.key] = ta.value.trim();
-        // update toggle icon
-        const hasN = notes[i].wrong || notes[i].concept || notes[i].misc;
-        noteToggle.textContent = hasN ? '📝' : '📋';
-        noteToggle.style.color = hasN ? 'var(--warn)' : 'var(--text-muted)';
-      });
-      detail.appendChild(lbl);
-      detail.appendChild(ta);
-    });
-
     wrap.appendChild(detail);
 
-    // Toggle open/close
-    noteToggle.addEventListener('click', () => {
-      const open = detail.style.display !== 'none';
-      detail.style.display = open ? 'none' : '';
+    // Note popup button opens modal
+    noteToggle.addEventListener('click', (e) => {
+      e.stopPropagation();
+      window.openQNoteModal({
+        testId: null, // AK grid works on akData directly (saved on submit)
+        qIdx: i,
+        notes,
+        bookmarks,
+        importance,
+        onSave: (idx) => {
+          // refresh row icons
+          const hasN = notes[idx]?.wrong || notes[idx]?.concept || notes[idx]?.misc;
+          noteToggle.textContent = hasN ? '📝' : '📋';
+          noteToggle.style.color = hasN ? 'var(--warn)' : 'var(--text-muted)';
+          const bm2 = document.getElementById(`ak-bm-${idx}`);
+          const imp2 = document.getElementById(`ak-imp-${idx}`);
+          if (bm2) { bm2.classList.toggle('on', !!bookmarks[idx]); bm2.title = bookmarks[idx] ? 'Bookmarked' : 'Not bookmarked'; }
+          const impVal = importance[idx] || 0;
+          if (imp2) { imp2.textContent = impVal > 0 ? '★'.repeat(impVal) + '☆'.repeat(5-impVal) : ''; imp2.title = impVal ? `Importance: ${impVal}/5` : ''; }
+        }
+      });
+    });
+
+    // Detail panel (subject + tags) still toggled by clicking row (not note btn)
+    row.addEventListener('click', (e) => {
+      if (e.target.closest('button') || e.target.closest('select')) return;
+      detail.style.display = detail.style.display !== 'none' ? 'none' : '';
     });
 
     container.appendChild(wrap);
@@ -4766,6 +5008,11 @@ function renderSingleTestAnalytics(el, test, filterType) {
     <div class="p-card" style="margin-top:8px;">
       <div class="p-label" style="margin-bottom:8px;">⚡ Attempt Optimum</div>
       ${renderOptimumChart([test])}
+    </div>
+    <div class="p-card" style="margin-top:8px;">
+      <div class="p-label" style="margin-bottom:8px;">📦 5-Question Block Analysis</div>
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;">Each block = 5 consecutive questions as you attempt them in order. Expand any block to see per-question detail.</div>
+      ${renderSetBlocks(test, filterType)}
     </div>
     <div class="p-card" style="margin-top:8px;">
       <div class="p-label" style="margin-bottom:8px;">🏷️ Tag Performance</div>
@@ -5573,6 +5820,8 @@ function prelimsInit() {
   });
   document.getElementById('rv-test-sel').addEventListener('change', () => renderReview());
   document.getElementById('rv-wrong-only').addEventListener('change', () => renderReview());
+  document.getElementById('rv-bm-only').addEventListener('change', () => renderReview());
+  document.getElementById('rv-imp-only').addEventListener('change', () => renderReview());
 
   // Init resources
   renderTricks();
@@ -5604,7 +5853,7 @@ let currentAnalyticsType = 'GS';
 let currentSugType = 'GS';
 let currentReviewType = 'GS';
 let omrData = { type:'GS', responses:{}, tags:{} };
-let akData = { testId: null, keys: {}, subjects: {}, notes: {} };
+let akData = { testId: null, keys: {}, subjects: {}, notes: {}, bookmarks: {}, importance: {} };
 
 function checkForDraft() {
   const draft = pGetDraft();
@@ -5703,9 +5952,11 @@ function loadAKSheet() {
   if (!test) { alert('Test not found.'); return; }
   akData = {
     testId,
-    keys: test.keys ? { ...test.keys } : {},
-    subjects: test.subjects ? JSON.parse(JSON.stringify(test.subjects)) : {},
-    notes: test.notes ? JSON.parse(JSON.stringify(test.notes)) : {}
+    keys:       test.keys       ? { ...test.keys }                              : {},
+    subjects:   test.subjects   ? JSON.parse(JSON.stringify(test.subjects))     : {},
+    notes:      test.notes      ? JSON.parse(JSON.stringify(test.notes))        : {},
+    bookmarks:  test.bookmarks  ? JSON.parse(JSON.stringify(test.bookmarks))    : {},
+    importance: test.importance ? JSON.parse(JSON.stringify(test.importance))   : {},
   };
   // pre-fill PDF links if already saved
   document.getElementById('p-ak-qpdf').value = test.qPdf || '';
@@ -5720,7 +5971,9 @@ function loadAKSheet() {
     akData.keys,
     test.tags,
     akData.subjects,
-    akData.notes
+    akData.notes,
+    akData.bookmarks,
+    akData.importance
   );
 }
 
@@ -5735,10 +5988,12 @@ function submitAnswerKey() {
   if (answeredKeys < n * 0.5) {
     if (!confirm(`Only ${answeredKeys}/${n} keys entered. Submit anyway?`)) return;
   }
-  test.keys = { ...akData.keys };
-  test.subjects = JSON.parse(JSON.stringify(akData.subjects));
-  test.notes = JSON.parse(JSON.stringify(akData.notes));
-  test.qPdf = document.getElementById('p-ak-qpdf').value.trim();
+  test.keys       = { ...akData.keys };
+  test.subjects   = JSON.parse(JSON.stringify(akData.subjects));
+  test.notes      = JSON.parse(JSON.stringify(akData.notes));
+  test.bookmarks  = JSON.parse(JSON.stringify(akData.bookmarks));
+  test.importance = JSON.parse(JSON.stringify(akData.importance));
+  test.qPdf  = document.getElementById('p-ak-qpdf').value.trim();
   test.akPdf = document.getElementById('p-ak-akpdf').value.trim();
   test.scored = scoreTest(test.responses, akData.keys, test.type);
   tests[idx] = test;
@@ -6271,8 +6526,10 @@ function refreshReviewSelector() {
 }
 
 function renderReview() {
-  const testId = document.getElementById('rv-test-sel').value;
+  const testId   = document.getElementById('rv-test-sel').value;
   const wrongOnly = document.getElementById('rv-wrong-only').checked;
+  const bmOnly    = document.getElementById('rv-bm-only')?.checked || false;
+  const impOnly   = document.getElementById('rv-imp-only')?.checked || false;
   const el = document.getElementById('rv-content');
   if (!testId) { el.innerHTML = '<div style="color:var(--text-muted);font-size:13px;padding:20px 0;">Select a test.</div>'; return; }
 
@@ -6280,7 +6537,9 @@ function renderReview() {
   const test = tests.find(t => t.id === testId);
   if (!test || !test.scored) { el.innerHTML = '<div style="color:var(--text-muted);">Test not scored yet.</div>'; return; }
 
-  const notes = test.notes ? JSON.parse(JSON.stringify(test.notes)) : {};
+  const notes      = test.notes      ? JSON.parse(JSON.stringify(test.notes))      : {};
+  const bookmarks  = test.bookmarks  ? JSON.parse(JSON.stringify(test.bookmarks))  : {};
+  const importance = test.importance ? JSON.parse(JSON.stringify(test.importance)) : {};
   const subjects = test.subjects || {};
   const n = test.type === 'CSAT' ? 80 : 100;
 
@@ -6289,6 +6548,8 @@ function renderReview() {
   for (let i = 0; i < n; i++) {
     const res = test.scored.detail[i]; // C W U
     if (wrongOnly && res !== 'W') continue;
+    if (bmOnly && !bookmarks[i]) continue;
+    if (impOnly && (importance[i] || 0) < 3) continue;
     qList.push({ i, res });
   }
 
@@ -6309,10 +6570,10 @@ function renderReview() {
     const curNote = notes[i] || {};
     const curSubj = subjects[i] || {};
     const hasNote = curNote.wrong || curNote.concept || curNote.misc;
-    const examTagsRv  = getExamTags(test.tags, i);
+    const examTagsRv     = getExamTags(test.tags, i);
     const analysisTagsRv = getAnalysisTags(test.tags, i);
-    const trickRefRv = getTrickRef(test.tags, i);
-    const yourAns = test.responses[i] || '—';
+    const trickRefRv     = getTrickRef(test.tags, i);
+    const yourAns   = test.responses[i] || '—';
     const correctAns = test.keys?.[i] || '?';
     const resIcon = res === 'W' ? '❌' : res === 'C' ? '✅' : '⬜';
     const tagChips = [
@@ -6326,13 +6587,18 @@ function renderReview() {
     // Header row
     const header = document.createElement('div');
     header.style.cssText = 'display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--card-bg);cursor:pointer;flex-wrap:wrap;';
+
+    const impVal = importance[i] || 0;
+    const impStr = impVal > 0 ? `<span style="font-size:11px;color:#f59e0b;letter-spacing:-1px;" title="Importance ${impVal}/5">${'★'.repeat(impVal)}</span>` : '';
+    const bmStr  = bookmarks[i] ? `<span title="Bookmarked" style="font-size:11px;">🔖</span>` : '';
     header.innerHTML = `
       <span style="font-weight:700;font-size:12px;min-width:32px;">Q${i+1}</span>
       <span style="font-size:13px;">${resIcon}</span>
       <span style="font-size:11px;color:var(--text-muted);">You: <b>${yourAns}</b> → Ans: <b style="color:${res==='W'?'var(--danger)':'var(--good)'}">${correctAns}</b></span>
       ${tagChips}
       ${curSubj.subject ? `<span style="font-size:10px;color:var(--text-muted);">${curSubj.subject}${curSubj.theme?' › '+curSubj.theme:''}</span>` : ''}
-      <button style="margin-left:auto;background:none;border:none;cursor:pointer;font-size:13px;color:${hasNote?'var(--warn)':'var(--text-muted)'};">${hasNote?'📝':'📋'}</button>
+      ${impStr}${bmStr}
+      <button id="rv-note-btn-${i}" style="margin-left:auto;background:none;border:none;cursor:pointer;font-size:13px;color:${hasNote?'var(--warn)':'var(--text-muted)'};">${hasNote?'📝':'📋'}</button>
     `;
 
     // Detail panel
@@ -6433,35 +6699,45 @@ function renderReview() {
     rvTagSection.append(rvAnalysisLbl, rvAnalysisSel);
     detail.appendChild(rvTagSection);
 
-    // Note fields
-    const noteFields = [
-      { key:'wrong',   label:'❌ What went wrong', placeholder:'e.g. Confused between X and Y…' },
-      { key:'concept', label:'💡 Key concept',      placeholder:'e.g. Article 356 — imposed by President…' },
-      { key:'misc',    label:'📌 Misc / Other',     placeholder:'e.g. Remember for revision…' },
-    ];
-    noteFields.forEach(f => {
-      const lbl = document.createElement('div');
-      lbl.style.cssText = 'font-size:10px;font-weight:700;color:var(--text-muted);margin-bottom:2px;margin-top:6px;';
-      lbl.textContent = f.label;
-      const ta = document.createElement('textarea');
-      ta.placeholder=f.placeholder; ta.value=curNote[f.key]||''; ta.rows=2; ta.className='p-input';
-      ta.style.cssText='font-size:11px;resize:vertical;min-height:32px;width:100%;';
-      ta.addEventListener('input', () => {
-        const tests2=pGetTests(); const idx2=tests2.findIndex(t=>t.id===testId);
-        if(idx2<0)return; if(!tests2[idx2].notes)tests2[idx2].notes={};
-        if(!tests2[idx2].notes[i])tests2[idx2].notes[i]={};
-        tests2[idx2].notes[i][f.key]=ta.value.trim();
-        pSaveTests(tests2);
-        const hasN=tests2[idx2].notes[i].wrong||tests2[idx2].notes[i].concept||tests2[idx2].notes[i].misc;
-        const noteBtn=header.querySelector('button');
-        if(noteBtn){noteBtn.textContent=hasN?'📝':'📋';noteBtn.style.color=hasN?'var(--warn)':'var(--text-muted)';}
+    // Note popup button
+    const rvNoteBtn = header.querySelector(`#rv-note-btn-${i}`);
+    if (rvNoteBtn) {
+      rvNoteBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        window.openQNoteModal({
+          testId,
+          qIdx: i,
+          notes,
+          bookmarks,
+          importance,
+          onSave: (idx2) => {
+            // Refresh header inline icons
+            const noteBtn2 = header.querySelector(`#rv-note-btn-${idx2}`);
+            if (noteBtn2) {
+              const hasN2 = notes[idx2]?.wrong || notes[idx2]?.concept || notes[idx2]?.misc;
+              noteBtn2.textContent = hasN2 ? '📝' : '📋';
+              noteBtn2.style.color = hasN2 ? 'var(--warn)' : 'var(--text-muted)';
+            }
+            // Refresh bm/imp display in header
+            const impValN = importance[idx2] || 0;
+            let impEl2 = header.querySelector('.rv-imp');
+            if (!impEl2) { impEl2 = document.createElement('span'); impEl2.className = 'rv-imp'; impEl2.style.cssText='font-size:11px;color:#f59e0b;letter-spacing:-1px;'; header.insertBefore(impEl2, rvNoteBtn); }
+            impEl2.textContent = impValN > 0 ? '★'.repeat(impValN) : '';
+            impEl2.title = impValN ? `Importance: ${impValN}/5` : '';
+            let bmEl2 = header.querySelector('.rv-bm');
+            if (!bmEl2) { bmEl2 = document.createElement('span'); bmEl2.className = 'rv-bm'; header.insertBefore(bmEl2, rvNoteBtn); }
+            bmEl2.textContent = bookmarks[idx2] ? '🔖' : '';
+            bmEl2.title = bookmarks[idx2] ? 'Bookmarked' : '';
+          }
+        });
       });
-      detail.appendChild(lbl);
-      detail.appendChild(ta);
-    });
+    }
 
-    // Toggle
-    header.addEventListener('click', () => { detail.style.display = detail.style.display==='none'?'':'none'; });
+    // Toggle detail panel on row click (not note btn)
+    header.addEventListener('click', (e) => {
+      if (e.target.closest('button') || e.target.closest('select')) return;
+      detail.style.display = detail.style.display === 'none' ? '' : 'none';
+    });
     wrap.appendChild(header);
     wrap.appendChild(detail);
     el.appendChild(wrap);
