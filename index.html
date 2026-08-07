@@ -1221,6 +1221,7 @@
       <button class="prelims-sub-btn" data-pane="answerkey">🔑 Answer Key</button>
       <button class="prelims-sub-btn" data-pane="phistory">📋 History</button>
       <button class="prelims-sub-btn" data-pane="analytics">📊 Analytics</button>
+      <button class="prelims-sub-btn" data-pane="suggestions">💡 Suggestions</button>
       <button class="prelims-sub-btn" data-pane="resources">📚 Resources</button>
     </nav>
 
@@ -1341,6 +1342,27 @@
       </div>
       <div id="p-analytics-content">
         <div style="color:var(--text-muted);font-size:13px;padding:20px 0;">Add at least one completed test (with answer key) to see analytics.</div>
+      </div>
+    </div>
+
+    <!-- SUGGESTIONS -->
+    <div class="prelims-pane" id="pane-suggestions">
+      <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;align-items:center;justify-content:space-between;">
+        <div style="display:flex;gap:6px;">
+          <button class="p-tab-inner active" id="sug-gs-btn">GS</button>
+          <button class="p-tab-inner" id="sug-csat-btn">CSAT</button>
+        </div>
+        <button class="p-btn p-btn-primary" id="sug-master-btn" style="font-size:12px;padding:6px 14px;">⚡ Generate Master Summary</button>
+      </div>
+      <div id="sug-per-test-list"></div>
+      <div id="sug-master-view" style="display:none;">
+        <div class="p-card" style="border:2px solid var(--primary);">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+            <strong style="font-size:14px;">🎯 Master Suggestions</strong>
+            <button class="p-btn p-btn-ghost" id="sug-master-close" style="font-size:11px;padding:4px 10px;">✕ Close</button>
+          </div>
+          <div id="sug-master-content"></div>
+        </div>
       </div>
     </div>
 
@@ -3998,13 +4020,19 @@ function renderOMRGrid(container, type, data) {
   }
 }
 
-function renderAKGrid(container, type, responses, keys, tags) {
+function renderAKGrid(container, type, responses, keys, tags, subjects) {
+  // subjects: { [qIdx]: { subject, theme, subtheme } }
   container.innerHTML = '';
   const n = type === 'CSAT' ? 80 : 100;
   const opts = ['A','B','C','D'];
+  const taxSubjects = Object.keys(TAXONOMY[type] || TAXONOMY.GS);
 
   for (let i = 0; i < n; i++) {
     const qNum = i + 1;
+    // wrapper — row + subject row below
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'margin-bottom:2px;';
+
     const row = document.createElement('div');
     row.className = 'omr-row';
 
@@ -4013,40 +4041,97 @@ function renderAKGrid(container, type, responses, keys, tags) {
     numEl.textContent = qNum;
     row.appendChild(numEl);
 
-    // Show student answer (read-only with result colouring)
     const studentAns = document.createElement('div');
-    studentAns.className = 'omr-student-ans';
-    studentAns.textContent = responses[i] ? `You: ${responses[i]}` : 'Skipped';
-    studentAns.style.cssText = 'font-size:10px;color:var(--text-muted);min-width:52px;';
+    studentAns.textContent = responses[i] ? `You: ${responses[i]}` : '—';
+    studentAns.style.cssText = 'font-size:10px;color:var(--text-muted);min-width:40px;';
     row.appendChild(studentAns);
 
-    // Key bubbles
     const bubblesEl = document.createElement('div');
     bubblesEl.className = 'omr-bubbles';
     opts.forEach(opt => {
       const b = document.createElement('button');
       b.className = 'omr-bubble';
-      b.dataset.q = i;
-      b.dataset.opt = opt;
       b.textContent = opt;
       if (keys[i] === opt) b.classList.add('selected');
       b.addEventListener('click', () => {
-        const cur = keys[i];
-        if (cur === opt) { delete keys[i]; b.classList.remove('selected'); }
+        if (keys[i] === opt) { delete keys[i]; b.classList.remove('selected'); }
         else {
           bubblesEl.querySelectorAll('.omr-bubble').forEach(x => x.classList.remove('selected'));
-          keys[i] = opt;
-          b.classList.add('selected');
+          keys[i] = opt; b.classList.add('selected');
         }
-        // update colouring
         updateAKRowColor(row, responses[i], keys[i]);
       });
       bubblesEl.appendChild(b);
     });
     row.appendChild(bubblesEl);
-
     updateAKRowColor(row, responses[i], keys[i]);
-    container.appendChild(row);
+    wrap.appendChild(row);
+
+    // Subject tagging row
+    const subjRow = document.createElement('div');
+    subjRow.style.cssText = 'display:flex;gap:4px;padding:2px 4px 4px 28px;flex-wrap:wrap;';
+    const cur = subjects[i] || {};
+
+    // Subject dropdown
+    const subjSel = document.createElement('select');
+    subjSel.className = 'p-select';
+    subjSel.style.cssText = 'font-size:10px;padding:2px 4px;min-width:90px;';
+    subjSel.innerHTML = '<option value="">Subject…</option>' +
+      taxSubjects.map(s => `<option value="${s}" ${cur.subject===s?'selected':''}>${s}</option>`).join('');
+
+    // Theme dropdown (populated based on subject)
+    const themeSel = document.createElement('select');
+    themeSel.className = 'p-select';
+    themeSel.style.cssText = 'font-size:10px;padding:2px 4px;min-width:90px;';
+
+    // Subtheme dropdown
+    const subSel = document.createElement('select');
+    subSel.className = 'p-select';
+    subSel.style.cssText = 'font-size:10px;padding:2px 4px;min-width:100px;';
+
+    function populateThemes(subj, selTheme) {
+      const themes = (TAXONOMY[type]||TAXONOMY.GS)[subj] || [];
+      themeSel.innerHTML = '<option value="">Theme…</option>' +
+        themes.map(t => `<option value="${t}" ${t===selTheme?'selected':''}>${t}</option>`).join('');
+    }
+    function populateSubthemes(theme, selSub) {
+      // subthemes not in taxonomy — free text only; keep dropdown minimal
+      subSel.innerHTML = '<option value="">Subtheme…</option>' +
+        (selSub ? `<option value="${selSub}" selected>${selSub}</option>` : '');
+    }
+
+    populateThemes(cur.subject||'', cur.theme||'');
+    populateSubthemes(cur.theme||'', cur.subtheme||'');
+
+    subjSel.addEventListener('change', () => {
+      subjects[i] = { subject: subjSel.value, theme:'', subtheme:'' };
+      populateThemes(subjSel.value, '');
+      populateSubthemes('', '');
+    });
+    themeSel.addEventListener('change', () => {
+      if (!subjects[i]) subjects[i] = { subject: subjSel.value };
+      subjects[i].theme = themeSel.value;
+      subjects[i].subtheme = '';
+      populateSubthemes(themeSel.value, '');
+    });
+
+    // Subtheme: allow typing
+    const subInput = document.createElement('input');
+    subInput.type = 'text';
+    subInput.placeholder = 'Subtheme (optional)';
+    subInput.value = cur.subtheme || '';
+    subInput.className = 'p-input';
+    subInput.style.cssText = 'font-size:10px;padding:2px 6px;max-width:120px;';
+    subInput.addEventListener('input', () => {
+      if (!subjects[i]) subjects[i] = { subject: subjSel.value, theme: themeSel.value };
+      subjects[i].subtheme = subInput.value.trim();
+    });
+
+    subjRow.appendChild(subjSel);
+    subjRow.appendChild(themeSel);
+    subjRow.appendChild(subInput);
+    wrap.appendChild(subjRow);
+    container.appendChild(wrap);
   }
 }
 
@@ -4214,11 +4299,14 @@ function renderAnalytics(filterType) {
     score: t.scored.score,
   }));
 
+  // Subject breakdown
+  const subjectData = buildSubjectData(tests, filterType);
+
   el.innerHTML = `
-    <div class="analytics-row">
+    <div class="analytics-row" style="grid-template-columns:repeat(4,1fr);">
       <div class="p-card analytics-stat">
         <div class="stat-val">${tests.length}</div>
-        <div class="stat-lbl">Tests Taken</div>
+        <div class="stat-lbl">Tests</div>
       </div>
       <div class="p-card analytics-stat">
         <div class="stat-val">${avgScore}</div>
@@ -4226,22 +4314,22 @@ function renderAnalytics(filterType) {
       </div>
       <div class="p-card analytics-stat">
         <div class="stat-val">${scores[scores.length-1]}</div>
-        <div class="stat-lbl">Latest Score</div>
+        <div class="stat-lbl">Latest</div>
       </div>
       <div class="p-card analytics-stat">
         <div class="stat-val">${Math.max(...scores)}</div>
-        <div class="stat-lbl">Best Score</div>
+        <div class="stat-lbl">Best</div>
       </div>
     </div>
 
     <div class="p-card" style="margin-top:8px;">
       <div class="p-label" style="margin-bottom:8px;">📈 Score Trend</div>
-      <div class="chart-wrap">${renderBarChart(tests.map(t=>t.id), scores, maxScore, '#4caf50')}</div>
+      ${renderLineDotChart(tests.map(t=>t.id.split('-').pop()), scores, maxScore, '#4caf50')}
     </div>
 
     <div class="p-card" style="margin-top:8px;">
-      <div class="p-label" style="margin-bottom:8px;">🎯 Attempt Quality (Accuracy %)</div>
-      <div class="chart-wrap">${renderBarChart(tests.map(t=>t.id), accuracies, 100, '#2196f3', '%')}</div>
+      <div class="p-label" style="margin-bottom:8px;">🎯 Accuracy % per Test</div>
+      ${renderLineDotChart(tests.map(t=>t.id.split('-').pop()), accuracies, 100, '#2196f3', '%')}
     </div>
 
     <div class="p-card" style="margin-top:8px;">
@@ -4250,15 +4338,226 @@ function renderAnalytics(filterType) {
     </div>
 
     <div class="p-card" style="margin-top:8px;">
+      <div class="p-label" style="margin-bottom:8px;">📚 Subject Accuracy (all tests combined)</div>
+      ${renderSubjectRadar(subjectData, filterType)}
+    </div>
+
+    <div class="p-card" style="margin-top:8px;">
+      <div class="p-label" style="margin-bottom:8px;">🔍 Theme Breakdown</div>
+      ${renderThemeHorizontalBars(subjectData)}
+    </div>
+
+    <div class="p-card" style="margin-top:8px;" id="subtheme-card">
+      <div class="p-label" style="margin-bottom:8px;">🔬 Subtheme Breakdown <span style="font-size:10px;font-weight:400;color:var(--text-muted);">(click a subject above to filter)</span></div>
+      ${renderSubthemeBubbles(subjectData, null)}
+    </div>
+
+    <div class="p-card" style="margin-top:8px;">
       <div class="p-label" style="margin-bottom:8px;">🏷️ Tag Performance</div>
       ${renderTagAnalytics(tagCounts, tagCorrect)}
     </div>
 
     <div class="p-card" style="margin-top:8px;">
-      <div class="p-label" style="margin-bottom:8px;">🟦 5-Question Set Heatmap (all tests)</div>
+      <div class="p-label" style="margin-bottom:8px;">🟦 5-Question Set Heatmap</div>
       ${renderSetHeatmap(tests, filterType)}
     </div>
   `;
+
+  // Wire subject radar click → filter subtheme card
+  el.querySelectorAll('[data-subj-filter]').forEach(el2 => {
+    el2.addEventListener('click', () => {
+      const subj = el2.dataset.subjFilter;
+      const card = document.getElementById('subtheme-card');
+      if (card) {
+        card.querySelector('.p-label').innerHTML = `🔬 Subthemes — <span style="color:var(--primary)">${subj}</span> <button style="font-size:10px;background:none;border:none;cursor:pointer;color:var(--text-muted);" id="subtheme-reset">✕ clear</button>`;
+        const body = card.querySelector('[data-subtheme-body]') || card.appendChild(document.createElement('div'));
+        card.innerHTML = `<div class="p-label">🔬 Subthemes — <span style="color:var(--primary)">${subj}</span> <button style="font-size:10px;background:none;border:none;cursor:pointer;color:var(--text-muted);" onclick="document.getElementById('subtheme-card').innerHTML='<div class=p-label>🔬 Subtheme Breakdown</div>' + renderSubthemeBubbles(window._subjectData, null)">✕ all</button></div>` +
+          renderSubthemeBubbles(subjectData, subj);
+        window._subjectData = subjectData;
+      }
+    });
+  });
+}
+
+// --- Build subject/theme/subtheme accuracy data from all tests ---
+function buildSubjectData(tests, type) {
+  // { subject: { total, correct, themes: { theme: { total, correct, subthemes: { sub: {total,correct} } } } } }
+  const data = {};
+  tests.forEach(test => {
+    if (!test.subjects || !test.scored) return;
+    Object.entries(test.subjects).forEach(([qIdx, info]) => {
+      if (!info || !info.subject) return;
+      const result = test.scored.detail[parseInt(qIdx)]; // 'C','W','U'
+      const isC = result === 'C', isAttempted = result !== 'U';
+      if (!isAttempted) return; // skip unattempted for accuracy calc
+
+      const { subject, theme, subtheme } = info;
+      if (!data[subject]) data[subject] = { total:0, correct:0, themes:{} };
+      data[subject].total++;
+      if (isC) data[subject].correct++;
+
+      if (theme) {
+        if (!data[subject].themes[theme]) data[subject].themes[theme] = { total:0, correct:0, subthemes:{} };
+        data[subject].themes[theme].total++;
+        if (isC) data[subject].themes[theme].correct++;
+
+        if (subtheme) {
+          const st = data[subject].themes[theme].subthemes;
+          if (!st[subtheme]) st[subtheme] = { total:0, correct:0 };
+          st[subtheme].total++;
+          if (isC) st[subtheme].correct++;
+        }
+      }
+    });
+  });
+  return data;
+}
+
+// --- Line + dot chart (replaces flat bar for trends) ---
+function renderLineDotChart(labels, values, maxVal, color, suffix='') {
+  if (!values.length) return '<div style="color:var(--text-muted);font-size:12px;">No data yet.</div>';
+  const W = 500, H = 120, padL = 32, padR = 12, padT = 14, padB = 22;
+  const n = values.length;
+  const xStep = n < 2 ? 0 : (W - padL - padR) / (n - 1);
+  const pts = values.map((v, i) => ({
+    x: padL + (n<2 ? (W-padL-padR)/2 : i * xStep),
+    y: padT + (1 - Math.min(v,maxVal)/maxVal) * (H - padT - padB),
+    v, lbl: labels[i]
+  }));
+  const pathD = pts.map((p,i) => (i===0?`M${p.x},${p.y}`:`L${p.x},${p.y}`)).join(' ');
+  const fillD = `${pathD} L${pts[pts.length-1].x},${H-padB} L${pts[0].x},${H-padB} Z`;
+
+  // grid lines at 25/50/75/100%
+  const gridLines = [0.25,0.5,0.75,1].map(pct => {
+    const y = padT + (1-pct) * (H-padT-padB);
+    const val = Math.round(pct*maxVal);
+    return `<line x1="${padL}" y1="${y}" x2="${W-padR}" y2="${y}" stroke="var(--border)" stroke-width="0.5" stroke-dasharray="3,3"/>
+            <text x="${padL-2}" y="${y+3}" text-anchor="end" font-size="7" fill="var(--text-muted)">${val}</text>`;
+  }).join('');
+
+  const dots = pts.map(p =>
+    `<circle cx="${p.x}" cy="${p.y}" r="4" fill="${color}" stroke="var(--card-bg)" stroke-width="1.5"/>
+     <text x="${p.x}" y="${Math.max(p.y-6,padT+6)}" text-anchor="middle" font-size="8" fill="${color}" font-weight="600">${p.v}${suffix}</text>
+     <text x="${p.x}" y="${H-padB+10}" text-anchor="middle" font-size="7" fill="var(--text-muted)">${p.lbl}</text>`
+  ).join('');
+
+  return `<div style="overflow-x:auto;"><svg viewBox="0 0 ${W} ${H}" style="width:100%;height:${H}px;">
+    ${gridLines}
+    <line x1="${padL}" y1="${H-padB}" x2="${W-padR}" y2="${H-padB}" stroke="var(--border)" stroke-width="1"/>
+    <path d="${fillD}" fill="${color}" opacity="0.08"/>
+    <path d="${pathD}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round"/>
+    ${dots}
+  </svg></div>`;
+}
+
+// --- Radar / spider chart for subjects ---
+function renderSubjectRadar(subjectData, type) {
+  const subjects = Object.keys(subjectData);
+  if (!subjects.length) return '<div style="color:var(--text-muted);font-size:12px;">Tag questions with subjects in Answer Key to see this chart.</div>';
+
+  const W = 320, CX = 160, CY = 150, R = 110;
+  const n = subjects.length;
+  const angle = i => (i / n) * 2 * Math.PI - Math.PI/2;
+
+  // Grid rings
+  const rings = [0.25,0.5,0.75,1].map(r => {
+    const pts = subjects.map((_,i) => {
+      const a = angle(i);
+      return `${CX + r*R*Math.cos(a)},${CY + r*R*Math.sin(a)}`;
+    });
+    return `<polygon points="${pts.join(' ')}" fill="none" stroke="var(--border)" stroke-width="0.8" opacity="0.6"/>`;
+  }).join('');
+
+  // Axis lines
+  const axes = subjects.map((_,i) => {
+    const a = angle(i);
+    return `<line x1="${CX}" y1="${CY}" x2="${CX+R*Math.cos(a)}" y2="${CY+R*Math.sin(a)}" stroke="var(--border)" stroke-width="0.8"/>`;
+  }).join('');
+
+  // Data polygon
+  const dataPoints = subjects.map((s,i) => {
+    const d = subjectData[s];
+    const acc = d.total ? d.correct/d.total : 0;
+    const a = angle(i);
+    return { x: CX + acc*R*Math.cos(a), y: CY + acc*R*Math.sin(a), acc, s, total: d.total };
+  });
+  const polyPts = dataPoints.map(p => `${p.x},${p.y}`).join(' ');
+
+  // Labels + clickable
+  const labels = dataPoints.map((p,i) => {
+    const a = angle(i);
+    const lx = CX + (R+18)*Math.cos(a);
+    const ly = CY + (R+18)*Math.sin(a);
+    const pct = Math.round(p.acc*100);
+    const col = pct>=70?'#4caf50':pct>=50?'#ff9800':'#f44336';
+    return `<text x="${lx}" y="${ly}" text-anchor="middle" dominant-baseline="middle" font-size="9" fill="${col}" font-weight="700"
+      style="cursor:pointer;" data-subj-filter="${p.s}">${p.s.length>8?p.s.slice(0,8)+'…':p.s} ${pct}%</text>`;
+  }).join('');
+
+  // Dots
+  const dots = dataPoints.map(p =>
+    `<circle cx="${p.x}" cy="${p.y}" r="4" fill="#2196f3" stroke="var(--card-bg)" stroke-width="1.5" style="cursor:pointer;" data-subj-filter="${p.s}">
+      <title>${p.s}: ${Math.round(p.acc*100)}% (${p.total} attempted)</title>
+    </circle>`
+  ).join('');
+
+  return `<div style="overflow-x:auto;display:flex;justify-content:center;">
+    <svg viewBox="0 0 ${W} ${CY*2+10}" style="width:100%;max-width:${W}px;">
+      ${rings}${axes}
+      <polygon points="${polyPts}" fill="#2196f3" fill-opacity="0.15" stroke="#2196f3" stroke-width="1.5"/>
+      ${dots}${labels}
+    </svg>
+  </div>`;
+}
+
+// --- Horizontal bar chart for themes ---
+function renderThemeHorizontalBars(subjectData) {
+  const COLORS = ['#4caf50','#2196f3','#ff9800','#9c27b0','#f44336','#00bcd4','#ff5722','#607d8b'];
+  const rows = [];
+  let colIdx = 0;
+  Object.entries(subjectData).forEach(([subj, sd]) => {
+    if (!Object.keys(sd.themes).length) return;
+    rows.push(`<div style="font-size:11px;font-weight:700;color:var(--text-muted);margin:10px 0 4px;">${subj}</div>`);
+    Object.entries(sd.themes).sort((a,b)=>b[1].total-a[1].total).forEach(([theme, td]) => {
+      const acc = td.total ? Math.round(td.correct/td.total*100) : 0;
+      const col = acc>=70?'#4caf50':acc>=50?'#ff9800':'#f44336';
+      rows.push(`<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;">
+        <div style="width:110px;font-size:11px;color:var(--text);flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${theme}">${theme}</div>
+        <div style="flex:1;background:var(--border);border-radius:4px;height:10px;position:relative;">
+          <div style="width:${acc}%;background:${col};height:100%;border-radius:4px;transition:width .3s;"></div>
+        </div>
+        <div style="width:40px;font-size:11px;font-weight:700;color:${col};text-align:right;">${acc}%</div>
+        <div style="width:28px;font-size:10px;color:var(--text-muted);">${td.total}q</div>
+      </div>`);
+    });
+    colIdx++;
+  });
+  return rows.length ? rows.join('') : '<div style="color:var(--text-muted);font-size:12px;">Tag questions with subject+theme in Answer Key to see theme breakdown.</div>';
+}
+
+// --- Bubble / pill chart for subthemes ---
+function renderSubthemeBubbles(subjectData, filterSubject) {
+  const bubbles = [];
+  Object.entries(subjectData).forEach(([subj, sd]) => {
+    if (filterSubject && subj !== filterSubject) return;
+    Object.entries(sd.themes).forEach(([theme, td]) => {
+      Object.entries(td.subthemes).forEach(([sub, st]) => {
+        const acc = st.total ? Math.round(st.correct/st.total*100) : 0;
+        const col = acc>=70?'#4caf50':acc>=50?'#ff9800':'#f44336';
+        const size = Math.max(11, Math.min(16, 11 + st.total));
+        bubbles.push(`<div title="${subj} › ${theme} › ${sub}: ${acc}% (${st.total}q)" style="
+          display:inline-flex;align-items:center;gap:4px;
+          background:${col}22;border:1px solid ${col};
+          color:${col};border-radius:20px;padding:3px 10px;
+          font-size:${size}px;font-weight:700;margin:3px;cursor:default;">
+          ${sub} <span style="font-size:10px;opacity:.8;">${acc}%·${st.total}q</span>
+        </div>`);
+      });
+    });
+  });
+  return bubbles.length
+    ? `<div style="display:flex;flex-wrap:wrap;">${bubbles.join('')}</div>`
+    : '<div style="color:var(--text-muted);font-size:12px;">No subtheme data yet — add subthemes when entering answer keys.</div>';
 }
 
 function renderBarChart(labels, values, maxVal, color, suffix='') {
@@ -4409,6 +4708,7 @@ function prelimsInit() {
       if (btn.dataset.pane === 'analytics') { renderAnalytics(currentAnalyticsType); }
       if (btn.dataset.pane === 'answerkey') { refreshAKSelector(); }
       if (btn.dataset.pane === 'resources') { renderTricks(); renderTagRef(); renderBlogs(); }
+      if (btn.dataset.pane === 'suggestions') { renderSuggestions(currentSugType); }
     });
   });
 
@@ -4473,6 +4773,24 @@ function prelimsInit() {
   document.getElementById('p-ak-submit').addEventListener('click', submitAnswerKey);
   document.getElementById('p-ak-submit-bottom').addEventListener('click', submitAnswerKey);
 
+  // Suggestions
+  document.getElementById('sug-gs-btn').addEventListener('click', () => {
+    currentSugType = 'GS';
+    document.getElementById('sug-gs-btn').classList.add('active');
+    document.getElementById('sug-csat-btn').classList.remove('active');
+    renderSuggestions('GS');
+  });
+  document.getElementById('sug-csat-btn').addEventListener('click', () => {
+    currentSugType = 'CSAT';
+    document.getElementById('sug-csat-btn').classList.add('active');
+    document.getElementById('sug-gs-btn').classList.remove('active');
+    renderSuggestions('CSAT');
+  });
+  document.getElementById('sug-master-btn').addEventListener('click', generateMasterSummary);
+  document.getElementById('sug-master-close').addEventListener('click', () => {
+    document.getElementById('sug-master-view').style.display = 'none';
+  });
+
   // Init resources
   renderTricks();
   renderTagRef();
@@ -4481,8 +4799,9 @@ function prelimsInit() {
 
 let currentHistoryType = 'GS';
 let currentAnalyticsType = 'GS';
+let currentSugType = 'GS';
 let omrData = { type:'GS', responses:{}, tags:{} };
-let akData = { testId: null, keys: {} };
+let akData = { testId: null, keys: {}, subjects: {} };
 
 function checkForDraft() {
   const draft = pGetDraft();
@@ -4579,7 +4898,7 @@ function loadAKSheet() {
   const tests = pGetTests();
   const test = tests.find(t => t.id === testId);
   if (!test) { alert('Test not found.'); return; }
-  akData = { testId, keys: test.keys ? { ...test.keys } : {} };
+  akData = { testId, keys: test.keys ? { ...test.keys } : {}, subjects: test.subjects ? JSON.parse(JSON.stringify(test.subjects)) : {} };
   document.getElementById('p-ak-container').style.display = '';
   document.getElementById('p-ak-title').textContent = `${test.id} — ${test.name} (${test.date})`;
   document.getElementById('p-ak-info').textContent = `${test.type} · ${Object.keys(test.responses).length} answers recorded`;
@@ -4588,7 +4907,8 @@ function loadAKSheet() {
     test.type,
     test.responses,
     akData.keys,
-    test.tags
+    test.tags,
+    akData.subjects
   );
 }
 
@@ -4604,6 +4924,7 @@ function submitAnswerKey() {
     if (!confirm(`Only ${answeredKeys}/${n} keys entered. Submit anyway?`)) return;
   }
   test.keys = { ...akData.keys };
+  test.subjects = JSON.parse(JSON.stringify(akData.subjects));
   test.scored = scoreTest(test.responses, akData.keys, test.type);
   tests[idx] = test;
   pSaveTests(tests);
@@ -4635,6 +4956,379 @@ function submitAnswerKey() {
     </div>
   `;
   document.getElementById('p-ak-container').style.display = 'none';
+}
+
+// =====================================================================
+// SUGGESTIONS MODULE
+// =====================================================================
+const P_SUGGESTIONS_KEY = 'upsc_prelims_suggestions'; // { [testId]: { items: [{id,text,checked,manual}], llmRaw, prompt } }
+
+function pGetSuggestions() {
+  try { return JSON.parse(localStorage.getItem(P_SUGGESTIONS_KEY)) || {}; } catch { return {}; }
+}
+function pSaveSuggestions(obj) { localStorage.setItem(P_SUGGESTIONS_KEY, JSON.stringify(obj)); }
+
+function buildLLMPrompt(test) {
+  if (!test || !test.scored) return '';
+  const { correct, wrong, unattempted, score, total } = test.scored;
+  const accuracy = correct+wrong ? Math.round(correct/(correct+wrong)*100) : 0;
+
+  // Tag breakdown
+  const tagBreakdown = {};
+  if (test.tags) Object.values(test.tags).forEach(t => tagBreakdown[t]=(tagBreakdown[t]||0)+1);
+
+  // Subject accuracy
+  const subjectLines = [];
+  if (test.subjects) {
+    const sd = buildSubjectData([test], test.type);
+    Object.entries(sd).forEach(([subj, d]) => {
+      subjectLines.push(`  ${subj}: ${d.correct}/${d.total} (${Math.round(d.correct/d.total*100)}%)`);
+      Object.entries(d.themes).forEach(([theme, td]) => {
+        const tacc = Math.round(td.correct/td.total*100);
+        subjectLines.push(`    → ${theme}: ${td.correct}/${td.total} (${tacc}%)`);
+      });
+    });
+  }
+
+  // Wrong questions list
+  const wrongQs = [];
+  if (test.scored && test.subjects) {
+    test.scored.detail.forEach((res, i) => {
+      if (res === 'W') {
+        const s = test.subjects[i];
+        const tag = test.tags?.[i] || '—';
+        wrongQs.push(`  Q${i+1}: ${s ? `${s.subject||'?'} › ${s.theme||'?'} › ${s.subtheme||'?'}` : 'Subject not tagged'} [Tag: ${tag}]`);
+      }
+    });
+  }
+
+  return `You are a UPSC Prelims expert mentor. Analyze the following mock test performance and give structured suggestions.
+
+## Test Details
+- Test ID: ${test.id}
+- Name: ${test.name}
+- Date: ${test.date}
+- Type: ${test.type} (${test.type==='CSAT'?'80 questions, 160 marks':'100 questions, 200 marks'})
+- Official UPSC: ${test.official ? 'Yes' : 'No (Mock)'}
+
+## Score Summary
+- Score: ${score}/${total}
+- Correct: ${correct} | Wrong: ${wrong} | Unattempted: ${unattempted}
+- Accuracy (attempted): ${accuracy}%
+
+## Attempt Strategy Tags
+${Object.entries(tagBreakdown).map(([t,c])=>`- ${t} (${TAGS.find(x=>x.id===t)?.title||t}): ${c} questions`).join('\n') || '- No tags recorded'}
+
+## Subject-wise Accuracy
+${subjectLines.join('\n') || '- No subject tagging done'}
+
+## Wrong Questions (with subject/tag)
+${wrongQs.slice(0,20).join('\n') || '- No wrong question data'}${wrongQs.length>20 ? `\n  ... and ${wrongQs.length-20} more` : ''}
+
+---
+
+## Required Output Format (follow EXACTLY):
+
+### SECTION: Weak Areas
+- [Subject/Theme]: [1-line diagnosis]
+- ...
+
+### SECTION: Strategy Fixes
+- [Fix title]: [1-line actionable change]
+- ...
+
+### SECTION: Trick Gaps
+- [Trick ID if applicable, else "General"]: [what went wrong and fix]
+- ...
+
+### SECTION: Target Next Test
+- Attempt: [number] questions
+- Accuracy target: [%]
+- Focus subjects: [comma-separated]
+- Skip/defer: [what to not waste time on]
+
+### SECTION: Positive Patterns
+- [1-2 things that went well]
+
+Keep each bullet under 20 words. Be direct and specific, not generic.`;
+}
+
+function parseLLMResponse(raw) {
+  // Parse the structured sections into suggestion items
+  const items = [];
+  const sectionRegex = /###\s*SECTION:\s*(.+?)\n([\s\S]*?)(?=###\s*SECTION:|$)/g;
+  let match;
+  while ((match = sectionRegex.exec(raw)) !== null) {
+    const section = match[1].trim();
+    const body = match[2].trim();
+    const bullets = body.split('\n').filter(l => l.trim().startsWith('-')).map(l => l.replace(/^-\s*/, '').trim()).filter(Boolean);
+    bullets.forEach(b => {
+      items.push({ id: `llm-${Date.now()}-${Math.random().toString(36).slice(2,6)}`, section, text: b, checked: false, manual: false });
+    });
+  }
+  // Fallback: if no structured sections, just split by newlines
+  if (!items.length) {
+    raw.split('\n').filter(l=>l.trim().startsWith('-')).forEach(l => {
+      items.push({ id: `llm-${Date.now()}-${Math.random().toString(36).slice(2,6)}`, section:'General', text: l.replace(/^-\s*/,'').trim(), checked:false, manual:false });
+    });
+  }
+  return items;
+}
+
+function renderSuggestions(filterType) {
+  const list = document.getElementById('sug-per-test-list');
+  if (!list) return;
+  const deleted = pGetDeleted();
+  const tests = pGetTests().filter(t => !deleted.includes(t.id) && t.type === filterType && t.scored)
+    .sort((a,b) => new Date(b.date) - new Date(a.date));
+  const allSugs = pGetSuggestions();
+
+  if (!tests.length) {
+    list.innerHTML = `<div style="color:var(--text-muted);font-size:13px;padding:20px 0;">No scored ${filterType} tests yet.</div>`;
+    return;
+  }
+
+  list.innerHTML = '';
+  tests.forEach(test => {
+    const sug = allSugs[test.id] || { items:[], llmRaw:'', prompt:'' };
+    const card = document.createElement('div');
+    card.className = 'p-card';
+    card.style.marginBottom = '12px';
+
+    const checkedCount = sug.items.filter(x=>x.checked).length;
+    const totalCount = sug.items.length;
+
+    card.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:6px;margin-bottom:10px;">
+        <div>
+          <div style="font-size:11px;font-weight:700;color:var(--text-muted);">${test.id}${test.official?' 🏛️':''}</div>
+          <div style="font-size:14px;font-weight:600;">${test.name} <span style="font-size:12px;color:var(--text-muted);">${test.date}</span></div>
+          <div style="font-size:12px;color:var(--text-muted);">Score: ${test.scored.score}/${test.scored.total} · Acc: ${test.scored.correct+test.scored.wrong?Math.round(test.scored.correct/(test.scored.correct+test.scored.wrong)*100):0}%</div>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <button class="p-btn p-btn-ghost" style="font-size:11px;padding:5px 10px;" data-copy-prompt="${test.id}">📋 Copy Prompt</button>
+          <button class="p-btn p-btn-ghost" style="font-size:11px;padding:5px 10px;" data-add-manual="${test.id}">✏️ Add Note</button>
+        </div>
+      </div>
+
+      ${totalCount ? `<div style="font-size:11px;color:var(--text-muted);margin-bottom:6px;">✅ ${checkedCount}/${totalCount} actioned</div>` : ''}
+
+      <div class="sug-items" data-test="${test.id}">
+        ${renderSugItems(sug.items, test.id)}
+      </div>
+
+      <div style="margin-top:8px;">
+        <div style="font-size:11px;font-weight:700;color:var(--text-muted);margin-bottom:4px;">Paste LLM Response:</div>
+        <textarea class="p-input sug-paste-area" data-test="${test.id}" rows="4"
+          style="font-size:11px;font-family:monospace;resize:vertical;"
+          placeholder="Paste the LLM response here (using the copied prompt above)…">${sug.llmRaw||''}</textarea>
+        <button class="p-btn p-btn-primary sug-parse-btn" data-test="${test.id}" style="font-size:11px;padding:5px 12px;margin-top:6px;">⚡ Parse & Save Suggestions</button>
+      </div>
+    `;
+    list.appendChild(card);
+  });
+
+  // Wire events
+  list.querySelectorAll('[data-copy-prompt]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const testId = btn.dataset.copyPrompt;
+      const test = pGetTests().find(t => t.id === testId);
+      if (!test) return;
+      const prompt = buildLLMPrompt(test);
+      // Save prompt to suggestions store
+      const allS = pGetSuggestions();
+      if (!allS[testId]) allS[testId] = { items:[], llmRaw:'', prompt:'' };
+      allS[testId].prompt = prompt;
+      pSaveSuggestions(allS);
+      navigator.clipboard.writeText(prompt).then(() => {
+        btn.textContent = '✅ Copied!';
+        setTimeout(() => btn.textContent = '📋 Copy Prompt', 2000);
+      }).catch(() => {
+        // fallback
+        const ta = document.createElement('textarea');
+        ta.value = prompt;
+        document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+        btn.textContent = '✅ Copied!';
+        setTimeout(() => btn.textContent = '📋 Copy Prompt', 2000);
+      });
+    });
+  });
+
+  list.querySelectorAll('.sug-parse-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const testId = btn.dataset.test;
+      const ta = list.querySelector(`.sug-paste-area[data-test="${testId}"]`);
+      const raw = ta?.value?.trim();
+      if (!raw) { alert('Paste the LLM response first.'); return; }
+      const allS = pGetSuggestions();
+      if (!allS[testId]) allS[testId] = { items:[], llmRaw:'', prompt:'' };
+      // Merge: keep existing manual items, replace llm items
+      const manual = (allS[testId].items||[]).filter(x=>x.manual);
+      const parsed = parseLLMResponse(raw);
+      allS[testId].items = [...parsed, ...manual];
+      allS[testId].llmRaw = raw;
+      pSaveSuggestions(allS);
+      // Re-render items
+      const itemDiv = list.querySelector(`.sug-items[data-test="${testId}"]`);
+      if (itemDiv) itemDiv.innerHTML = renderSugItems(allS[testId].items, testId);
+      wireSugItems(list, testId);
+      btn.textContent = '✅ Saved!';
+      setTimeout(() => btn.textContent = '⚡ Parse & Save Suggestions', 2000);
+    });
+  });
+
+  list.querySelectorAll('[data-add-manual]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const testId = btn.dataset.addManual;
+      const text = prompt('Add a manual suggestion/note:');
+      if (!text?.trim()) return;
+      const allS = pGetSuggestions();
+      if (!allS[testId]) allS[testId] = { items:[], llmRaw:'', prompt:'' };
+      allS[testId].items.push({ id:`m-${Date.now()}`, section:'Manual', text:text.trim(), checked:false, manual:true });
+      pSaveSuggestions(allS);
+      const itemDiv = list.querySelector(`.sug-items[data-test="${testId}"]`);
+      if (itemDiv) itemDiv.innerHTML = renderSugItems(allS[testId].items, testId);
+      wireSugItems(list, testId);
+    });
+  });
+
+  // Wire existing items
+  tests.forEach(t => wireSugItems(list, t.id));
+}
+
+function renderSugItems(items, testId) {
+  if (!items.length) return '<div style="color:var(--text-muted);font-size:12px;padding:4px 0;">No suggestions yet — copy the prompt and paste the LLM response below.</div>';
+
+  // Group by section
+  const sections = {};
+  items.forEach(item => {
+    if (!sections[item.section]) sections[item.section] = [];
+    sections[item.section].push(item);
+  });
+
+  const SECTION_ICONS = { 'Weak Areas':'🔴', 'Strategy Fixes':'🔧', 'Trick Gaps':'🎯', 'Target Next Test':'📌', 'Positive Patterns':'✅', 'Manual':'✏️', 'General':'📋' };
+
+  return Object.entries(sections).map(([section, sitems]) => `
+    <div style="margin-bottom:8px;">
+      <div style="font-size:11px;font-weight:700;color:var(--text-muted);margin-bottom:4px;">${SECTION_ICONS[section]||'•'} ${section}</div>
+      ${sitems.map(item => `
+        <div class="sug-item" data-item-id="${item.id}" data-test-id="${testId}"
+          style="display:flex;align-items:flex-start;gap:8px;padding:5px 6px;border-radius:6px;margin-bottom:3px;
+          background:${item.checked?'var(--good-soft)':'var(--section-bg)'};border:1px solid ${item.checked?'var(--good)':'var(--border)'};cursor:pointer;transition:all .15s;">
+          <input type="checkbox" ${item.checked?'checked':''} data-check="${item.id}" data-test="${testId}"
+            style="margin-top:2px;width:14px;height:14px;flex-shrink:0;cursor:pointer;" />
+          <span style="font-size:12px;${item.checked?'text-decoration:line-through;opacity:.6;':''}${item.manual?'font-style:italic;':''}">${item.text}</span>
+          ${item.manual ? `<button data-del-sug="${item.id}" data-test="${testId}" style="margin-left:auto;background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:11px;padding:0 2px;" title="Delete">✕</button>` : ''}
+        </div>`).join('')}
+    </div>`).join('');
+}
+
+function wireSugItems(container, testId) {
+  container.querySelectorAll(`input[data-check][data-test="${testId}"]`).forEach(cb => {
+    cb.addEventListener('change', () => {
+      const allS = pGetSuggestions();
+      const sug = allS[testId];
+      if (!sug) return;
+      const item = sug.items.find(x => x.id === cb.dataset.check);
+      if (item) { item.checked = cb.checked; pSaveSuggestions(allS); }
+      // Update row styling
+      const row = cb.closest('.sug-item');
+      if (row) {
+        row.style.background = cb.checked ? 'var(--good-soft)' : 'var(--section-bg)';
+        row.style.border = `1px solid ${cb.checked ? 'var(--good)' : 'var(--border)'}`;
+        const span = row.querySelector('span');
+        if (span) span.style.textDecoration = cb.checked ? 'line-through' : '';
+      }
+    });
+  });
+  container.querySelectorAll(`[data-del-sug][data-test="${testId}"]`).forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const allS = pGetSuggestions();
+      if (!allS[testId]) return;
+      allS[testId].items = allS[testId].items.filter(x => x.id !== btn.dataset.delSug);
+      pSaveSuggestions(allS);
+      const itemDiv = container.querySelector(`.sug-items[data-test="${testId}"]`);
+      if (itemDiv) itemDiv.innerHTML = renderSugItems(allS[testId].items, testId);
+      wireSugItems(container, testId);
+    });
+  });
+}
+
+function generateMasterSummary() {
+  const allS = pGetSuggestions();
+  const deleted = pGetDeleted();
+  const tests = pGetTests().filter(t => !deleted.includes(t.id) && t.scored);
+  if (!tests.length) { alert('No scored tests found.'); return; }
+
+  // Aggregate all suggestion items across tests
+  const sectionMap = {};
+  const SECTION_ICONS = { 'Weak Areas':'🔴', 'Strategy Fixes':'🔧', 'Trick Gaps':'🎯', 'Target Next Test':'📌', 'Positive Patterns':'✅', 'Manual':'✏️', 'General':'📋' };
+
+  tests.forEach(test => {
+    const sug = allS[test.id];
+    if (!sug || !sug.items.length) return;
+    sug.items.forEach(item => {
+      if (!sectionMap[item.section]) sectionMap[item.section] = [];
+      sectionMap[item.section].push({ ...item, testId: test.id, testName: test.name });
+    });
+  });
+
+  if (!Object.keys(sectionMap).length) {
+    alert('No suggestions found across tests. Paste LLM responses for individual tests first.');
+    return;
+  }
+
+  const masterContent = document.getElementById('sug-master-content');
+  masterContent.innerHTML = Object.entries(sectionMap).map(([section, items]) => {
+    // Deduplicate similar items by keyword overlap
+    const unique = [];
+    items.forEach(item => {
+      const isDup = unique.some(u => {
+        const wordsA = new Set(u.text.toLowerCase().split(/\W+/).filter(w=>w.length>4));
+        const wordsB = item.text.toLowerCase().split(/\W+/).filter(w=>w.length>4);
+        const overlap = wordsB.filter(w=>wordsA.has(w)).length;
+        return overlap >= 2;
+      });
+      if (!isDup) unique.push(item);
+    });
+
+    return `<div style="margin-bottom:12px;">
+      <div style="font-size:12px;font-weight:800;color:var(--primary);margin-bottom:6px;">${SECTION_ICONS[section]||'•'} ${section} <span style="font-size:10px;font-weight:400;color:var(--text-muted);">(${unique.length} items from ${items.length} across tests)</span></div>
+      ${unique.map(item => `
+        <div class="master-sug-item" data-master-id="${item.id}" data-master-test="${item.testId}"
+          style="display:flex;align-items:flex-start;gap:8px;padding:5px 8px;border-radius:6px;margin-bottom:3px;
+          background:${item.checked?'var(--good-soft)':'var(--section-bg)'};border:1px solid ${item.checked?'var(--good)':'var(--border)'};cursor:pointer;">
+          <input type="checkbox" ${item.checked?'checked':''} data-master-check="${item.id}" data-master-test="${item.testId}"
+            style="margin-top:2px;width:14px;height:14px;flex-shrink:0;cursor:pointer;" />
+          <div style="flex:1;">
+            <div style="font-size:12px;${item.checked?'text-decoration:line-through;opacity:.6;':''}">${item.text}</div>
+            <div style="font-size:10px;color:var(--text-muted);">${item.testId} · ${item.testName}</div>
+          </div>
+        </div>`).join('')}
+    </div>`;
+  }).join('');
+
+  // Wire master checkboxes to sync with per-test
+  masterContent.querySelectorAll('[data-master-check]').forEach(cb => {
+    cb.addEventListener('change', () => {
+      const allS2 = pGetSuggestions();
+      const sug = allS2[cb.dataset.masterTest];
+      if (!sug) return;
+      const item = sug.items.find(x => x.id === cb.dataset.masterCheck);
+      if (item) { item.checked = cb.checked; pSaveSuggestions(allS2); }
+      const row = cb.closest('.master-sug-item');
+      if (row) {
+        row.style.background = cb.checked ? 'var(--good-soft)' : 'var(--section-bg)';
+        row.style.border = `1px solid ${cb.checked ? 'var(--good)' : 'var(--border)'}`;
+        const span = row.querySelector('div:first-child div:first-child');
+        if (span) span.style.textDecoration = cb.checked ? 'line-through' : '';
+      }
+    });
+  });
+
+  document.getElementById('sug-master-view').style.display = '';
+  document.getElementById('sug-master-view').scrollIntoView({ behavior:'smooth' });
 }
 
 // Wire up after DOM ready
