@@ -559,7 +559,7 @@
   @media print {
     .nav, .header-right, .btn-row, #status, #errorBox,
     .selfscore-box, .timer-area, .abhyas-hint, .footer,
-    #view-daily, #view-pyq, #view-compare, #view-history, #view-practice, #view-settings, #view-prelims,
+    #view-daily, #view-pyq, #view-compare, #view-history, #view-practice, #view-prelims,
     #directiveBanner, #selfScoreResult { display: none !important; }
     body { background: #fff !important; padding: 0; color: #000; }
     .card { box-shadow: none !important; border: 1px solid #ccc; page-break-inside: avoid; }
@@ -667,30 +667,52 @@
   .blog-content { font-size:12px; color:var(--text-soft); line-height:1.6; padding:0 12px 12px; white-space:pre-line; }
   /* p-label */
   .p-label { font-size:11px; font-weight:700; color:var(--text-muted); margin-bottom:4px; text-transform:uppercase; letter-spacing:.4px; }
+  /* top-level tabs */
+  .top-nav { gap:0; padding:0; border-bottom:2px solid var(--border); background:var(--card-bg); }
+  .top-tab-btn { flex:1; padding:12px 16px; border:none; background:none; font-size:14px; font-weight:600; cursor:pointer; color:var(--text-muted); border-bottom:3px solid transparent; margin-bottom:-2px; transition:all .15s; }
+  .top-tab-btn:hover { color:var(--primary); background:var(--primary-soft); }
+  .top-tab-btn.active { color:var(--primary); border-bottom-color:var(--primary); background:var(--primary-soft); }
+  .mains-sub-nav { border-top:none; padding-top:4px; }
+  /* mains content wrapper */
+  #mains-content { display:none; }
+  #mains-content.active { display:block; }
+  #prelims-content { display:block; }
+  #prelims-content.hidden { display:none; }
+  /* settings-global-btn */
+  #settings-global-btn { margin-left:8px; border-radius:8px; }
 </style>
 </head>
 <body>
 <div class="container">
   <header>
     <div>
-      <h1>📝 UPSC Mains AI Evaluator</h1>
-      <div class="subtitle">Qwen &amp; GPT-OSS on Groq · Multi-model · Vision · History · Daily</div>
+      <h1>📝 UPSC Evaluator</h1>
+      <div class="subtitle">Multi-model · Vision · Prelims + Mains</div>
     </div>
     <div class="header-right">
       <button class="theme-toggle" id="themeToggle" title="Toggle theme">🌙</button>
+      <button class="nav-btn" data-view="settings" id="settings-global-btn" style="padding:6px 12px;font-size:13px;">⚙️</button>
     </div>
   </header>
 
-  <nav class="nav">
+  <!-- TOP-LEVEL TABS -->
+  <nav class="nav top-nav">
+    <button class="top-tab-btn active" data-top="prelims">🔵 Preliminary Examination</button>
+    <button class="top-tab-btn" data-top="mains">✍️ Main Examination</button>
+  </nav>
+
+  <!-- MAINS SUB-NAV -->
+  <nav class="nav mains-sub-nav" id="mains-sub-nav" style="display:none;">
     <button class="nav-btn active" data-view="evaluate">✍️ Evaluate</button>
     <button class="nav-btn" data-view="daily">🌅 Daily</button>
     <button class="nav-btn" data-view="pyq">📚 PYQs</button>
     <button class="nav-btn" data-view="compare">🔄 Compare</button>
     <button class="nav-btn" data-view="history">📊 History</button>
     <button class="nav-btn" data-view="practice">🖊️ Practice Log</button>
-    <button class="nav-btn" data-view="prelims">🔵 Prelims</button>
-    <button class="nav-btn" data-view="settings">⚙️ Settings</button>
   </nav>
+
+  <!-- MAINS CONTENT WRAPPER -->
+  <div id="mains-content">
 
   <!-- ============ EVALUATE VIEW ============ -->
   <section class="view active" id="view-evaluate">
@@ -1097,122 +1119,10 @@
     </div>
   </section>
 
-  <!-- ============ SETTINGS VIEW ============ -->
-  <section class="view" id="view-settings">
-    <div class="card">
-      <h3 style="font-size:14px;font-weight:700;margin-bottom:12px;">🔑 API Keys</h3>
+  </div><!-- end #mains-content -->
 
-      <!-- Provider Setup Guide -->
-      <details style="margin-bottom:18px;" open>
-        <summary style="cursor:pointer;font-weight:600;font-size:14px;color:var(--accent);user-select:none;">📋 Provider Setup Guide</summary>
-        <div style="margin-top:12px;font-size:13px;line-height:1.6;">
-          <p style="margin:0 0 10px;color:var(--text-muted);">Paste keys for any provider(s) you want to use. You can have all three active simultaneously.</p>
-          <table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:12px;">
-            <thead>
-              <tr style="background:var(--bg-hover);">
-                <th style="padding:6px 8px;text-align:left;border-bottom:1px solid var(--border);">Provider</th>
-                <th style="padding:6px 8px;text-align:left;border-bottom:1px solid var(--border);">Free Tier</th>
-                <th style="padding:6px 8px;text-align:left;border-bottom:1px solid var(--border);">Vision?</th>
-                <th style="padding:6px 8px;text-align:left;border-bottom:1px solid var(--border);">Get Key</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td style="padding:6px 8px;border-bottom:1px solid var(--border);font-weight:600;">Groq</td>
-                <td style="padding:6px 8px;border-bottom:1px solid var(--border);">~30 req/min (text)<br>2–5 req/min (vision)</td>
-                <td style="padding:6px 8px;border-bottom:1px solid var(--border);">✅ Qwen 3.6 27B</td>
-                <td style="padding:6px 8px;border-bottom:1px solid var(--border);"><a href="https://console.groq.com/keys" target="_blank">console.groq.com/keys</a></td>
-              </tr>
-              <tr>
-                <td style="padding:6px 8px;border-bottom:1px solid var(--border);font-weight:600;">Google Gemini</td>
-                <td style="padding:6px 8px;border-bottom:1px solid var(--border);">15 RPM / 1M TPM<br>(most generous)</td>
-                <td style="padding:6px 8px;border-bottom:1px solid var(--border);">✅ Gemini 2.0 Flash</td>
-                <td style="padding:6px 8px;border-bottom:1px solid var(--border);"><a href="https://aistudio.google.com/apikey" target="_blank">aistudio.google.com/apikey</a></td>
-              </tr>
-              <tr>
-                <td style="padding:6px 8px;font-weight:600;">OpenRouter</td>
-                <td style="padding:6px 8px;">100+ models, many free</td>
-                <td style="padding:6px 8px;">✅ Several models</td>
-                <td style="padding:6px 8px;"><a href="https://openrouter.ai/keys" target="_blank">openrouter.ai/keys</a></td>
-              </tr>
-            </tbody>
-          </table>
-          <div style="background:var(--bg-hover);border-radius:8px;padding:10px 12px;margin-bottom:10px;">
-            <strong>How to use:</strong>
-            <ol style="margin:6px 0 0 0;padding-left:18px;">
-              <li>Paste keys below for whichever providers you want</li>
-              <li>On the Evaluate form → select Provider → model list updates automatically</li>
-              <li>Your provider/model selection is remembered across sessions</li>
-            </ol>
-          </div>
-          <div style="background:#fff3cd;color:#856404;border-radius:8px;padding:8px 12px;font-size:12px;">
-            💡 <strong>Hit Groq vision rate limit?</strong> Switch to <strong>Google Gemini</strong> — it's free with much higher limits and supports image uploads.
-          </div>
-        </div>
-      </details>
-
-      <label for="apiKey">Groq API Key <span style="font-size:11px;color:var(--text-muted);">(free · qwen/gpt-oss/llama)</span></label>
-      <div class="key-row">
-        <input type="password" id="apiKey" placeholder="gsk_..." autocomplete="off" />
-        <button id="saveKey" type="button">Save</button>
-      </div>
-      <div class="hint" style="margin-bottom:12px;">
-        <a href="https://console.groq.com/keys" target="_blank">console.groq.com/keys</a> — no card needed.
-      </div>
-
-      <label for="geminiKey">Google Gemini API Key <span style="font-size:11px;color:var(--text-muted);">(free · vision · generous limits)</span></label>
-      <div class="key-row">
-        <input type="password" id="geminiKey" placeholder="AIza..." autocomplete="off" />
-        <button id="saveGeminiKey" type="button">Save</button>
-      </div>
-      <div class="hint" style="margin-bottom:12px;">
-        <a href="https://aistudio.google.com/apikey" target="_blank">aistudio.google.com/apikey</a> — free, 15 RPM / 1M TPM.
-      </div>
-
-      <label for="openrouterKey">OpenRouter API Key <span style="font-size:11px;color:var(--text-muted);">(free models available)</span></label>
-      <div class="key-row">
-        <input type="password" id="openrouterKey" placeholder="sk-or-..." autocomplete="off" />
-        <button id="saveOpenrouterKey" type="button">Save</button>
-      </div>
-      <div class="hint">
-        <a href="https://openrouter.ai/keys" target="_blank">openrouter.ai/keys</a> — 100+ models, many free.
-      </div>
-    </div>
-
-    <div class="card">
-      <label>⏰ Evening Reminder (in this tab)</label>
-      <div class="key-row">
-        <input type="time" id="reminderTime" value="20:00" />
-        <button id="setReminder" type="button">Set</button>
-      </div>
-      <div class="hint" id="reminderStatus">Browser notification fires while this tab stays open. Permission required.</div>
-    </div>
-
-    <div class="card">
-      <label>☁️ GitHub Gist Backup</label>
-      <div class="key-row">
-        <input type="password" id="githubToken" placeholder="ghp_... (needs gist scope)" autocomplete="off" />
-        <button id="saveGithubToken" type="button">Save Token</button>
-      </div>
-      <div class="hint">
-        <a href="https://github.com/settings/tokens/new?scopes=gist,public_repo" target="_blank">Create a token</a> with <strong>gist</strong> + <strong>public_repo</strong> scopes. Stored locally only. Backs up history to Gist + saves uploaded answer images to your upsc-evaluator repo.
-      </div>
-      <div class="btn-row" style="margin-top:10px; justify-content:flex-start;">
-        <button id="backupGistBtn" type="button" class="btn-ghost">☁️ Backup to Gist</button>
-        <button id="restoreGistBtn" type="button" class="btn-ghost">📥 Restore from Gist</button>
-      </div>
-      <div id="gistStatus" class="hint" style="margin-top:8px;"></div>
-    </div>
-
-    <div class="card">
-      <label>About</label>
-      <p class="hint" style="font-size: 13px; line-height: 1.6;">
-        Single-file local app. All data (API key, history, settings) stored in browser localStorage only.
-        No backend, no analytics. PYQ data fetched from your <a href="https://github.com/sauravanandb2w/upsc-mains-pyq" target="_blank">upsc-mains-pyq</a> repo.
-        Source: <a href="https://github.com/sauravanandb2w/upsc-evaluator" target="_blank">upsc-evaluator</a>.
-      </p>
-    </div>
-  </section>
+  <!-- PRELIMS CONTENT WRAPPER -->
+  <div id="prelims-content">
 
   <!-- ===== PRELIMS SECTION ===== -->
   <section class="view" id="view-prelims">
@@ -1330,15 +1240,26 @@
 
     <!-- ANALYTICS -->
     <div class="prelims-pane" id="pane-analytics">
-      <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;align-items:center;justify-content:space-between;">
+      <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center;justify-content:space-between;">
         <div style="display:flex;gap:6px;">
           <button class="p-tab-inner active" id="pa-gs-btn">GS</button>
           <button class="p-tab-inner" id="pa-csat-btn">CSAT</button>
         </div>
-        <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;">
-          <input type="checkbox" id="pa-official-only" style="width:14px;height:14px;" />
-          🏛️ UPSC official only
-        </label>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer;">
+            <input type="checkbox" id="pa-official-only" style="width:14px;height:14px;" />
+            🏛️ Official only
+          </label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:12px;">
+            📊
+            <select id="pa-last-n" class="p-select" style="font-size:11px;">
+              <option value="0">All tests</option>
+              <option value="3">Last 3</option>
+              <option value="5">Last 5</option>
+              <option value="10">Last 10</option>
+            </select>
+          </label>
+        </div>
       </div>
       <div id="p-analytics-content">
         <div style="color:var(--text-muted);font-size:13px;padding:20px 0;">Add at least one completed test (with answer key) to see analytics.</div>
@@ -1379,8 +1300,109 @@
     </div>
   </section>
 
+  </div><!-- end #prelims-content -->
+
+  <!-- ============ SETTINGS VIEW (global) ============ -->
+  <section class="view" id="view-settings">
+    <div class="card">
+      <h3 style="font-size:14px;font-weight:700;margin-bottom:12px;">🔑 API Keys</h3>
+      <details style="margin-bottom:18px;" open>
+        <summary style="cursor:pointer;font-weight:600;font-size:14px;color:var(--accent);user-select:none;">📋 Provider Setup Guide</summary>
+        <div style="margin-top:12px;font-size:13px;line-height:1.6;">
+          <p style="margin:0 0 10px;color:var(--text-muted);">Paste keys for any provider(s) you want to use. You can have all three active simultaneously.</p>
+          <table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:12px;">
+            <thead><tr style="background:var(--bg-hover);">
+              <th style="padding:6px 8px;text-align:left;border-bottom:1px solid var(--border);">Provider</th>
+              <th style="padding:6px 8px;text-align:left;border-bottom:1px solid var(--border);">Free Tier</th>
+              <th style="padding:6px 8px;text-align:left;border-bottom:1px solid var(--border);">Vision?</th>
+              <th style="padding:6px 8px;text-align:left;border-bottom:1px solid var(--border);">Get Key</th>
+            </tr></thead>
+            <tbody>
+              <tr>
+                <td style="padding:6px 8px;border-bottom:1px solid var(--border);font-weight:600;">Groq</td>
+                <td style="padding:6px 8px;border-bottom:1px solid var(--border);">~30 req/min (text)<br>2–5 req/min (vision)</td>
+                <td style="padding:6px 8px;border-bottom:1px solid var(--border);">✅ Qwen 3.6 27B</td>
+                <td style="padding:6px 8px;border-bottom:1px solid var(--border);"><a href="https://console.groq.com/keys" target="_blank">console.groq.com/keys</a></td>
+              </tr>
+              <tr>
+                <td style="padding:6px 8px;border-bottom:1px solid var(--border);font-weight:600;">Google Gemini</td>
+                <td style="padding:6px 8px;border-bottom:1px solid var(--border);">15 RPM / 1M TPM</td>
+                <td style="padding:6px 8px;border-bottom:1px solid var(--border);">✅ Gemini 3.5 Flash</td>
+                <td style="padding:6px 8px;border-bottom:1px solid var(--border);"><a href="https://aistudio.google.com/apikey" target="_blank">aistudio.google.com/apikey</a></td>
+              </tr>
+              <tr>
+                <td style="padding:6px 8px;font-weight:600;">OpenRouter</td>
+                <td style="padding:6px 8px;">100+ models, many free</td>
+                <td style="padding:6px 8px;">✅ Several models</td>
+                <td style="padding:6px 8px;"><a href="https://openrouter.ai/keys" target="_blank">openrouter.ai/keys</a></td>
+              </tr>
+            </tbody>
+          </table>
+          <div style="background:var(--bg-hover);border-radius:8px;padding:10px 12px;margin-bottom:10px;">
+            <strong>How to use:</strong>
+            <ol style="margin:6px 0 0 0;padding-left:18px;">
+              <li>Paste keys below for whichever providers you want</li>
+              <li>On the Evaluate form → select Provider → model list updates automatically</li>
+              <li>Your provider/model selection is remembered across sessions</li>
+            </ol>
+          </div>
+          <div style="background:#fff3cd;color:#856404;border-radius:8px;padding:8px 12px;font-size:12px;">
+            💡 <strong>Hit Groq vision rate limit?</strong> Switch to <strong>Google Gemini</strong> — free with higher limits.
+          </div>
+        </div>
+      </details>
+      <label for="apiKey">Groq API Key <span style="font-size:11px;color:var(--text-muted);">(free · qwen/gpt-oss/llama)</span></label>
+      <div class="key-row">
+        <input type="password" id="apiKey" placeholder="gsk_..." autocomplete="off" />
+        <button id="saveKey" type="button">Save</button>
+      </div>
+      <div class="hint" style="margin-bottom:12px;"><a href="https://console.groq.com/keys" target="_blank">console.groq.com/keys</a> — no card needed.</div>
+      <label for="geminiKey">Google Gemini API Key <span style="font-size:11px;color:var(--text-muted);">(free · vision · generous limits)</span></label>
+      <div class="key-row">
+        <input type="password" id="geminiKey" placeholder="AIza..." autocomplete="off" />
+        <button id="saveGeminiKey" type="button">Save</button>
+      </div>
+      <div class="hint" style="margin-bottom:12px;"><a href="https://aistudio.google.com/apikey" target="_blank">aistudio.google.com/apikey</a> — free, 15 RPM / 1M TPM.</div>
+      <label for="openrouterKey">OpenRouter API Key <span style="font-size:11px;color:var(--text-muted);">(free models available)</span></label>
+      <div class="key-row">
+        <input type="password" id="openrouterKey" placeholder="sk-or-..." autocomplete="off" />
+        <button id="saveOpenrouterKey" type="button">Save</button>
+      </div>
+      <div class="hint"><a href="https://openrouter.ai/keys" target="_blank">openrouter.ai/keys</a> — 100+ models, many free.</div>
+    </div>
+    <div class="card">
+      <label>⏰ Evening Reminder (in this tab)</label>
+      <div class="key-row">
+        <input type="time" id="reminderTime" value="20:00" />
+        <button id="setReminder" type="button">Set</button>
+      </div>
+      <div class="hint" id="reminderStatus">Browser notification fires while this tab stays open. Permission required.</div>
+    </div>
+    <div class="card">
+      <label>☁️ GitHub Gist Backup</label>
+      <div class="key-row">
+        <input type="password" id="githubToken" placeholder="ghp_... (needs gist scope)" autocomplete="off" />
+        <button id="saveGithubToken" type="button">Save Token</button>
+      </div>
+      <div class="hint"><a href="https://github.com/settings/tokens/new?scopes=gist,public_repo" target="_blank">Create a token</a> with <strong>gist</strong> + <strong>public_repo</strong> scopes. Stored locally only.</div>
+      <div class="btn-row" style="margin-top:10px;justify-content:flex-start;">
+        <button id="backupGistBtn" type="button" class="btn-ghost">☁️ Backup to Gist</button>
+        <button id="restoreGistBtn" type="button" class="btn-ghost">📥 Restore from Gist</button>
+      </div>
+      <div id="gistStatus" class="hint" style="margin-top:8px;"></div>
+    </div>
+    <div class="card">
+      <label>About</label>
+      <p class="hint" style="font-size:13px;line-height:1.6;">
+        Single-file local app. All data stored in browser localStorage only. No backend.
+        PYQ data from <a href="https://github.com/sauravanandb2w/upsc-mains-pyq" target="_blank">upsc-mains-pyq</a>.
+        Source: <a href="https://github.com/sauravanandb2w/upsc-evaluator" target="_blank">upsc-evaluator</a>.
+      </p>
+    </div>
+  </section>
+
   <div class="footer">
-    📝 UPSC Mains AI Evaluator · Groq free tier · 100% client-side
+    📝 UPSC Evaluator · Prelims + Mains · 100% client-side
   </div>
 </div>
 
@@ -1648,17 +1670,69 @@ $('themeToggle').addEventListener('click', () => {
 });
 
 // =================== NAV ===================
-document.querySelectorAll('.nav-btn').forEach(btn => {
-  btn.addEventListener('click', () => switchView(btn.dataset.view));
+// --- Top-level tab switching ---
+let currentTop = 'prelims'; // default: show prelims on load
+
+function switchTop(tab) {
+  currentTop = tab;
+  document.querySelectorAll('.top-tab-btn').forEach(b => b.classList.toggle('active', b.dataset.top === tab));
+  const isMainsTab = tab === 'mains';
+  document.getElementById('mains-content').style.display = isMainsTab ? '' : 'none';
+  document.getElementById('mains-sub-nav').style.display = isMainsTab ? '' : 'none';
+  document.getElementById('prelims-content').style.display = tab === 'prelims' ? '' : 'none';
+  // hide settings when switching tabs
+  document.getElementById('view-settings').classList.remove('active');
+  if (isMainsTab) {
+    // show the active mains view
+    document.querySelectorAll('#mains-content .view').forEach(v => {
+      v.classList.toggle('active', v.id === 'view-' + currentMainsView);
+    });
+  }
+}
+
+let currentMainsView = 'evaluate';
+
+document.querySelectorAll('.top-tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => switchTop(btn.dataset.top));
 });
+
+// Settings gear button (global)
+document.getElementById('settings-global-btn').addEventListener('click', () => {
+  const settingsEl = document.getElementById('view-settings');
+  const isOpen = settingsEl.classList.contains('active');
+  // hide all views
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('mains-content').style.display = 'none';
+  document.getElementById('mains-sub-nav').style.display = 'none';
+  document.getElementById('prelims-content').style.display = 'none';
+  document.querySelectorAll('.top-tab-btn').forEach(b => b.classList.remove('active'));
+  if (isOpen) {
+    // toggle off → go back to where we were
+    switchTop(currentTop);
+  } else {
+    settingsEl.classList.add('active');
+  }
+});
+
+// Mains sub-nav
+document.querySelectorAll('.mains-sub-nav .nav-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    currentMainsView = btn.dataset.view;
+    switchView(btn.dataset.view);
+  });
+});
+
 function switchView(name) {
-  document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.view === name));
-  document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === 'view-' + name));
+  document.querySelectorAll('.mains-sub-nav .nav-btn').forEach(b => b.classList.toggle('active', b.dataset.view === name));
+  document.querySelectorAll('#mains-content .view').forEach(v => v.classList.toggle('active', v.id === 'view-' + name));
   if (name === 'history') renderHistory();
   if (name === 'daily') renderDaily();
   if (name === 'pyq' && !pyqLoaded) loadPyqs();
   if (name === 'practice') renderPracticeLog();
 }
+
+// Init: show prelims by default
+switchTop('prelims');
 
 // =================== API KEYS ===================
 const savedKey = localStorage.getItem(KEY_KEY);
@@ -4256,10 +4330,12 @@ function renderAnalytics(filterType) {
   const el = document.getElementById('p-analytics-content');
   if (!el) return;
   const officialOnly = document.getElementById('pa-official-only')?.checked || false;
+  const lastN = parseInt(document.getElementById('pa-last-n')?.value || '0');
   const deleted = pGetDeleted();
-  const tests = pGetTests()
+  let tests = pGetTests()
     .filter(t => !deleted.includes(t.id) && t.type === filterType && t.scored && (!officialOnly || t.official))
     .sort((a,b) => new Date(a.date) - new Date(b.date));
+  if (lastN > 0) tests = tests.slice(-lastN);
   if (!tests.length) {
     const hint = officialOnly ? 'No official UPSC tests scored yet. Uncheck the filter to see mock tests.' : 'Add at least one scored test to see analytics.';
     el.innerHTML = `<div style="color:var(--text-muted);font-size:13px;padding:20px 0;">${hint}</div>`;
@@ -4652,24 +4728,63 @@ function renderSetHeatmap(tests, type) {
 }
 
 // =====================================================================
-// RESOURCES RENDERING
+// RESOURCES RENDERING (with CRUD)
 // =====================================================================
 function renderTricks() {
   const el = document.getElementById('res-tricks');
   if (!el) return;
   const tricks = pGetTricks();
-  el.innerHTML = tricks.map(t => `
-    <div class="trick-card">
-      <div class="trick-id">${t.id}</div>
+  el.innerHTML = `
+    <div style="display:flex;justify-content:flex-end;margin-bottom:8px;">
+      <button class="p-btn p-btn-primary" id="res-add-trick" style="font-size:11px;padding:5px 12px;">+ Add Trick</button>
+    </div>
+    ${tricks.map((t,i) => `
+    <div class="trick-card" style="position:relative;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+        <div class="trick-id">${t.id}</div>
+        <div style="display:flex;gap:4px;">
+          <button class="p-btn p-btn-ghost" data-edit-trick="${i}" style="font-size:10px;padding:2px 7px;">✏️</button>
+          <button class="p-btn p-btn-ghost" data-del-trick="${i}" style="font-size:10px;padding:2px 7px;color:var(--danger);">✕</button>
+        </div>
+      </div>
       <div class="trick-title">${t.title}</div>
       <div class="trick-content">${t.content}</div>
-    </div>`).join('');
+    </div>`).join('')}
+  `;
+  el.querySelector('#res-add-trick').addEventListener('click', () => showTrickModal(null));
+  el.querySelectorAll('[data-edit-trick]').forEach(btn =>
+    btn.addEventListener('click', () => showTrickModal(parseInt(btn.dataset.editTrick))));
+  el.querySelectorAll('[data-del-trick]').forEach(btn =>
+    btn.addEventListener('click', () => {
+      const tricks2 = pGetTricks();
+      const t = tricks2[parseInt(btn.dataset.delTrick)];
+      if (confirm(`Delete trick "${t.id}: ${t.title.slice(0,40)}"?`)) {
+        tricks2.splice(parseInt(btn.dataset.delTrick), 1);
+        pSaveTricks(tricks2);
+        renderTricks();
+      }
+    }));
+}
+
+function showTrickModal(idx) {
+  const tricks = pGetTricks();
+  const t = idx !== null ? tricks[idx] : { id: `T${tricks.length+1}`, title:'', content:'' };
+  const id = prompt('Trick ID (e.g. T16):', t.id);
+  if (!id) return;
+  const title = prompt('Title:', t.title);
+  if (title === null) return;
+  const content = prompt('Content (tip/explanation):', t.content);
+  if (content === null) return;
+  if (idx !== null) { tricks[idx] = { id, title, content }; }
+  else { tricks.push({ id, title, content }); }
+  pSaveTricks(tricks);
+  renderTricks();
 }
 
 function renderTagRef() {
   const el = document.getElementById('res-tags');
   if (!el) return;
-  el.innerHTML = `<div style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">Use these tags on each question during OMR entry to track your confidence and strategy.</div>` +
+  el.innerHTML = `<div style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">Tags used during OMR entry to track confidence and strategy.</div>` +
     TAGS.map(t => `<div class="trick-card" style="display:flex;gap:10px;align-items:flex-start;">
       <span class="tag-chip tag-${t.id}" style="min-width:32px;text-align:center;font-size:13px;">${t.label}</span>
       <div>
@@ -4683,12 +4798,56 @@ function renderBlogs() {
   const el = document.getElementById('res-blogs');
   if (!el) return;
   const blogs = pGetBlogs();
-  el.innerHTML = blogs.map(b => `
-    <div class="blog-card">
-      <div class="blog-meta">${b.source} · ${b.date}</div>
+  el.innerHTML = `
+    <div style="display:flex;justify-content:flex-end;margin-bottom:8px;">
+      <button class="p-btn p-btn-primary" id="res-add-blog" style="font-size:11px;padding:5px 12px;">+ Add Blog</button>
+    </div>
+    ${blogs.map((b,i) => `
+    <div class="blog-card" style="position:relative;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:8px 12px 0;">
+        <div class="blog-meta" style="padding:0;">${b.source} · ${b.date}</div>
+        <div style="display:flex;gap:4px;">
+          <button class="p-btn p-btn-ghost" data-edit-blog="${i}" style="font-size:10px;padding:2px 7px;">✏️</button>
+          <button class="p-btn p-btn-ghost" data-del-blog="${i}" style="font-size:10px;padding:2px 7px;color:var(--danger);">✕</button>
+        </div>
+      </div>
       <div class="blog-title">${b.title}</div>
-      <div class="blog-content">${b.content}</div>
-    </div>`).join('');
+      <details style="padding:0 12px 10px;">
+        <summary style="font-size:11px;cursor:pointer;color:var(--text-muted);">Read more</summary>
+        <div class="blog-content" style="padding:6px 0 0;">${b.content}</div>
+      </details>
+    </div>`).join('')}
+  `;
+  el.querySelector('#res-add-blog').addEventListener('click', () => showBlogModal(null));
+  el.querySelectorAll('[data-edit-blog]').forEach(btn =>
+    btn.addEventListener('click', () => showBlogModal(parseInt(btn.dataset.editBlog))));
+  el.querySelectorAll('[data-del-blog]').forEach(btn =>
+    btn.addEventListener('click', () => {
+      const blogs2 = pGetBlogs();
+      if (confirm(`Delete blog "${blogs2[parseInt(btn.dataset.delBlog)].title.slice(0,40)}"?`)) {
+        blogs2.splice(parseInt(btn.dataset.delBlog), 1);
+        pSaveBlogs(blogs2);
+        renderBlogs();
+      }
+    }));
+}
+
+function showBlogModal(idx) {
+  const blogs = pGetBlogs();
+  const b = idx !== null ? blogs[idx] : { id:`b${Date.now()}`, title:'', source:'', date:new Date().toISOString().slice(0,7), content:'' };
+  const title = prompt('Blog title:', b.title);
+  if (!title) return;
+  const source = prompt('Source (e.g. r/UPSC):', b.source);
+  if (source === null) return;
+  const date = prompt('Date (YYYY-MM):', b.date);
+  if (date === null) return;
+  const content = prompt('Content:', b.content);
+  if (content === null) return;
+  const updated = { ...b, title, source, date, content };
+  if (idx !== null) { blogs[idx] = updated; }
+  else { blogs.push(updated); }
+  pSaveBlogs(blogs);
+  renderBlogs();
 }
 
 // =====================================================================
@@ -4757,9 +4916,8 @@ function prelimsInit() {
     document.getElementById('pa-gs-btn').classList.remove('active');
     renderAnalytics('CSAT');
   });
-  document.getElementById('pa-official-only').addEventListener('change', () => {
-    renderAnalytics(currentAnalyticsType);
-  });
+  document.getElementById('pa-official-only').addEventListener('change', () => renderAnalytics(currentAnalyticsType));
+  document.getElementById('pa-last-n').addEventListener('change', () => renderAnalytics(currentAnalyticsType));
 
   // OMR Start
   document.getElementById('p-start-omr').addEventListener('click', startOMR);
