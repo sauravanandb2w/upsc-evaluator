@@ -1349,9 +1349,6 @@
             📊
             <select id="pa-last-n" class="p-select" style="font-size:11px;">
               <option value="0">All tests</option>
-              <option value="3">Last 3</option>
-              <option value="5">Last 5</option>
-              <option value="10">Last 10</option>
             </select>
           </label>
           <label style="display:flex;align-items:center;gap:4px;font-size:12px;">
@@ -5253,12 +5250,27 @@ function renderAnalytics(filterType) {
   if (!el) return;
   populateAnalyticsTestSelector(filterType);
   const officialOnly = document.getElementById('pa-official-only')?.checked || false;
-  const lastN = parseInt(document.getElementById('pa-last-n')?.value || '0');
-  const singleTestId = document.getElementById('pa-single-test')?.value || '';
   const deleted = pGetDeleted();
   let tests = pGetTests()
     .filter(t => !deleted.includes(t.id) && t.type === filterType && t.scored && (!officialOnly || t.official))
     .sort((a,b) => new Date(a.date) - new Date(b.date));
+
+  // Rebuild Last-N dropdown in AP of 3 up to total available tests
+  const lastNSel = document.getElementById('pa-last-n');
+  const prevLastN = parseInt(lastNSel?.value || '0');
+  if (lastNSel) {
+    const total = tests.length;
+    lastNSel.innerHTML = '<option value="0">All tests</option>';
+    for (let n = 3; n <= total; n += 3) {
+      const opt = document.createElement('option');
+      opt.value = n; opt.textContent = `Last ${n}`;
+      if (n === prevLastN) opt.selected = true;
+      lastNSel.appendChild(opt);
+    }
+    // Restore "All" selection if previous value no longer valid
+    if (prevLastN > total) lastNSel.value = '0';
+  }
+  const lastN = parseInt(lastNSel?.value || '0');
 
   // Per-test drill-down mode
   if (singleTestId) {
