@@ -656,6 +656,16 @@
     transition:background .12s;
   }
   .qfmt-btn:hover { background:var(--primary-soft); border-color:var(--primary); }
+  .ph-cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:3px; }
+  .ph-cal-day { min-height:44px; border-radius:6px; display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:11px; cursor:default; position:relative; border:1px solid transparent; transition:border-color .15s; }
+  .ph-cal-day.has-test { cursor:pointer; }
+  .ph-cal-day.has-test:hover { border-color:var(--primary); }
+  .ph-cal-day-num { font-size:11px; color:var(--text-muted); line-height:1; }
+  .ph-cal-day.other-month { opacity:.3; }
+  .ph-cal-day.today .ph-cal-day-num { font-weight:800; color:var(--primary); }
+  .ph-cal-badge { font-size:9px; font-weight:700; color:#fff; border-radius:3px; padding:1px 4px; margin-top:2px; line-height:1.3; text-align:center; }
+  .ph-cal-score { font-size:9px; font-weight:700; color:#fff; line-height:1; }
+  .ph-cal-hdr { font-size:10px; font-weight:700; color:var(--text-muted); text-align:center; padding:2px 0; }
   .q-bm-icon { font-size:12px; opacity:.35; transition:opacity .15s; cursor:pointer; }
   .q-bm-icon.on { opacity:1; }
   .q-imp-dots { display:flex; gap:2px; }
@@ -1300,7 +1310,25 @@
           <button class="p-tab-inner active" id="ph-gs-btn">GS Paper 1</button>
           <button class="p-tab-inner" id="ph-csat-btn">CSAT Paper 2</button>
         </div>
-        <span id="ph-count" style="font-size:12px;color:var(--text-muted);"></span>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <span id="ph-count" style="font-size:12px;color:var(--text-muted);"></span>
+          <button class="p-btn p-btn-ghost" id="ph-toggle-cal" style="font-size:11px;padding:3px 10px;">📅 Calendar</button>
+        </div>
+      </div>
+      <!-- Calendar view -->
+      <div id="p-history-cal" style="display:none;margin-bottom:14px;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+          <button class="p-btn p-btn-ghost" id="ph-cal-prev" style="font-size:13px;padding:2px 10px;">‹</button>
+          <span id="ph-cal-label" style="font-weight:700;font-size:14px;flex:1;text-align:center;"></span>
+          <button class="p-btn p-btn-ghost" id="ph-cal-next" style="font-size:13px;padding:2px 10px;">›</button>
+        </div>
+        <div id="ph-cal-grid"></div>
+        <div style="display:flex;gap:12px;margin-top:6px;font-size:11px;color:var(--text-muted);flex-wrap:wrap;">
+          <span><span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:#4caf50;vertical-align:middle;margin-right:3px;"></span>Score ≥ 100</span>
+          <span><span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:#ff9800;vertical-align:middle;margin-right:3px;"></span>Score 80–99</span>
+          <span><span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:#f44336;vertical-align:middle;margin-right:3px;"></span>Score &lt; 80</span>
+          <span><span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:var(--section-bg);border:1px solid var(--border);vertical-align:middle;margin-right:3px;"></span>No test</span>
+        </div>
       </div>
       <div id="p-history-list"></div>
     </div>
@@ -4901,6 +4929,131 @@ function updateOMRProgress(container, n, data) {
 // =====================================================================
 // HISTORY RENDERING
 // =====================================================================
+// =====================================================================
+// HISTORY CALENDAR
+// =====================================================================
+(function setupHistoryCalendar() {
+  let calYear  = new Date().getFullYear();
+  let calMonth = new Date().getMonth(); // 0-indexed
+  let calType  = 'GS';
+  let calVisible = false;
+
+  const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+  function scoreColor(score) {
+    if (score === null) return null;
+    if (score >= 100) return '#4caf50';
+    if (score >= 80)  return '#ff9800';
+    return '#f44336';
+  }
+
+  function renderCal() {
+    const label = document.getElementById('ph-cal-label');
+    const grid  = document.getElementById('ph-cal-grid');
+    if (!label || !grid) return;
+    label.textContent = MONTHS[calMonth] + ' ' + calYear;
+
+    const deleted = pGetDeleted();
+    const tests = pGetTests().filter(t => !deleted.includes(t.id) && t.type === calType);
+
+    // Build a map: 'YYYY-MM-DD' → [test, ...]
+    const dayMap = {};
+    tests.forEach(t => {
+      const d = t.date; // 'YYYY-MM-DD'
+      if (!dayMap[d]) dayMap[d] = [];
+      dayMap[d].push(t);
+    });
+
+    const today = new Date().toISOString().slice(0,10);
+    const firstDay = new Date(calYear, calMonth, 1).getDay();
+    const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+    const daysInPrev  = new Date(calYear, calMonth, 0).getDate();
+
+    let html = '<div class="ph-cal-grid">';
+    // Day headers
+    DAYS.forEach(d => { html += `<div class="ph-cal-hdr">${d}</div>`; });
+
+    // Leading blanks from previous month
+    for (let i = 0; i < firstDay; i++) {
+      const day = daysInPrev - firstDay + 1 + i;
+      html += `<div class="ph-cal-day other-month"><span class="ph-cal-day-num">${day}</span></div>`;
+    }
+
+    // Current month days
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dateStr = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      const dayTests = dayMap[dateStr] || [];
+      const isToday = dateStr === today;
+      const hasTest = dayTests.length > 0;
+
+      if (hasTest) {
+        // Best score of the day (or null if unscored)
+        const scores = dayTests.map(t => t.scored ? t.scored.score : null).filter(s => s !== null);
+        const bestScore = scores.length ? Math.max(...scores) : null;
+        const bg = scoreColor(bestScore) || '#607d8b';
+        const scoreLabel = bestScore !== null ? bestScore : '—';
+        const countBadge = dayTests.length > 1 ? `<span style="font-size:8px;color:#fff;opacity:.85;">${dayTests.length} tests</span>` : '';
+        html += `<div class="ph-cal-day has-test${isToday?' today':''}" style="background:${bg};" data-cal-date="${dateStr}" title="${dateStr}: ${dayTests.map(t=>t.name+' ('+( t.scored ? t.scored.score : 'unscored')+ ')').join(', ')}">
+          <span class="ph-cal-day-num" style="color:#fff;font-weight:${isToday?800:400};">${d}</span>
+          <span class="ph-cal-score">${scoreLabel}</span>
+          ${countBadge}
+        </div>`;
+      } else {
+        html += `<div class="ph-cal-day${isToday?' today':''}" style="background:var(--section-bg);">
+          <span class="ph-cal-day-num">${d}</span>
+        </div>`;
+      }
+    }
+
+    // Trailing days
+    const totalCells = firstDay + daysInMonth;
+    const trailing = totalCells % 7 === 0 ? 0 : 7 - (totalCells % 7);
+    for (let i = 1; i <= trailing; i++) {
+      html += `<div class="ph-cal-day other-month"><span class="ph-cal-day-num">${i}</span></div>`;
+    }
+    html += '</div>';
+    grid.innerHTML = html;
+
+    // Click a day → scroll to that day's tests in the list
+    grid.querySelectorAll('[data-cal-date]').forEach(cell => {
+      cell.addEventListener('click', () => {
+        const date = cell.dataset.calDate;
+        const card = document.querySelector(`[data-test-date="${date}"]`);
+        if (card) card.scrollIntoView({ behavior:'smooth', block:'center' });
+      });
+    });
+  }
+
+  // Expose so renderHistory can call it
+  window._renderHistoryCal = function(type) {
+    calType = type;
+    renderCal();
+  };
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const togBtn  = document.getElementById('ph-toggle-cal');
+    const calWrap = document.getElementById('p-history-cal');
+    if (!togBtn) return;
+
+    togBtn.addEventListener('click', () => {
+      calVisible = !calVisible;
+      calWrap.style.display = calVisible ? '' : 'none';
+      togBtn.textContent = calVisible ? '📋 List only' : '📅 Calendar';
+      if (calVisible) renderCal();
+    });
+
+    document.getElementById('ph-cal-prev').addEventListener('click', () => {
+      calMonth--; if (calMonth < 0) { calMonth = 11; calYear--; }
+      renderCal();
+    });
+    document.getElementById('ph-cal-next').addEventListener('click', () => {
+      calMonth++; if (calMonth > 11) { calMonth = 0; calYear++; }
+      renderCal();
+    });
+  });
+})();
+
 function renderHistory(filterType) {
   const list = document.getElementById('p-history-list');
   if (!list) return;
@@ -4912,10 +5065,13 @@ function renderHistory(filterType) {
     return;
   }
   list.innerHTML = '';
+  if (window._renderHistoryCal) window._renderHistoryCal(filterType);
+
   const sorted = [...tests].sort((a,b) => new Date(b.date) - new Date(a.date));
   sorted.forEach(t => {
     const card = document.createElement('div');
     card.className = 'prelims-test-card';
+    card.dataset.testDate = t.date;
     const scored = t.scored;
     const scoreHTML = scored
       ? `<div class="ptc-score ${scored.score >= 100 ? 'good' : scored.score >= 80 ? 'ok' : 'bad'}">${scored.score}/${scored.total}</div>
