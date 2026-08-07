@@ -3954,17 +3954,27 @@ const SCORE_UNATTEMPTED = 0;
 const CSAT_QUALIFYING_PCT = 33;
 
 // --- Tags ---
-const TAGS = [
-  { id:'K',  label:'K',  title:'Known',         desc:'Directly knew the answer from memory.',       color:'#4caf50' },
-  { id:'E1', label:'E1', title:'Eliminate 1',    desc:'Eliminated 1 option and picked correctly.',   color:'#8bc34a' },
-  { id:'E2', label:'E2', title:'Eliminate 2',    desc:'Eliminated 2 options, 50-50 guess.',          color:'#cddc39' },
-  { id:'T',  label:'T',  title:'Trick Applied',  desc:'Used a specific trick (reference T1-T15).',   color:'#ff9800' },
-  { id:'G1', label:'G1', title:'Familiar Guess', desc:'Unfamiliar but made an educated guess.',      color:'#9c27b0' },
-  { id:'G0', label:'G0', title:'Blind Guess',    desc:'Completely random guess.',                    color:'#f44336' },
-  { id:'C',  label:'C',  title:'Confused',       desc:'Was confused between options, guessed.',      color:'#607d8b' },
-  { id:'S',  label:'S',  title:'Skipped',        desc:'Intentionally skipped/unattempted.',          color:'#9e9e9e' },
-  { id:'NV', label:'NV', title:'Not Visited',    desc:'Did not reach this question in time.',        color:'#bdbdbd' },
+const TAGS_DEFAULT = [
+  { id:'K',  label:'K',  title:'Known',          desc:'Directly knew the answer from memory.',            color:'#4caf50' },
+  { id:'E1', label:'E1', title:'Eliminate 1',     desc:'Eliminated 1 option and picked correctly.',        color:'#8bc34a' },
+  { id:'E2', label:'E2', title:'Eliminate 2',     desc:'Eliminated 2 options, 50-50 guess.',               color:'#cddc39' },
+  { id:'T',  label:'T',  title:'Trick Applied',   desc:'Used a specific trick (reference T1-T15).',        color:'#ff9800' },
+  { id:'G1', label:'G1', title:'Familiar Guess',  desc:'Unfamiliar but made an educated guess.',           color:'#9c27b0' },
+  { id:'G0', label:'G0', title:'Blind Guess',     desc:'Completely random guess.',                         color:'#f44336' },
+  { id:'C',  label:'C',  title:'Concept',         desc:'Had the concept — used it to arrive at answer.',   color:'#607d8b' },
+  { id:'S',  label:'S',  title:'Skipped',         desc:'Intentionally skipped/unattempted.',               color:'#9e9e9e' },
+  { id:'NV', label:'NV', title:'Not Visited',     desc:'Did not reach this question in time.',             color:'#bdbdbd' },
 ];
+const P_TAGS_CUSTOM_KEY = 'upsc_prelims_tags_custom';
+// Load saved customizations (title/desc overrides per id)
+function loadTagCustom() { try { return JSON.parse(localStorage.getItem(P_TAGS_CUSTOM_KEY)) || {}; } catch { return {}; } }
+function saveTagCustom(obj) { localStorage.setItem(P_TAGS_CUSTOM_KEY, JSON.stringify(obj)); }
+// TAGS is live — merges defaults with any saved customizations
+const TAGS = TAGS_DEFAULT.map(t => ({ ...t }));
+(function applyTagCustom() {
+  const custom = loadTagCustom();
+  TAGS.forEach(t => { if (custom[t.id]) { if (custom[t.id].title) t.title = custom[t.id].title; if (custom[t.id].desc) t.desc = custom[t.id].desc; } });
+})();
 
 // --- Tag helpers (multi-tag: {exam:[], analysis:[], trickRef:''} — backward compat with old string) ---
 // Each question's tag entry: tags[i] = { exam: ['K','T'], analysis: ['G0'], trickRef: 'T3' }
@@ -5277,14 +5287,91 @@ function showTrickModal(idx) {
 function renderTagRef() {
   const el = document.getElementById('res-tags');
   if (!el) return;
-  el.innerHTML = `<div style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">Tags used during OMR entry to track confidence and strategy.</div>` +
-    TAGS.map(t => `<div class="trick-card" style="display:flex;gap:10px;align-items:flex-start;">
-      <span class="tag-chip tag-${t.id}" style="min-width:32px;text-align:center;font-size:13px;">${t.label}</span>
-      <div>
-        <div style="font-weight:600;font-size:13px;">${t.title}</div>
-        <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">${t.desc}</div>
-      </div>
-    </div>`).join('');
+  el.innerHTML = '';
+
+  const hdr = document.createElement('div');
+  hdr.style.cssText = 'font-size:12px;color:var(--text-muted);margin-bottom:10px;';
+  hdr.textContent = 'Click any tag title or description to edit. Changes are saved instantly.';
+  el.appendChild(hdr);
+
+  TAGS.forEach(t => {
+    const card = document.createElement('div');
+    card.className = 'trick-card';
+    card.style.cssText = 'display:flex;gap:10px;align-items:flex-start;';
+
+    const chip = document.createElement('span');
+    chip.className = `tag-chip tag-${t.id}`;
+    chip.style.cssText = 'min-width:36px;text-align:center;font-size:13px;flex-shrink:0;margin-top:2px;';
+    chip.textContent = t.label;
+    card.appendChild(chip);
+
+    const body = document.createElement('div');
+    body.style.cssText = 'flex:1;';
+
+    // Editable title
+    const titleEl = document.createElement('div');
+    titleEl.contentEditable = 'true';
+    titleEl.spellcheck = false;
+    titleEl.style.cssText = 'font-weight:600;font-size:13px;outline:none;border-bottom:1px dashed transparent;cursor:text;padding:1px 3px;border-radius:3px;';
+    titleEl.textContent = t.title;
+    titleEl.title = 'Click to edit tag name';
+    titleEl.addEventListener('focus', () => titleEl.style.borderBottomColor = 'var(--primary)');
+    titleEl.addEventListener('blur', () => {
+      titleEl.style.borderBottomColor = 'transparent';
+      const val = titleEl.textContent.trim();
+      if (val && val !== t.title) {
+        t.title = val;
+        const custom = loadTagCustom();
+        if (!custom[t.id]) custom[t.id] = {};
+        custom[t.id].title = val;
+        saveTagCustom(custom);
+      }
+    });
+    titleEl.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); titleEl.blur(); } });
+    body.appendChild(titleEl);
+
+    // Editable desc
+    const descEl = document.createElement('div');
+    descEl.contentEditable = 'true';
+    descEl.spellcheck = false;
+    descEl.style.cssText = 'font-size:12px;color:var(--text-muted);margin-top:2px;outline:none;border-bottom:1px dashed transparent;cursor:text;padding:1px 3px;border-radius:3px;';
+    descEl.textContent = t.desc;
+    descEl.title = 'Click to edit description';
+    descEl.addEventListener('focus', () => descEl.style.borderBottomColor = 'var(--primary)');
+    descEl.addEventListener('blur', () => {
+      descEl.style.borderBottomColor = 'transparent';
+      const val = descEl.textContent.trim();
+      if (val && val !== t.desc) {
+        t.desc = val;
+        const custom = loadTagCustom();
+        if (!custom[t.id]) custom[t.id] = {};
+        custom[t.id].desc = val;
+        saveTagCustom(custom);
+      }
+    });
+    descEl.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); descEl.blur(); } });
+    body.appendChild(descEl);
+
+    // Reset button
+    const resetBtn = document.createElement('button');
+    resetBtn.className = 'p-btn p-btn-ghost';
+    resetBtn.style.cssText = 'font-size:9px;padding:1px 6px;margin-top:4px;opacity:.6;';
+    resetBtn.textContent = '↺ reset';
+    resetBtn.title = 'Reset to default';
+    resetBtn.addEventListener('click', () => {
+      const def = TAGS_DEFAULT.find(d => d.id === t.id);
+      t.title = def.title; t.desc = def.desc;
+      titleEl.textContent = def.title;
+      descEl.textContent = def.desc;
+      const custom = loadTagCustom();
+      delete custom[t.id];
+      saveTagCustom(custom);
+    });
+    body.appendChild(resetBtn);
+
+    card.appendChild(body);
+    el.appendChild(card);
+  });
 }
 
 function renderBlogs() {
