@@ -718,6 +718,70 @@
   #mains-content.active { display:block; }
   #prelims-content { display:none; }
   #prelims-content.active { display:block; }
+  #remember-content { display:none; }
+  #remember-content.active { display:block; }
+
+  /* ── How to Remember page ── */
+  .htr-page { max-width:1100px; margin:0 auto; padding:32px 24px 64px; font-family:inherit; }
+  .htr-hero { text-align:center; padding:48px 24px 36px; background:linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%); border-radius:20px; margin-bottom:40px; color:#fff; position:relative; overflow:hidden; }
+  .htr-hero::before { content:''; position:absolute; inset:0; background:radial-gradient(ellipse at 30% 20%,rgba(99,179,237,.15) 0%,transparent 60%),radial-gradient(ellipse at 70% 80%,rgba(159,122,234,.12) 0%,transparent 60%); pointer-events:none; }
+  .htr-hero h1 { font-size:2.4rem; font-weight:800; letter-spacing:-.5px; margin:0 0 12px; background:linear-gradient(135deg,#fff 0%,#90cdf4 60%,#9f7aea 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+  .htr-hero p { font-size:1.05rem; color:#a0aec0; max-width:560px; margin:0 auto; line-height:1.6; }
+  .htr-badge { display:inline-block; background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.2); border-radius:99px; padding:4px 14px; font-size:.78rem; letter-spacing:.5px; text-transform:uppercase; color:#e2e8f0; margin-bottom:20px; }
+
+  .htr-acro { display:flex; justify-content:center; gap:0; margin-bottom:48px; }
+  .htr-letter-block { display:flex; flex-direction:column; align-items:center; padding:18px 28px; border-radius:16px; margin:0 6px; min-width:90px; cursor:default; transition:transform .2s; }
+  .htr-letter-block:hover { transform:translateY(-4px); }
+  .htr-letter-block .big-letter { font-size:3.2rem; font-weight:900; line-height:1; }
+  .htr-letter-block .letter-word { font-size:.82rem; font-weight:600; letter-spacing:.3px; margin-top:4px; opacity:.85; text-transform:uppercase; }
+  .htr-lb-a { background:linear-gradient(135deg,#ff6b6b,#ee5a24); color:#fff; }
+  .htr-lb-r { background:linear-gradient(135deg,#f9ca24,#f0932b); color:#fff; }
+  .htr-lb-c { background:linear-gradient(135deg,#6ab04c,#badc58); color:#fff; }
+  .htr-lb-s { background:linear-gradient(135deg,#4834d4,#686de0); color:#fff; }
+
+  .htr-cards { display:grid; grid-template-columns:1fr 1fr; gap:24px; margin-bottom:40px; }
+  @media(max-width:720px){ .htr-cards { grid-template-columns:1fr; } }
+  .htr-card { border-radius:18px; padding:28px 28px 24px; position:relative; overflow:hidden; box-shadow:0 4px 24px rgba(0,0,0,.12); }
+  .htr-card::after { content:''; position:absolute; top:-30px; right:-30px; width:120px; height:120px; border-radius:50%; background:rgba(255,255,255,.06); pointer-events:none; }
+  .htr-card-a { background:linear-gradient(135deg,#2d1b1b,#3d2020); border:1px solid rgba(255,107,107,.25); }
+  .htr-card-r { background:linear-gradient(135deg,#2d2610,#3d3015); border:1px solid rgba(249,202,36,.25); }
+  .htr-card-c { background:linear-gradient(135deg,#1a2d15,#1e3d18); border:1px solid rgba(106,176,76,.25); }
+  .htr-card-s { background:linear-gradient(135deg,#1a1840,#1e1d54); border:1px solid rgba(104,109,224,.25); }
+  .htr-card-header { display:flex; align-items:center; gap:12px; margin-bottom:16px; }
+  .htr-card-icon { width:44px; height:44px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:1.4rem; flex-shrink:0; }
+  .htr-icon-a { background:rgba(255,107,107,.2); }
+  .htr-icon-r { background:rgba(249,202,36,.2); }
+  .htr-icon-c { background:rgba(106,176,76,.2); }
+  .htr-icon-s { background:rgba(104,109,224,.2); }
+  .htr-card-title { font-size:1.15rem; font-weight:700; color:#fff; }
+  .htr-card-sub { font-size:.78rem; color:#718096; font-weight:500; text-transform:uppercase; letter-spacing:.4px; }
+  .htr-card-body { color:#cbd5e0; font-size:.93rem; line-height:1.65; }
+  .htr-card-body strong { color:#fff; }
+  .htr-card-body em { font-style:normal; }
+  .htr-tag { display:inline-block; border-radius:6px; padding:2px 9px; font-size:.75rem; font-weight:600; margin:3px 2px 0; }
+  .htr-tag-a { background:rgba(255,107,107,.18); color:#ff6b6b; }
+  .htr-tag-r { background:rgba(249,202,36,.18); color:#f9ca24; }
+  .htr-tag-c { background:rgba(106,176,76,.18); color:#6ab04c; }
+  .htr-tag-s { background:rgba(104,109,224,.18); color:#a29bfe; }
+
+  .htr-curve { width:100%; margin:12px 0 0; }
+
+  .htr-tips { background:linear-gradient(135deg,rgba(99,179,237,.06),rgba(159,122,234,.06)); border:1px solid rgba(99,179,237,.15); border-radius:16px; padding:24px 28px; margin-bottom:32px; }
+  .htr-tips h3 { font-size:1rem; font-weight:700; color:#90cdf4; margin:0 0 14px; }
+  .htr-tip-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:12px; }
+  .htr-tip-item { display:flex; align-items:flex-start; gap:10px; }
+  .htr-tip-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; margin-top:5px; }
+  .htr-tip-dot-a { background:#ff6b6b; }
+  .htr-tip-dot-r { background:#f9ca24; }
+  .htr-tip-dot-c { background:#6ab04c; }
+  .htr-tip-dot-s { background:#a29bfe; }
+  .htr-tip-text { color:#a0aec0; font-size:.87rem; line-height:1.5; }
+
+  .htr-science { display:flex; gap:16px; flex-wrap:wrap; margin-bottom:32px; }
+  .htr-sci-card { flex:1; min-width:180px; background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.08); border-radius:12px; padding:16px 18px; }
+  .htr-sci-num { font-size:1.8rem; font-weight:800; line-height:1; margin-bottom:4px; }
+  .htr-sci-label { font-size:.82rem; color:#718096; line-height:1.4; }
+
   /* settings-global-btn */
   #settings-global-btn { margin-left:8px; border-radius:8px; }
 </style>
@@ -739,6 +803,7 @@
   <nav class="nav top-nav">
     <button class="top-tab-btn active" data-top="prelims">🔵 Preliminary Examination (an objective screening test)</button>
     <button class="top-tab-btn" data-top="mains">✍️ Main Examination</button>
+    <button class="top-tab-btn" data-top="remember">🧠 How to Remember</button>
   </nav>
 
   <!-- MAINS SUB-NAV -->
@@ -1487,6 +1552,147 @@
 
   </div><!-- end #prelims-content -->
 
+  <!-- ============ HOW TO REMEMBER CONTENT ============ -->
+  <div id="remember-content">
+  <div class="htr-page">
+
+    <!-- Hero -->
+    <div class="htr-hero">
+      <div class="htr-badge">Cognitive Science · Memory Research</div>
+      <h1>How Your Brain Actually Remembers</h1>
+      <p>Four evidence-based strategies that beat re-reading, highlighting, and cramming — backed by decades of memory research.</p>
+    </div>
+
+    <!-- ARCS Acronym Bar -->
+    <div class="htr-acro">
+      <div class="htr-letter-block htr-lb-a"><span class="big-letter">A</span><span class="letter-word">Active Recall</span></div>
+      <div class="htr-letter-block htr-lb-r"><span class="big-letter">R</span><span class="letter-word">Repeat &amp; Space</span></div>
+      <div class="htr-letter-block htr-lb-c"><span class="big-letter">C</span><span class="letter-word">Contrast &amp; Chunk</span></div>
+      <div class="htr-letter-block htr-lb-s"><span class="big-letter">S</span><span class="letter-word">Stick with Tricks</span></div>
+    </div>
+
+    <!-- Science numbers -->
+    <div class="htr-science">
+      <div class="htr-sci-card"><div class="htr-sci-num" style="color:#ff6b6b">2×</div><div class="htr-sci-label">better retention from testing vs. re-reading (Roediger &amp; Karpicke, 2006)</div></div>
+      <div class="htr-sci-card"><div class="htr-sci-num" style="color:#f9ca24">80%</div><div class="htr-sci-label">of unreviewed information is forgotten within 24 hours (Ebbinghaus, 1885)</div></div>
+      <div class="htr-sci-card"><div class="htr-sci-num" style="color:#6ab04c">4</div><div class="htr-sci-label">items is the true limit of working memory (Cowan, 2001)</div></div>
+      <div class="htr-sci-card"><div class="htr-sci-num" style="color:#a29bfe">3×</div><div class="htr-sci-label">more recall with dual coding — words + images (Paivio, 1971)</div></div>
+    </div>
+
+    <!-- Four ARCS Cards -->
+    <div class="htr-cards">
+
+      <!-- A: Active Recall -->
+      <div class="htr-card htr-card-a">
+        <div class="htr-card-header">
+          <div class="htr-card-icon htr-icon-a">🎯</div>
+          <div><div class="htr-card-title">Active Recall</div><div class="htr-card-sub">A · Retrieval Practice</div></div>
+        </div>
+        <div class="htr-card-body">
+          <strong>Don't re-read. Close the book and retrieve.</strong><br><br>
+          Every time you pull information out of memory, you strengthen the neural pathway to it. Re-reading gives an illusion of knowing — recognition is not recall.<br><br>
+          <strong>How to use it:</strong><br>
+          After reading a section, close it. Write down everything you remember — dates, names, concepts — without peeking. Then check.<br><br>
+          <span class="htr-tag htr-tag-a">Flash cards</span>
+          <span class="htr-tag htr-tag-a">Self-testing</span>
+          <span class="htr-tag htr-tag-a">Blank-paper recall</span>
+          <span class="htr-tag htr-tag-a">Past papers first</span>
+        </div>
+        <!-- Forgetting curve for this card -->
+        <svg class="htr-curve" viewBox="0 0 280 70" xmlns="http://www.w3.org/2000/svg">
+          <path d="M10 10 Q60 60 140 62 Q200 63 270 63" fill="none" stroke="rgba(255,107,107,0.25)" stroke-width="2" stroke-dasharray="4 3"/>
+          <path d="M10 10 L40 18 Q80 40 100 42 L140 44 Q200 46 270 46" fill="none" stroke="#ff6b6b" stroke-width="2"/>
+          <circle cx="40" cy="18" r="3" fill="#ff6b6b"/>
+          <circle cx="100" cy="42" r="3" fill="#ff6b6b"/>
+          <circle cx="200" cy="45" r="3" fill="#ff6b6b"/>
+          <text x="12" y="68" fill="rgba(255,255,255,.3)" font-size="9">No review</text>
+          <text x="120" y="68" fill="#ff6b6b" font-size="9">With recall practice</text>
+        </svg>
+      </div>
+
+      <!-- R: Spaced Repetition -->
+      <div class="htr-card htr-card-r">
+        <div class="htr-card-header">
+          <div class="htr-card-icon htr-icon-r">🔁</div>
+          <div><div class="htr-card-title">Repeat with Spacing</div><div class="htr-card-sub">R · Spaced Repetition</div></div>
+        </div>
+        <div class="htr-card-body">
+          <strong>Review before you forget — not while you still remember.</strong><br><br>
+          Memory consolidates during sleep and across time. Cramming loads information into short-term memory; spacing moves it into long-term memory.<br><br>
+          <strong>The UPSC revision schedule:</strong><br>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:10px 0 6px;">
+            <div style="text-align:center;background:rgba(249,202,36,.12);border-radius:8px;padding:6px 4px;"><div style="font-size:1.1rem;font-weight:800;color:#f9ca24">D1</div><div style="font-size:.7rem;color:#718096">same day</div></div>
+            <div style="text-align:center;background:rgba(249,202,36,.12);border-radius:8px;padding:6px 4px;"><div style="font-size:1.1rem;font-weight:800;color:#f9ca24">D3</div><div style="font-size:.7rem;color:#718096">3rd day</div></div>
+            <div style="text-align:center;background:rgba(249,202,36,.12);border-radius:8px;padding:6px 4px;"><div style="font-size:1.1rem;font-weight:800;color:#f9ca24">D7</div><div style="font-size:.7rem;color:#718096">week</div></div>
+            <div style="text-align:center;background:rgba(249,202,36,.12);border-radius:8px;padding:6px 4px;"><div style="font-size:1.1rem;font-weight:800;color:#f9ca24">D21</div><div style="font-size:.7rem;color:#718096">3 weeks</div></div>
+          </div>
+          <span class="htr-tag htr-tag-r">Anki decks</span>
+          <span class="htr-tag htr-tag-r">Weekly revision</span>
+          <span class="htr-tag htr-tag-r">Topic rotation</span>
+        </div>
+      </div>
+
+      <!-- C: Contrast & Chunk -->
+      <div class="htr-card htr-card-c">
+        <div class="htr-card-header">
+          <div class="htr-card-icon htr-icon-c">🧩</div>
+          <div><div class="htr-card-title">Contrast &amp; Chunk</div><div class="htr-card-sub">C · Interference Reduction</div></div>
+        </div>
+        <div class="htr-card-body">
+          <strong>Don't memorise a list. Understand what makes each item different.</strong><br><br>
+          Similar items interfere with each other in memory. Chunking binds related items into one unit. Your working memory holds ~4 chunks (Cowan, 2001) — not 4 raw facts.<br><br>
+          <strong>For UPSC:</strong> Instead of listing 30 national parks, group by: biome type → then contrast within each. Notice what makes Kaziranga unique vs Manas.<br><br>
+          <span class="htr-tag htr-tag-c">Comparison tables</span>
+          <span class="htr-tag htr-tag-c">Mind maps</span>
+          <span class="htr-tag htr-tag-c">Why is X different?</span>
+          <span class="htr-tag htr-tag-c">Group by theme</span>
+        </div>
+      </div>
+
+      <!-- S: Encoding Tricks -->
+      <div class="htr-card htr-card-s">
+        <div class="htr-card-header">
+          <div class="htr-card-icon htr-icon-s">🔐</div>
+          <div><div class="htr-card-title">Stick with Encoding Tricks</div><div class="htr-card-sub">S · Dual Coding &amp; Mnemonics</div></div>
+        </div>
+        <div class="htr-card-body">
+          <strong>Give your brain two hooks, not one — words AND images.</strong><br><br>
+          The brain stores verbal and visual information in separate systems. When you encode a concept with both (a word and a mental image or diagram), you double your retrieval routes (Paivio, 1971).<br><br>
+          <strong>Encoding toolkit:</strong><br>
+          <div style="margin:8px 0;display:flex;flex-direction:column;gap:5px;">
+            <div style="display:flex;gap:8px;align-items:start;"><span style="color:#a29bfe;font-size:.85rem;">🔤</span><span style="font-size:.88rem;color:#cbd5e0;"><strong>Acronyms</strong> — VIBGYOR, HOMES, ARCS</span></div>
+            <div style="display:flex;gap:8px;align-items:start;"><span style="color:#a29bfe;font-size:.85rem;">🖼</span><span style="font-size:.88rem;color:#cbd5e0;"><strong>Visual story</strong> — place items on a mental walk (Method of Loci)</span></div>
+            <div style="display:flex;gap:8px;align-items:start;"><span style="color:#a29bfe;font-size:.85rem;">🔗</span><span style="font-size:.88rem;color:#cbd5e0;"><strong>Link to what you know</strong> — new info hooks onto existing schema</span></div>
+            <div style="display:flex;gap:8px;align-items:start;"><span style="color:#a29bfe;font-size:.85rem;">🗺</span><span style="font-size:.88rem;color:#cbd5e0;"><strong>Sketch it</strong> — even a rough diagram beats bullet points</span></div>
+          </div>
+          <span class="htr-tag htr-tag-s">Memory palace</span>
+          <span class="htr-tag htr-tag-s">Draw diagrams</span>
+          <span class="htr-tag htr-tag-s">Teach aloud</span>
+        </div>
+      </div>
+
+    </div><!-- end htr-cards -->
+
+    <!-- Quick-apply tips -->
+    <div class="htr-tips">
+      <h3>⚡ Apply this to UPSC preparation today</h3>
+      <div class="htr-tip-grid">
+        <div class="htr-tip-item"><div class="htr-tip-dot htr-tip-dot-a"></div><div class="htr-tip-text">After every mock test, close the answer key and write what you remember about each wrong answer from memory.</div></div>
+        <div class="htr-tip-item"><div class="htr-tip-dot htr-tip-dot-r"></div><div class="htr-tip-text">Tag difficult questions in this app (★★★+) to create a personal spaced-repetition list for Day 3, 7, 21.</div></div>
+        <div class="htr-tip-item"><div class="htr-tip-dot htr-tip-dot-c"></div><div class="htr-tip-text">When you see two similar topics (e.g. two constitutional amendments), write down: "how are they different?" before moving on.</div></div>
+        <div class="htr-tip-item"><div class="htr-tip-dot htr-tip-dot-s"></div><div class="htr-tip-text">Use the Tricks (T1, T2…) feature in this app to attach a mnemonic or image cue to every tricky question.</div></div>
+        <div class="htr-tip-item"><div class="htr-tip-dot htr-tip-dot-a"></div><div class="htr-tip-text">Before sleeping, do a 5-minute blank-paper brain dump of everything covered that day — no notes.</div></div>
+        <div class="htr-tip-item"><div class="htr-tip-dot htr-tip-dot-r"></div><div class="htr-tip-text">Rotate subjects weekly rather than finishing one topic entirely — interleaving improves long-term retention.</div></div>
+      </div>
+    </div>
+
+    <div style="text-align:center;padding:8px 0 20px;color:rgba(255,255,255,.2);font-size:.78rem;">
+      Sources: Roediger &amp; Karpicke (2006) · Ebbinghaus (1885) · Cowan (2001) · Paivio (1971) · Cepeda et al. (2006)
+    </div>
+
+  </div><!-- end htr-page -->
+  </div><!-- end #remember-content -->
+
   <!-- ============ SETTINGS VIEW (global) ============ -->
   <section class="view" id="view-settings">
     <div class="card">
@@ -1918,12 +2124,14 @@ function switchTop(tab) {
   // tab buttons
   document.querySelectorAll('.top-tab-btn').forEach(b => b.classList.toggle('active', b.dataset.top === tab));
   // content wrappers — pure class-based, no inline style
-  const mainsContent   = document.getElementById('mains-content');
-  const prelimsContent = document.getElementById('prelims-content');
-  const mainsSubNav    = document.getElementById('mains-sub-nav');
-  const prelimsView    = document.getElementById('view-prelims');
+  const mainsContent    = document.getElementById('mains-content');
+  const prelimsContent  = document.getElementById('prelims-content');
+  const rememberContent = document.getElementById('remember-content');
+  const mainsSubNav     = document.getElementById('mains-sub-nav');
+  const prelimsView     = document.getElementById('view-prelims');
   mainsContent.classList.toggle('active', tab === 'mains');
   prelimsContent.classList.toggle('active', tab === 'prelims');
+  if (rememberContent) rememberContent.classList.toggle('active', tab === 'remember');
   mainsSubNav.classList.toggle('active', tab === 'mains');
   // view-prelims is a .view (display:none by default) — needs active
   if (prelimsView) prelimsView.classList.toggle('active', tab === 'prelims');
