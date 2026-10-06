@@ -6,6 +6,7 @@
 <title>UPSC Mains AI Evaluator</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='80' font-size='80'%3E%F0%9F%93%9D%3C/text%3E%3C/svg%3E" />
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script>
   if (window.pdfjsLib) {
     pdfjsLib.GlobalWorkerOptions.workerSrc =
@@ -1697,6 +1698,31 @@
   <section class="view" id="view-settings">
     <div class="card">
       <h3 style="font-size:14px;font-weight:700;margin-bottom:12px;">🔑 API Keys</h3>
+
+      <!-- Cloud sync auth -->
+      <div id="supaAuthBox" style="background:var(--bg-hover);border-radius:10px;padding:12px 14px;margin-bottom:18px;font-size:13px;">
+        <div id="supaSignedOutUI">
+          <p style="margin:0 0 8px;font-weight:600;">☁ Sync keys across devices</p>
+          <p style="margin:0 0 10px;color:var(--text-muted);font-size:12px;">Sign in once — keys load automatically on any device.</p>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            <input id="supaEmail" type="email" placeholder="Email" autocomplete="email" style="flex:1;min-width:160px;padding:7px 10px;border-radius:7px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:13px;" />
+            <input id="supaPass" type="password" placeholder="Password" autocomplete="current-password" style="flex:1;min-width:120px;padding:7px 10px;border-radius:7px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:13px;" />
+          </div>
+          <div style="display:flex;gap:6px;margin-top:8px;">
+            <button id="supaSignInBtn" type="button" style="padding:6px 14px;border-radius:7px;background:var(--accent);color:#fff;border:none;cursor:pointer;font-size:13px;font-weight:600;">Sign in</button>
+            <button id="supaSignUpBtn" type="button" style="padding:6px 14px;border-radius:7px;background:transparent;color:var(--accent);border:1px solid var(--accent);cursor:pointer;font-size:13px;">Sign up</button>
+          </div>
+          <p id="supaAuthErr" style="margin:6px 0 0;color:#e53e3e;font-size:12px;display:none;"></p>
+        </div>
+        <div id="supaSignedInUI" style="display:none;">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+            <span>☁ Synced · <strong id="supaUserLabel"></strong></span>
+            <button id="supaSignOutBtn" type="button" style="padding:4px 10px;border-radius:6px;background:transparent;color:var(--text-muted);border:1px solid var(--border);cursor:pointer;font-size:12px;">Sign out</button>
+          </div>
+          <p style="margin:4px 0 0;color:var(--text-muted);font-size:12px;">Keys load automatically on every device after sign-in.</p>
+        </div>
+      </div>
+
       <details style="margin-bottom:18px;" open>
         <summary style="cursor:pointer;font-weight:600;font-size:14px;color:var(--accent);user-select:none;">📋 Provider Setup Guide</summary>
         <div style="margin-top:12px;font-size:13px;line-height:1.6;">
@@ -2204,26 +2230,94 @@ if (savedGemini) $('geminiKey').value = savedGemini;
 const savedOR = localStorage.getItem(OPENROUTER_KEY_KEY);
 if (savedOR) $('openrouterKey').value = savedOR;
 
-$('saveKey').addEventListener('click', () => {
+$('saveKey').addEventListener('click', async () => {
   const k = $('apiKey').value.trim();
   if (!k) return alert('Paste your Groq API key first');
   localStorage.setItem(KEY_KEY, k);
+  await supaUpsertKeys({ groq_key: k });
   $('saveKey').textContent = 'Saved!';
   setTimeout(() => $('saveKey').textContent = 'Save', 1500);
 });
-$('saveGeminiKey').addEventListener('click', () => {
+$('saveGeminiKey').addEventListener('click', async () => {
   const k = $('geminiKey').value.trim();
   if (!k) return alert('Paste your Gemini API key first');
   localStorage.setItem(GEMINI_KEY_KEY, k);
+  await supaUpsertKeys({ gemini_key: k });
   $('saveGeminiKey').textContent = 'Saved!';
   setTimeout(() => $('saveGeminiKey').textContent = 'Save', 1500);
 });
-$('saveOpenrouterKey').addEventListener('click', () => {
+$('saveOpenrouterKey').addEventListener('click', async () => {
   const k = $('openrouterKey').value.trim();
   if (!k) return alert('Paste your OpenRouter API key first');
   localStorage.setItem(OPENROUTER_KEY_KEY, k);
+  await supaUpsertKeys({ openrouter_key: k });
   $('saveOpenrouterKey').textContent = 'Saved!';
   setTimeout(() => $('saveOpenrouterKey').textContent = 'Save', 1500);
+});
+
+// ── Supabase cloud key sync ───────────────────────────────────────
+const SUPA_URL = 'https://hqrxdvrxzmlntejwojep.supabase.co';
+const SUPA_KEY = 'sb_publishable_ntxmQLA_Qpb6SuQDNlYuug_EM8TuNhN';
+let supa = null, supaUser = null;
+try { supa = supabase.createClient(SUPA_URL, SUPA_KEY); } catch(e) {}
+
+async function supaUpsertKeys(patch) {
+  if (!supa || !supaUser) return;
+  try {
+    await supa.from('evaluator_keys').upsert({ user_id: supaUser.id, ...patch }, { onConflict: 'user_id' });
+  } catch(e) {}
+}
+
+async function supaLoadKeys() {
+  if (!supa || !supaUser) return;
+  try {
+    const { data } = await supa.from('evaluator_keys').select('*').eq('user_id', supaUser.id).single();
+    if (!data) return;
+    if (data.groq_key)       { localStorage.setItem(KEY_KEY, data.groq_key);                $('apiKey').value = data.groq_key; }
+    if (data.gemini_key)     { localStorage.setItem(GEMINI_KEY_KEY, data.gemini_key);       $('geminiKey').value = data.gemini_key; }
+    if (data.openrouter_key) { localStorage.setItem(OPENROUTER_KEY_KEY, data.openrouter_key); $('openrouterKey').value = data.openrouter_key; }
+  } catch(e) {}
+}
+
+function supaUpdateUI() {
+  $('supaSignedOutUI').style.display = supaUser ? 'none' : '';
+  $('supaSignedInUI').style.display  = supaUser ? ''     : 'none';
+  if (supaUser) $('supaUserLabel').textContent = supaUser.email;
+}
+
+if (supa) {
+  supa.auth.getSession().then(async ({ data: { session } }) => {
+    supaUser = session?.user || null;
+    supaUpdateUI();
+    if (supaUser) await supaLoadKeys();
+  });
+  supa.auth.onAuthStateChange(async (_e, session) => {
+    supaUser = session?.user || null;
+    supaUpdateUI();
+    if (supaUser) await supaLoadKeys();
+  });
+}
+
+$('supaSignInBtn').addEventListener('click', async () => {
+  const email = $('supaEmail').value.trim(), pass = $('supaPass').value;
+  if (!email || !pass) return;
+  $('supaSignInBtn').textContent = 'Signing in…';
+  const { error } = await supa.auth.signInWithPassword({ email, password: pass });
+  $('supaSignInBtn').textContent = 'Sign in';
+  if (error) { const el = $('supaAuthErr'); el.textContent = error.message; el.style.display = ''; }
+});
+$('supaSignUpBtn').addEventListener('click', async () => {
+  const email = $('supaEmail').value.trim(), pass = $('supaPass').value;
+  if (!email || !pass) return;
+  $('supaSignUpBtn').textContent = 'Signing up…';
+  const { error } = await supa.auth.signUp({ email, password: pass });
+  $('supaSignUpBtn').textContent = 'Sign up';
+  const el = $('supaAuthErr');
+  if (error) { el.textContent = error.message; el.style.display = ''; }
+  else { el.textContent = 'Check your email to confirm, then sign in.'; el.style.display = ''; el.style.color = 'green'; }
+});
+$('supaSignOutBtn').addEventListener('click', async () => {
+  await supa.auth.signOut();
 });
 
 // provider change → repopulate models, persist choice
