@@ -845,9 +845,9 @@
         <div>
           <label for="provider">Provider</label>
           <select id="provider">
-            <option value="groq">Groq (free)</option>
+            <option value="openrouter">OpenRouter ⭐ (recommended)</option>
             <option value="gemini">Google Gemini (free)</option>
-            <option value="openrouter">OpenRouter (free tier)</option>
+            <option value="groq">Groq (free)</option>
           </select>
         </div>
         <div>
@@ -1245,7 +1245,7 @@
         <select id="p-provider-sel" class="p-select" style="font-size:11px;" title="LLM Provider">
           <option value="groq">Groq</option>
           <option value="gemini">Gemini</option>
-          <option value="openrouter">OpenRouter</option>
+          <option value="openrouter">OpenRouter ⭐</option>
         </select>
         <select id="p-model-sel" class="p-select" style="font-size:11px;max-width:140px;" title="Model"></select>
       </div>
@@ -1700,66 +1700,65 @@
       <details style="margin-bottom:18px;" open>
         <summary style="cursor:pointer;font-weight:600;font-size:14px;color:var(--accent);user-select:none;">📋 Provider Setup Guide</summary>
         <div style="margin-top:12px;font-size:13px;line-height:1.6;">
-          <p style="margin:0 0 10px;color:var(--text-muted);">Paste keys for any provider(s) you want to use. You can have all three active simultaneously.</p>
+          <div style="background:rgba(99,179,237,0.1);border:1px solid rgba(99,179,237,0.3);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:13px;">
+            ⭐ <strong>Recommended: OpenRouter</strong> — one key, 100+ models including Claude, Gemini 2.5 Pro, GPT-4o. Best UPSC evaluation quality. <a href="https://openrouter.ai/keys" target="_blank" style="color:var(--accent);">Get key →</a>
+          </div>
           <table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:12px;">
             <thead><tr style="background:var(--bg-hover);">
               <th style="padding:6px 8px;text-align:left;border-bottom:1px solid var(--border);">Provider</th>
-              <th style="padding:6px 8px;text-align:left;border-bottom:1px solid var(--border);">Free Tier</th>
-              <th style="padding:6px 8px;text-align:left;border-bottom:1px solid var(--border);">Vision?</th>
+              <th style="padding:6px 8px;text-align:left;border-bottom:1px solid var(--border);">Best Model</th>
+              <th style="padding:6px 8px;text-align:left;border-bottom:1px solid var(--border);">Cost</th>
               <th style="padding:6px 8px;text-align:left;border-bottom:1px solid var(--border);">Get Key</th>
             </tr></thead>
             <tbody>
               <tr>
-                <td style="padding:6px 8px;border-bottom:1px solid var(--border);font-weight:600;">Groq</td>
-                <td style="padding:6px 8px;border-bottom:1px solid var(--border);">~30 req/min (text)<br>2–5 req/min (vision)</td>
-                <td style="padding:6px 8px;border-bottom:1px solid var(--border);">✅ Qwen 3.6 27B</td>
-                <td style="padding:6px 8px;border-bottom:1px solid var(--border);"><a href="https://console.groq.com/keys" target="_blank">console.groq.com/keys</a></td>
+                <td style="padding:6px 8px;border-bottom:1px solid var(--border);font-weight:600;">OpenRouter ⭐</td>
+                <td style="padding:6px 8px;border-bottom:1px solid var(--border);">Claude Sonnet, Gemini 2.5 Pro, GPT-4o</td>
+                <td style="padding:6px 8px;border-bottom:1px solid var(--border);">Free tier + pay-per-use</td>
+                <td style="padding:6px 8px;border-bottom:1px solid var(--border);"><a href="https://openrouter.ai/keys" target="_blank">openrouter.ai/keys</a></td>
               </tr>
               <tr>
                 <td style="padding:6px 8px;border-bottom:1px solid var(--border);font-weight:600;">Google Gemini</td>
-                <td style="padding:6px 8px;border-bottom:1px solid var(--border);">15 RPM / 1M TPM</td>
-                <td style="padding:6px 8px;border-bottom:1px solid var(--border);">✅ Gemini 3.5 Flash</td>
+                <td style="padding:6px 8px;border-bottom:1px solid var(--border);">Gemini 2.5 Flash (vision)</td>
+                <td style="padding:6px 8px;border-bottom:1px solid var(--border);">Free · 15 RPM</td>
                 <td style="padding:6px 8px;border-bottom:1px solid var(--border);"><a href="https://aistudio.google.com/apikey" target="_blank">aistudio.google.com/apikey</a></td>
               </tr>
               <tr>
-                <td style="padding:6px 8px;font-weight:600;">OpenRouter</td>
-                <td style="padding:6px 8px;">100+ models, many free</td>
-                <td style="padding:6px 8px;">✅ Several models</td>
-                <td style="padding:6px 8px;"><a href="https://openrouter.ai/keys" target="_blank">openrouter.ai/keys</a></td>
+                <td style="padding:6px 8px;font-weight:600;">Groq</td>
+                <td style="padding:6px 8px;">Llama / Qwen</td>
+                <td style="padding:6px 8px;">Free · fast</td>
+                <td style="padding:6px 8px;"><a href="https://console.groq.com/keys" target="_blank">console.groq.com/keys</a></td>
               </tr>
             </tbody>
           </table>
-          <div style="background:var(--bg-hover);border-radius:8px;padding:10px 12px;margin-bottom:10px;">
+          <div style="background:var(--bg-hover);border-radius:8px;padding:10px 12px;">
             <strong>How to use:</strong>
             <ol style="margin:6px 0 0 0;padding-left:18px;">
-              <li>Paste keys below for whichever providers you want</li>
-              <li>On the Evaluate form → select Provider → model list updates automatically</li>
-              <li>Your provider/model selection is remembered across sessions</li>
+              <li>Get an OpenRouter key (free) → paste below → Save</li>
+              <li>Select provider &amp; model on the Evaluate form</li>
+              <li>For best results: <strong>Claude Sonnet 4.5</strong> (add $5 credit on OpenRouter)</li>
             </ol>
-          </div>
-          <div style="background:#fff3cd;color:#856404;border-radius:8px;padding:8px 12px;font-size:12px;">
-            💡 <strong>Hit Groq vision rate limit?</strong> Switch to <strong>Google Gemini</strong> — free with higher limits.
           </div>
         </div>
       </details>
-      <label for="apiKey">Groq API Key <span style="font-size:11px;color:var(--text-muted);">(free · qwen/gpt-oss/llama)</span></label>
+      <label for="openrouterKey">OpenRouter API Key ⭐ <span style="font-size:11px;color:var(--text-muted);">(recommended · Claude, Gemini, GPT-4o &amp; more)</span></label>
       <div class="key-row">
-        <input type="password" id="apiKey" placeholder="gsk_..." autocomplete="off" />
-        <button id="saveKey" type="button">Save</button>
+        <input type="password" id="openrouterKey" placeholder="sk-or-..." autocomplete="off" />
+        <button id="saveOpenrouterKey" type="button">Save</button>
       </div>
-      <div class="hint" style="margin-bottom:12px;"><a href="https://console.groq.com/keys" target="_blank">console.groq.com/keys</a> — no card needed.</div>
+      <div class="hint" style="margin-bottom:12px;"><a href="https://openrouter.ai/keys" target="_blank">openrouter.ai/keys</a> — free account, 100+ models. Add $5 credit for Claude/GPT-4o.</div>
       <label for="geminiKey">Google Gemini API Key <span style="font-size:11px;color:var(--text-muted);">(free · vision · generous limits)</span></label>
       <div class="key-row">
         <input type="password" id="geminiKey" placeholder="AIza..." autocomplete="off" />
         <button id="saveGeminiKey" type="button">Save</button>
       </div>
       <div class="hint" style="margin-bottom:12px;"><a href="https://aistudio.google.com/apikey" target="_blank">aistudio.google.com/apikey</a> — free, 15 RPM / 1M TPM.</div>
-      <label for="openrouterKey">OpenRouter API Key <span style="font-size:11px;color:var(--text-muted);">(free models available)</span></label>
+      <label for="apiKey">Groq API Key <span style="font-size:11px;color:var(--text-muted);">(free · fast · weaker eval quality)</span></label>
       <div class="key-row">
-        <input type="password" id="openrouterKey" placeholder="sk-or-..." autocomplete="off" />
-        <button id="saveOpenrouterKey" type="button">Save</button>
+        <input type="password" id="apiKey" placeholder="gsk_..." autocomplete="off" />
+        <button id="saveKey" type="button">Save</button>
       </div>
-      <div class="hint"><a href="https://openrouter.ai/keys" target="_blank">openrouter.ai/keys</a> — 100+ models, many free.</div>
+      <div class="hint" style="margin-bottom:12px;"><a href="https://console.groq.com/keys" target="_blank">console.groq.com/keys</a> — no card needed.</div>
     </div>
     <div class="card">
       <label>⏰ Evening Reminder (in this tab)</label>
@@ -1918,12 +1917,17 @@ const PROVIDERS = {
     baseUrl: 'https://openrouter.ai/api/v1',
     storageKey: OPENROUTER_KEY_KEY,
     models: [
-      { id: 'google/gemini-3.5-flash:free',                    name: 'Gemini 3.5 Flash (free, vision)',      vision: true  },
-      { id: 'meta-llama/llama-3.2-11b-vision-instruct:free',   name: 'Llama 3.2 11B Vision (free)',     vision: true  },
-      { id: 'qwen/qwen-2.5-72b-instruct:free',                 name: 'Qwen 2.5 72B (free)',             vision: false },
-      { id: 'meta-llama/llama-3.3-70b-instruct:free',          name: 'Llama 3.3 70B (free)',            vision: false },
-      { id: 'deepseek/deepseek-r1:free',                       name: 'DeepSeek R1 (free)',              vision: false },
-      { id: 'google/gemini-2.0-flash-001:free',                name: 'Gemini 2.0 Flash (free)',         vision: false },
+      // ── Paid — best evaluation quality ──────────────────────────
+      { id: 'anthropic/claude-sonnet-4-5',                     name: 'Claude Sonnet 4.5 ⭐ (best eval)',     vision: true  },
+      { id: 'anthropic/claude-haiku-4-5',                      name: 'Claude Haiku 4.5 (fast, cheap)',       vision: true  },
+      { id: 'google/gemini-2.5-pro',                           name: 'Gemini 2.5 Pro (vision)',              vision: true  },
+      { id: 'google/gemini-2.5-flash',                         name: 'Gemini 2.5 Flash (fast, vision)',      vision: true  },
+      { id: 'openai/gpt-4o',                                   name: 'GPT-4o (vision)',                      vision: true  },
+      // ── Free ────────────────────────────────────────────────────
+      { id: 'google/gemini-2.0-flash-exp:free',                name: 'Gemini 2.0 Flash (free, vision)',      vision: true  },
+      { id: 'meta-llama/llama-3.3-70b-instruct:free',          name: 'Llama 3.3 70B (free)',                 vision: false },
+      { id: 'deepseek/deepseek-r1:free',                       name: 'DeepSeek R1 (free, reasoning)',        vision: false },
+      { id: 'qwen/qwen-2.5-72b-instruct:free',                 name: 'Qwen 2.5 72B (free)',                  vision: false },
     ]
   }
 };
@@ -1939,8 +1943,11 @@ const NON_VISION_IDS = /embedding|tts|whisper|moderation|rerank|instruct(?!.*vis
 function knownVision(id) {
   // explicit known vision IDs
   const yes = ['qwen/qwen3.6-27b','gemini-3.5-flash','gemini-2.5-flash-lite',
-    'google/gemini-3.5-flash:free','meta-llama/llama-3.2-11b-vision-instruct:free',
-    'meta-llama/llama-3.2-90b-vision-instruct:free'];
+    'google/gemini-3.5-flash:free','google/gemini-2.0-flash-exp:free',
+    'meta-llama/llama-3.2-11b-vision-instruct:free',
+    'meta-llama/llama-3.2-90b-vision-instruct:free',
+    'anthropic/claude-sonnet-4-5','anthropic/claude-haiku-4-5',
+    'google/gemini-2.5-pro','google/gemini-2.5-flash','openai/gpt-4o'];
   if (yes.includes(id)) return true;
   if (/vision|llava|pixtral|molmo/i.test(id)) return true;
   if (/gemini/i.test(id) && !/embedding|tts/i.test(id)) return true;
@@ -2510,7 +2517,7 @@ OUTPUT — ONLY valid JSON:
 
 // =================== API CALL ===================
 function getActiveProvider() {
-  return $('provider').value || localStorage.getItem(PROVIDER_KEY) || 'groq';
+  return $('provider').value || localStorage.getItem(PROVIDER_KEY) || 'openrouter';
 }
 function getActiveApiKey() {
   const p = getActiveProvider();
