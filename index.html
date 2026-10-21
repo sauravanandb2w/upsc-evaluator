@@ -1801,6 +1801,12 @@
         <button id="saveGithubToken" type="button">Save Token</button>
       </div>
       <div class="hint"><a href="https://github.com/settings/tokens/new?scopes=gist,public_repo" target="_blank">Create a token</a> with <strong>gist</strong> + <strong>public_repo</strong> scopes. Stored locally only.</div>
+      <label style="margin-top:12px;display:block;">Gist ID or URL (other laptop)</label>
+      <div class="key-row">
+        <input type="text" id="gistIdInput" placeholder="abc123… or https://gist.github.com/you/abc123…" autocomplete="off" spellcheck="false" />
+        <button id="saveGistId" type="button">Link Gist</button>
+      </div>
+      <div class="hint">Paste the gist from <strong>View Gist</strong> after backup on your first device, then <strong>Restore</strong> here. Same gist is updated on each backup.</div>
       <div class="btn-row" style="margin-top:10px;justify-content:flex-start;">
         <button id="backupGistBtn" type="button" class="btn-ghost">☁️ Backup to Gist</button>
         <button id="restoreGistBtn" type="button" class="btn-ghost">📥 Restore from Gist</button>
@@ -4273,6 +4279,45 @@ const GIST_ID_KEY = 'upsc_gist_id';
 const GH_TOKEN_KEY = 'upsc_gh_token';
 const ghTokenSaved = localStorage.getItem(GH_TOKEN_KEY);
 if (ghTokenSaved) $('githubToken').value = ghTokenSaved;
+const gistIdSaved = localStorage.getItem(GIST_ID_KEY);
+if (gistIdSaved) $('gistIdInput').value = gistIdSaved;
+
+function parseGistId(raw) {
+  const s = String(raw || '').trim();
+  if (!s) return '';
+  try {
+    if (/^https?:\/\//i.test(s)) {
+      const path = new URL(s).pathname.replace(/\/+$/, '');
+      const parts = path.split('/').filter(Boolean);
+      return parts[parts.length - 1] || '';
+    }
+  } catch (_) { /* not a URL */ }
+  return s.split('?')[0].replace(/\/+$/, '');
+}
+
+function getLinkedGistId() {
+  const fromInput = parseGistId($('gistIdInput').value);
+  if (fromInput) return fromInput;
+  return localStorage.getItem(GIST_ID_KEY) || '';
+}
+
+function saveLinkedGistId(id, statusEl) {
+  const parsed = parseGistId(id);
+  if (!parsed) {
+    if (statusEl) statusEl.innerHTML = '<span style="color:var(--danger)">Paste a gist ID or full gist URL.</span>';
+    return '';
+  }
+  localStorage.setItem(GIST_ID_KEY, parsed);
+  $('gistIdInput').value = parsed;
+  return parsed;
+}
+
+$('saveGistId').addEventListener('click', () => {
+  const statusEl = $('gistStatus');
+  const parsed = saveLinkedGistId($('gistIdInput').value, statusEl);
+  if (!parsed) return;
+  statusEl.innerHTML = '<span style="color:var(--good)">✓ Linked gist <code style="font-size:11px">' + escapeHtml(parsed) + '</code> — you can Restore now.</span>';
+});
 
 $('saveGithubToken').addEventListener('click', () => {
   const t = $('githubToken').value.trim();
@@ -4289,7 +4334,7 @@ $('backupGistBtn').addEventListener('click', async () => {
   statusEl.innerHTML = '<span class="spinner"></span>Backing up…';
   try {
     const history = loadHistory();
-    const gistId = localStorage.getItem(GIST_ID_KEY);
+    const gistId = getLinkedGistId();
     const res = await fetch(gistId ? `https://api.github.com/gists/${gistId}` : 'https://api.github.com/gists', {
       method: gistId ? 'PATCH' : 'POST',
       headers: { Authorization: 'token ' + token, 'Content-Type': 'application/json' },
@@ -4308,9 +4353,9 @@ $('backupGistBtn').addEventListener('click', async () => {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.message || res.status);
-    localStorage.setItem(GIST_ID_KEY, data.id);
+    saveLinkedGistId(data.id, null);
     const pTests = JSON.parse(localStorage.getItem('upsc_prelims_tests') || '[]');
-    statusEl.innerHTML = `<span style="color:var(--good)">✓ Backed up ${history.length} mains + ${pTests.length} prelims tests · ${new Date().toLocaleString('en-IN')} · <a href="${data.html_url}" target="_blank">View Gist</a></span>`;
+    statusEl.innerHTML = `<span style="color:var(--good)">✓ Backed up ${history.length} mains + ${pTests.length} prelims tests · ${new Date().toLocaleString('en-IN')} · <a href="${data.html_url}" target="_blank">View Gist</a> · ID <code style="font-size:11px">${escapeHtml(data.id)}</code></span>`;
   } catch (e) {
     statusEl.innerHTML = `<span style="color:var(--danger)">✗ ${escapeHtml(e.message)}</span>`;
   }
@@ -4318,10 +4363,10 @@ $('backupGistBtn').addEventListener('click', async () => {
 
 $('restoreGistBtn').addEventListener('click', async () => {
   const token = $('githubToken').value.trim() || localStorage.getItem(GH_TOKEN_KEY);
-  const gistId = localStorage.getItem(GIST_ID_KEY);
   const statusEl = $('gistStatus');
   if (!token) { statusEl.innerHTML = '<span style="color:var(--danger)">No token saved.</span>'; return; }
-  if (!gistId) { statusEl.innerHTML = '<span style="color:var(--danger)">No Gist ID found — backup first.</span>'; return; }
+  const gistId = saveLinkedGistId($('gistIdInput').value, null) || getLinkedGistId();
+  if (!gistId) { statusEl.innerHTML = '<span style="color:var(--danger)">Paste gist URL/ID above and click Link Gist, or backup on this device first.</span>'; return; }
   if (!confirm('Restore from Gist? New entries will be merged in (nothing deleted).')) return;
   statusEl.innerHTML = '<span class="spinner"></span>Restoring…';
   try {

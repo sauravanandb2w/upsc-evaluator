@@ -51,6 +51,7 @@ Open `index.html` directly in any browser. Or visit GitHub Pages: `https://saura
 - **⏰ Evening reminder** — browser notification at a chosen time (while tab is open).
 - **🌙 Dark mode** — toggle in header. Saved per browser.
 - **📥 Export / Import history** — download full eval history as JSON; restore on another browser/device by importing the same file. Import merges with existing (de-duplicates by timestamp).
+- **☁️ GitHub Gist backup** — backup / restore history across devices (secret gist + `ghp_` token). Step-by-step: **[GIST_BACKUP.md](./GIST_BACKUP.md)**.
 
 ## Setup
 
