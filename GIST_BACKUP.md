@@ -1,8 +1,10 @@
-# GitHub Gist backup & restore
+# GitHub Gist backup & restore (optional)
 
-Your evaluation history lives in **this browser only** (`localStorage`). Gist backup copies it to a **secret gist** on your GitHub account so you can pull it onto another laptop or browser.
+**Prefer JSON file backup** for most users: **[EXPORT_IMPORT.md](./EXPORT_IMPORT.md)** (no token, no gist size limit).
 
-**No git commit is required** for your data. Pushing this repo only updates the app UI; your backups are stored on GitHub Gists, not in `upsc-evaluator`.
+Your evaluation history lives in **this browser only** (`localStorage`). Gist backup copies a snapshot to a **secret gist** on your GitHub account.
+
+**No git commit is required** for your data.
 
 Live app: [upsc-evaluator on GitHub Pages](https://sauravanandb2w.github.io/upsc-evaluator/)
 
@@ -88,6 +90,6 @@ Restore **merges** mains by timestamp and prelims tests by id. Some prelims keys
 
 ---
 
-## Alternative: JSON export
+## Alternative: JSON export (recommended)
 
-Settings also supports **Export / Import history** (file on disk). Use that if you prefer a USB/file over Gist.
+See **[EXPORT_IMPORT.md](./EXPORT_IMPORT.md)** — full backup from Settings or History.

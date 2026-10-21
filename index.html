@@ -1168,11 +1168,11 @@
       <div id="historyList">No evaluations saved yet.</div>
       <div class="btn-row" style="margin-top: 10px;">
         <button id="clearHistoryBtn" class="btn-secondary">Clear All History</button>
-        <button id="importHistoryBtn" class="btn-ghost">Import JSON</button>
-        <button id="exportHistoryBtn" class="btn-ghost">Export as JSON</button>
+        <button id="importHistoryBtn" class="btn-ghost">Import backup</button>
+        <button id="exportHistoryBtn" class="btn-ghost">Export full backup</button>
       </div>
       <input type="file" id="importHistoryInput" class="file-input-hidden" accept="application/json,.json" />
-      <div id="importStatus" class="hint" style="margin-top: 8px;"></div>
+      <div id="importStatus" class="hint" style="margin-top: 8px;">Same JSON as Settings → Full backup (mains + prelims + practice log).</div>
     </div>
   </section>
 
@@ -1795,7 +1795,18 @@
       <div class="hint" id="reminderStatus">Browser notification fires while this tab stays open. Permission required.</div>
     </div>
     <div class="card">
-      <label>☁️ GitHub Gist Backup</label>
+      <label>📦 Full backup — JSON file (recommended)</label>
+      <p class="hint" style="margin-bottom:10px;">One file for <strong>mains history</strong>, <strong>prelims tests</strong>, practice log, and related data. Save to iCloud Drive / Google Drive / USB — no GitHub token, no ~1&nbsp;MB gist cap. Import <strong>merges</strong> (does not wipe this device).</p>
+      <div class="btn-row" style="justify-content:flex-start;">
+        <button id="exportFullBackupBtn" type="button" class="btn-primary">⬇️ Export full backup</button>
+        <button id="importFullBackupBtn" type="button" class="btn-ghost">⬆️ Import full backup</button>
+      </div>
+      <input type="file" id="importFullBackupInput" class="file-input-hidden" accept="application/json,.json" />
+      <div id="fullBackupStatus" class="hint" style="margin-top:8px;"></div>
+      <p class="hint" style="margin-top:8px;font-size:12px;">Steps: Laptop A → Export → upload file to cloud. Laptop B → download same file → Import. Re-export after new evals. See <a href="EXPORT_IMPORT.md" target="_blank">EXPORT_IMPORT.md</a>.</p>
+    </div>
+    <div class="card">
+      <label>☁️ GitHub Gist Backup <span style="font-weight:500;color:var(--text-muted)">(optional)</span></label>
       <div class="key-row">
         <input type="password" id="githubToken" placeholder="ghp_... (needs gist scope)" autocomplete="off" />
         <button id="saveGithubToken" type="button">Save Token</button>
@@ -1919,6 +1930,15 @@ const PROVIDER_KEY = 'upsc_provider';
 const THEME_KEY = 'upsc_theme';
 const WEAKNESS_EDITS_KEY = 'upsc_weakness_edits';
 const PRACTICE_LOG_KEY = 'upsc_articulation_practice_log';
+const FULL_BACKUP_FORMAT = 'upsc-evaluator-backup';
+const FULL_BACKUP_VERSION = 1;
+const LS_PRELIMS_TESTS = 'upsc_prelims_tests';
+const LS_PRELIMS_DRAFT = 'upsc_prelims_draft';
+const LS_PRELIMS_SUGGESTIONS = 'upsc_prelims_suggestions';
+const LS_PRELIMS_TRICKS = 'upsc_prelims_tricks';
+const LS_PRELIMS_BLOGS = 'upsc_prelims_blogs';
+const LS_PRELIMS_DELETED = 'upsc_prelims_deleted';
+const LS_PRELIMS_TAGS = 'upsc_prelims_tags_custom';
 
 // =================== PROVIDER CONFIG ===================
 const PROVIDERS = {
@@ -3231,6 +3251,142 @@ function markDeleted(ts) {
   localStorage.setItem(DELETED_TS_KEY, JSON.stringify([...d].slice(-1000)));
 }
 function saveHistory(h) { localStorage.setItem(HIST_KEY, JSON.stringify(h.slice(-500))); }
+
+function lsJson(key, fallback) {
+  try { return JSON.parse(localStorage.getItem(key) ?? fallback); } catch { return JSON.parse(fallback); }
+}
+
+function buildFullBackupObject() {
+  return {
+    format: FULL_BACKUP_FORMAT,
+    version: FULL_BACKUP_VERSION,
+    exportedAt: new Date().toISOString(),
+    data: {
+      mainsHistory: loadHistory(),
+      deletedTs: [...getDeletedTs()],
+      prelimsTests: lsJson(LS_PRELIMS_TESTS, '[]'),
+      prelimsDraft: localStorage.getItem(LS_PRELIMS_DRAFT),
+      prelimsSuggestions: lsJson(LS_PRELIMS_SUGGESTIONS, '{}'),
+      prelimsTricks: lsJson(LS_PRELIMS_TRICKS, '[]'),
+      prelimsBlogs: lsJson(LS_PRELIMS_BLOGS, '[]'),
+      prelimsDeleted: lsJson(LS_PRELIMS_DELETED, '[]'),
+      prelimsTagsCustom: lsJson(LS_PRELIMS_TAGS, '[]'),
+      practiceLog: typeof loadPracticeLog === 'function' ? loadPracticeLog() : []
+    }
+  };
+}
+
+function downloadBackupBlob(obj) {
+  const blob = new Blob([JSON.stringify(obj, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'upsc-evaluator-backup-' + new Date().toISOString().slice(0, 10) + '.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function mergeByKey(localArr, remoteArr, key) {
+  const map = new Map();
+  (localArr || []).forEach(item => { if (item && item[key] != null) map.set(item[key], item); });
+  let added = 0;
+  (remoteArr || []).forEach(item => {
+    if (!item || item[key] == null) return;
+    if (!map.has(item[key])) { map.set(item[key], item); added++; }
+  });
+  return { merged: [...map.values()], added };
+}
+
+function mergeMainsHistory(remoteArr) {
+  const valid = (remoteArr || []).filter(e => e && typeof e === 'object' && e.ts && (e.score != null || e.grade));
+  const existing = loadHistory();
+  const tsSet = new Set(existing.map(x => x.ts));
+  const deleted = getDeletedTs();
+  const fresh = valid.filter(x => !tsSet.has(x.ts) && !deleted.has(x.ts));
+  const merged = [...existing, ...fresh].sort((a, b) => a.ts - b.ts);
+  saveHistory(merged);
+  return { added: fresh.length, total: merged.length };
+}
+
+function applyFullBackupImport(payload) {
+  const d = payload.data || {};
+  const mains = mergeMainsHistory(d.mainsHistory || []);
+  if (Array.isArray(d.deletedTs)) {
+    const del = getDeletedTs();
+    d.deletedTs.forEach(ts => del.add(ts));
+    localStorage.setItem(DELETED_TS_KEY, JSON.stringify([...del].slice(-1000)));
+  }
+  const tests = mergeByKey(lsJson(LS_PRELIMS_TESTS, '[]'), d.prelimsTests || [], 'id');
+  localStorage.setItem(LS_PRELIMS_TESTS, JSON.stringify(tests.merged));
+  if (d.prelimsDraft && !localStorage.getItem(LS_PRELIMS_DRAFT)) {
+    localStorage.setItem(LS_PRELIMS_DRAFT, d.prelimsDraft);
+  }
+  const localSug = lsJson(LS_PRELIMS_SUGGESTIONS, '{}');
+  const remoteSug = d.prelimsSuggestions && typeof d.prelimsSuggestions === 'object' ? d.prelimsSuggestions : {};
+  const mergedSug = { ...localSug };
+  Object.keys(remoteSug).forEach(k => { if (!mergedSug[k]) mergedSug[k] = remoteSug[k]; });
+  localStorage.setItem(LS_PRELIMS_SUGGESTIONS, JSON.stringify(mergedSug));
+  const tricks = mergeByKey(lsJson(LS_PRELIMS_TRICKS, '[]'), d.prelimsTricks || [], 'id');
+  localStorage.setItem(LS_PRELIMS_TRICKS, JSON.stringify(tricks.merged));
+  const blogs = mergeByKey(lsJson(LS_PRELIMS_BLOGS, '[]'), d.prelimsBlogs || [], 'id');
+  localStorage.setItem(LS_PRELIMS_BLOGS, JSON.stringify(blogs.merged));
+  const delLocal = lsJson(LS_PRELIMS_DELETED, '[]');
+  const delRemote = Array.isArray(d.prelimsDeleted) ? d.prelimsDeleted : [];
+  const delMerged = [...new Set([...delLocal, ...delRemote])];
+  localStorage.setItem(LS_PRELIMS_DELETED, JSON.stringify(delMerged));
+  const tagsLocal = lsJson(LS_PRELIMS_TAGS, '[]');
+  const tagsRemote = Array.isArray(d.prelimsTagsCustom) ? d.prelimsTagsCustom : [];
+  localStorage.setItem(LS_PRELIMS_TAGS, JSON.stringify([...new Set([...tagsLocal, ...tagsRemote])]));
+  let practiceAdded = 0;
+  if (typeof loadPracticeLog === 'function' && typeof savePracticeLog === 'function' && Array.isArray(d.practiceLog)) {
+    const pl = mergeByKey(loadPracticeLog(), d.practiceLog, 'ts');
+    practiceAdded = pl.added;
+    savePracticeLog(pl.merged.sort((a, b) => a.ts - b.ts));
+  }
+  return { mains, tests, tricks, blogs, practiceAdded };
+}
+
+async function runBackupImportFromFile(file, statusEl) {
+  if (!file) return;
+  statusEl.innerHTML = '<span class="spinner"></span>Reading file…';
+  try {
+    const parsed = JSON.parse(await file.text());
+    if (Array.isArray(parsed)) {
+      const mains = mergeMainsHistory(parsed);
+      if (!mains.added) {
+        statusEl.innerHTML = '<span style="color:var(--warn)">⚠️ Legacy mains-only file — no new entries to merge.</span>';
+        return;
+      }
+      statusEl.innerHTML = `<span style="color:var(--good)">✓ Imported ${mains.added} mains eval(s). Total: ${mains.total}. (Old format — export again for full backup.)</span>`;
+      renderHistory();
+      return;
+    }
+    if (parsed.format !== FULL_BACKUP_FORMAT) {
+      throw new Error('Unknown backup format — use Export full backup from this app.');
+    }
+    if (!confirm('Merge this backup into this browser? Existing data is kept; duplicates skipped.')) {
+      statusEl.innerHTML = '<span style="color:var(--text-muted)">Import cancelled.</span>';
+      return;
+    }
+    const r = applyFullBackupImport(parsed);
+    statusEl.innerHTML = `<span style="color:var(--good)">✓ Merged: ${r.mains.added} mains · ${r.tests.added} prelims tests · ${r.practiceAdded} practice log. Mains total: ${r.mains.total}.</span>`;
+    renderHistory();
+    if (typeof renderPracticeLog === 'function') renderPracticeLog();
+  } catch (err) {
+    statusEl.innerHTML = '<span style="color:var(--danger)">✗ ' + escapeHtml(err.message) + '</span>';
+  }
+}
+
+function exportFullBackupToFile(statusEl) {
+  const payload = buildFullBackupObject();
+  downloadBackupBlob(payload);
+  const mb = (payload.data.mainsHistory || []).length;
+  const pt = (payload.data.prelimsTests || []).length;
+  if (statusEl) {
+    statusEl.innerHTML = `<span style="color:var(--good)">✓ Downloaded backup (${mb} mains, ${pt} prelims tests).</span>`;
+  }
+}
+
 function saveToHistory(entry) {
   const h = loadHistory();
   h.push(entry);
@@ -3577,65 +3733,17 @@ $('historyList').addEventListener('click', (e) => {
   render(entry.result, { maxMarks: currentMaxMarks, selfScore: entry.selfScore });
   switchView('evaluate');
 });
-$('exportHistoryBtn').addEventListener('click', () => {
-  const h = loadHistory();
-  const blob = new Blob([JSON.stringify(h, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = 'upsc-eval-history-' + new Date().toISOString().slice(0,10) + '.json';
-  a.click(); URL.revokeObjectURL(url);
-});
-
-// =================== IMPORT ===================
+$('exportHistoryBtn').addEventListener('click', () => exportFullBackupToFile($('importStatus')));
 $('importHistoryBtn').addEventListener('click', () => $('importHistoryInput').click());
-
 $('importHistoryInput').addEventListener('change', async (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
-  const statusEl = $('importStatus');
-  statusEl.innerHTML = '<span class="spinner"></span>Reading file...';
-  try {
-    const text = await file.text();
-    const parsed = JSON.parse(text);
-    if (!Array.isArray(parsed)) throw new Error('JSON must be an array of evaluation entries');
-
-    // validate + filter
-    const valid = parsed.filter(e => e && typeof e === 'object' && e.ts && (e.score != null || e.grade));
-    const invalid = parsed.length - valid.length;
-    if (!valid.length) throw new Error('No valid entries found (each entry needs ts and score)');
-
-    const existing = loadHistory();
-    const existingTs = new Set(existing.map(x => x.ts));
-    const fresh = valid.filter(x => !existingTs.has(x.ts));
-    const dupes = valid.length - fresh.length;
-
-    if (!fresh.length) {
-      statusEl.innerHTML = `<span style="color: var(--warn);">⚠️ Nothing imported — all ${valid.length} entries already exist (same timestamps).</span>`;
-      $('importHistoryInput').value = '';
-      return;
-    }
-
-    const choice = confirm(
-      `Found ${fresh.length} new entries to import.\n` +
-      `${dupes} duplicate(s) will be skipped.\n` +
-      (invalid ? `${invalid} invalid entry/entries will be skipped.\n` : '') +
-      `\nClick OK to MERGE (add to existing ${existing.length}).\n` +
-      `Click Cancel to abort.`
-    );
-    if (!choice) {
-      statusEl.innerHTML = '<span style="color: var(--text-muted);">Import cancelled.</span>';
-      $('importHistoryInput').value = '';
-      return;
-    }
-
-    const merged = [...existing, ...fresh].sort((a,b) => a.ts - b.ts);
-    saveHistory(merged);
-    statusEl.innerHTML = `<span style="color: var(--good);">✓ Imported ${fresh.length} entries. Total: ${merged.length}.${dupes ? ' Skipped ' + dupes + ' dup(s).' : ''}${invalid ? ' Skipped ' + invalid + ' invalid.' : ''}</span>`;
-    renderHistory();
-  } catch (err) {
-    statusEl.innerHTML = '<span style="color: var(--danger);">✗ Import failed: ' + escapeHtml(err.message) + '</span>';
-  }
-  $('importHistoryInput').value = '';
+  await runBackupImportFromFile(e.target.files[0], $('importStatus'));
+  e.target.value = '';
+});
+$('exportFullBackupBtn').addEventListener('click', () => exportFullBackupToFile($('fullBackupStatus')));
+$('importFullBackupBtn').addEventListener('click', () => $('importFullBackupInput').click());
+$('importFullBackupInput').addEventListener('change', async (e) => {
+  await runBackupImportFromFile(e.target.files[0], $('fullBackupStatus'));
+  e.target.value = '';
 });
 
 // =================== PYQ FETCH + PICKER ===================
