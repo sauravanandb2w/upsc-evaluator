@@ -1,5 +1,7 @@
 # Full JSON backup & restore (recommended)
 
+User guide (setup + backup routine): **[HOW_TO_USE.md](./HOW_TO_USE.md)** §2.
+
 Use this instead of GitHub Gist when you want **no token**, **no gist size limit**, and a file you control in **iCloud Drive / Google Drive / OneDrive / USB**.
 
 Live app: [upsc-evaluator](https://sauravanandb2w.github.io/upsc-evaluator/)

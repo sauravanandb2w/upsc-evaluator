@@ -4,6 +4,8 @@ Single-file web app that evaluates UPSC Mains answers using Groq free-tier model
 
 Works for **GS-1, GS-2, GS-3, GS-4 (Ethics), and Essay** papers. 100% client-side, no backend.
 
+**How to use (setup, evaluate, JSON backup across laptops):** **[HOW_TO_USE.md](./HOW_TO_USE.md)**
+
 ## Live Demo
 
 Open `index.html` directly in any browser. Or visit GitHub Pages: `https://sauravanandb2w.github.io/upsc-evaluator/`

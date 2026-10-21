@@ -1,6 +1,6 @@
 # GitHub Gist backup & restore (optional)
 
-**Prefer JSON file backup** for most users: **[EXPORT_IMPORT.md](./EXPORT_IMPORT.md)** (no token, no gist size limit).
+**Prefer JSON file backup** for most users: **[HOW_TO_USE.md](./HOW_TO_USE.md)** §2 · [EXPORT_IMPORT.md](./EXPORT_IMPORT.md) (no token, no gist size limit).
 
 Your evaluation history lives in **this browser only** (`localStorage`). Gist backup copies a snapshot to a **secret gist** on your GitHub account.
 
